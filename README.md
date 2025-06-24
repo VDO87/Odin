@@ -1,4 +1,5 @@
 # Odin Zero
+![Tests](https://github.com/VDO87/Odin/actions/workflows/python-tests.yml/badge.svg)
 
 Sistema de IA local adaptativa para simulação e otimização de estratégias de trading. Aprende com o histórico de decisões e ajusta pesos dinamicamente. Modular, testável e pronto para integração com APIs externas (como OpenAI ou brokers).
 
@@ -70,10 +71,21 @@ source .venv/bin/activate  # Linux/macOS
 
 ## 📝 Licença
 
-Licença MIT ou outra apropriada.
+Projeto licenciado sob a [Licença MIT](LICENSE).
+Veja o [CHANGELOG](CHANGELOG.md) para detalhes das versões.
+
 
 ## 📌 Estado Atual
 
 Versão: v3.0.0
 Status: Em desenvolvimento ativo
 Objetivo próximo: integração com API externa e refino de feedback inteligente
+
+## 🔭 Roadmap
+
+- v3.1.0 - integração com OpenAI
+- v4.0.0 - execução em tempo real
+
+---
+
+Desenvolvido por [VDO87](https://github.com/VDO87)
