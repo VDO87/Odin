@@ -1,0 +1,9 @@
+numpy
+pandas
+matplotlib
+ta
+pre-commit
+flake8
+black
+pytest
+python-dotenv
