@@ -1,111 +1,79 @@
-# Odin Zero <!-- título ajustado para melhor clareza -->
+# Odin Zero
 
-[![Build](https://github.com/your_org/Odin/actions/workflows/ci.yml/badge.svg)](https://github.com/your_org/Odin/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/your_org/Odin)](https://codecov.io/gh/your_org/Odin)
-[![PyPI](https://img.shields.io/pypi/v/odin-zero)](https://pypi.org/project/odin-zero/)
+Sistema de IA local adaptativa para simulação e otimização de estratégias de trading. Aprende com o histórico de decisões e ajusta pesos dinamicamente. Modular, testável e pronto para integração com APIs externas (como OpenAI ou brokers).
 
-Odin Zero é um sistema modular de trading e simulação de estratégias em Python. Esta versão inclui integração com IA local, logging avançado e suporte para extensão futura.
-
-## Instalação
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e .  # instala o pacote localmente
-pre-commit install  # ativa hooks de qualidade
-```
-
-## Uso
-
-### Simulação
-
-```bash
-python -m simulator.run_simulation --cenario tendencial
-```
-
-Os cenários disponíveis são `tendencial`, `lateral` (padrão) e `volatilidade_alta`.
-Os logs e pesos serão guardados respectivamente na pasta `logs/` e no arquivo `pesos.json`.
-
-Exemplo de saída:
+## 🧱 Estrutura do Projeto
 
 ```text
-Simulação concluída
+Odin/
+├── core/           # Núcleo da decisão
+├── strategies/     # Estratégias de trading (RSI, MACD, etc.)
+├── ai/             # Inteligência artificial local
+├── trainer/        # Feedback e ajuste de pesos
+├── simulator/      # Gerador de dados de mercado
+├── metrics/        # Visualização e métricas
+├── tests/          # Testes automatizados
+├── main.py         # Ponto de entrada
 ```
 
-### Treino offline <!-- nova secção -->
+## 🚀 Como Executar
 
-```bash
-python -m trainer.simulador_treino
-cat pesos.json
-```
-
-Exemplo do ficheiro gerado:
-
-```json
-{
-  "treino": 1.9839585402330405e-249
-}
-```
-
-### Produção
-
-Para iniciar o motor principal:
-
-```bash
-python main.py --simular
-```
-
-### Parâmetros de linha de comando <!-- nova secção com exemplos -->
-
-```text
---simular         executa modo de simulação padrão
---mode <tipo>     define o modo (ex.: simulacao ou producao)
---config <ficheiro>  indica caminho para um ficheiro de configuracao
-```
-
-Exemplo de execução com opções:
-
-```bash
-python main.py --mode simulacao --config configs/base.yaml
-```
-
-## Testes <!-- secção de testes adicionada -->
-
-```bash
-pytest -q
-```
-
-
-## OpenAI
-
-O módulo `ai/openai/client.py` é um *placeholder*. Para utilizar a API, copie o
-arquivo `.env.example` para `.env` e preencha `API_KEY` com a sua chave.
-
-## Mais informações
-
-Consulte o [CHANGELOG](CHANGELOG.md) para detalhes de versão.
-
-## Estrutura do projeto
-
-```
-ai/            # módulos de IA
-core/          # motor principal
-simulator/     # geração de dados e ambiente de mercado
-metrics/       # visualização e métricas
-strategies/    # estratégias de trading
-trainer/       # ferramentas de treino offline
-```
-
-## Execução local
+Simulação simples:
 
 ```bash
 python main.py
 ```
 
-## Fluxo da IA
+Com debug:
 
-1. `gerar_dados` cria o cenário de mercado.
-2. Estratégia decide a ação para cada preço.
-3. `feedback.gerar_feedback` regista o lucro obtido.
-4. `AdaptiveAI` atualiza e guarda os pesos.
+```bash
+python main.py --debug
+```
+
+## 🧪 Testes
+
+Para correr todos os testes:
+
+```bash
+pytest
+```
+
+## 📈 Visualizar pesos
+
+Gera gráfico de pesos atual:
+
+```bash
+python metrics/plot_pesos.py
+```
+
+## ⚙️ Instalação
+
+Requisitos:
+
+```bash
+pip install -r requirements.txt
+```
+
+(opcional) Ambiente virtual:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+.venv\Scripts\activate     # Windows
+```
+
+## 🤝 Contribuição
+
+1. Clona o repositório.
+2. Cria uma branch com o nome da funcionalidade.
+3. Abre um pull request com descrição clara.
+
+## 📝 Licença
+
+Licença MIT ou outra apropriada.
+
+## 📌 Estado Atual
+
+Versão: v3.0.0
+Status: Em desenvolvimento ativo
+Objetivo próximo: integração com API externa e refino de feedback inteligente
