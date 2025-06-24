@@ -1,0 +1,31 @@
+name: Python Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov flake8 black mypy pre-commit
+      - name: Verificar formatação com Black
+        run: black --check .
+      - name: Linting com Flake8
+        run: flake8 .
+      - name: Análise de tipos com Mypy
+        run: mypy core/ trainer/ strategies/ ai/ simulator/
+      - name: Executar testes com cobertura
+        run: pytest --cov=core --cov=trainer --cov=strategies --cov=ai --cov=simulator tests/
+      - name: Executar pre-commit
+        run: pre-commit run --all-files
+
