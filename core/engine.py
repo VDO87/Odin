@@ -50,3 +50,15 @@ class Engine:
         except Exception as exc:  # noqa: BLE001
             self.logger_erros.error("Erro na simulação: %s", exc)
             raise
+
+    def executar_decisao(
+        self, estrategias: dict[str, callable], pesos: dict[str, float]
+    ) -> str:
+        """Seleciona e executa a estratégia com maior peso."""
+        if not estrategias:
+            raise ValueError("Nenhuma estratégia fornecida")
+        nome_melhor = max(pesos, key=pesos.get)
+        estrategia = estrategias.get(nome_melhor)
+        if estrategia is None:
+            raise KeyError(nome_melhor)
+        return estrategia()
