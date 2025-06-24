@@ -1,7 +1,14 @@
 # Descrição
 
-Por favor descreva as mudanças deste PR.
+Descreva resumidamente as alterações propostas e o motivo.
 
-# Checklist
-- [ ] Testes executados
+## Tipo
+- [ ] Correção de bug
+- [ ] Nova funcionalidade
+- [ ] Documentação
+
+## Checklist
+- [ ] `pre-commit` executado
+- [ ] Testes adicionados ou atualizados
+- [ ] `pytest` passou
 - [ ] Revisão realizada
