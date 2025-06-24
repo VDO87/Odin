@@ -11,3 +11,6 @@ if ENV_PATH.exists():
     load_dotenv(ENV_PATH)
 
 API_KEY = os.getenv("API_KEY", "")
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+LOG_PATH = Path(os.getenv("LOG_PATH", "logs"))
+SEED = int(os.getenv("SEED", "0"))

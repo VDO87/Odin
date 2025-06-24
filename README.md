@@ -85,3 +85,27 @@ arquivo `.env.example` para `.env` e preencha `API_KEY` com a sua chave.
 ## Mais informações
 
 Consulte o [CHANGELOG](CHANGELOG.md) para detalhes de versão.
+
+## Estrutura do projeto
+
+```
+ai/            # módulos de IA
+core/          # motor principal
+simulator/     # geração de dados e ambiente de mercado
+metrics/       # visualização e métricas
+strategies/    # estratégias de trading
+trainer/       # ferramentas de treino offline
+```
+
+## Execução local
+
+```bash
+python main.py
+```
+
+## Fluxo da IA
+
+1. `gerar_dados` cria o cenário de mercado.
+2. Estratégia decide a ação para cada preço.
+3. `feedback.gerar_feedback` regista o lucro obtido.
+4. `AdaptiveAI` atualiza e guarda os pesos.
