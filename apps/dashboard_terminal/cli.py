@@ -81,6 +81,17 @@ def _run_soak_test(*, mini: bool, duration_seconds: int | None) -> int:
     return result.returncode
 
 
+def _run_cmd(*cmd: str) -> int:
+    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)
+    payload: dict[str, object] = {
+        "returncode": result.returncode,
+        "stdout": result.stdout.strip(),
+        "stderr": result.stderr.strip(),
+    }
+    _print(payload)
+    return result.returncode
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="odin")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -104,6 +115,11 @@ def main() -> None:
     sub.add_parser("runtime-events")
     sub.add_parser("runtime-validate")
     sub.add_parser("soak-report")
+    sub.add_parser("dashboard-preview")
+    sub.add_parser("dashboard-qa")
+    sub.add_parser("tui-smoke-test")
+    sub.add_parser("tui-once")
+    sub.add_parser("tui-demo")
     sub.add_parser("mt5-sync")
     sub.add_parser("mt5-status")
     sub.add_parser("mt5-healthcheck")
@@ -164,6 +180,21 @@ def main() -> None:
 
     if args.cmd == "soak-test":
         raise SystemExit(_run_soak_test(mini=args.mini, duration_seconds=args.duration_seconds))
+
+    if args.cmd == "dashboard-preview":
+        raise SystemExit(_run_cmd(sys.executable, "-m", "apps.dashboard_html.app", "--export-preview"))
+
+    if args.cmd == "dashboard-qa":
+        raise SystemExit(_run_cmd(sys.executable, "-m", "apps.dashboard_html.app", "--dashboard-qa"))
+
+    if args.cmd == "tui-smoke-test":
+        raise SystemExit(_run_cmd(sys.executable, "-m", "apps.dashboard_tui.app", "--smoke-test"))
+
+    if args.cmd == "tui-once":
+        raise SystemExit(_run_cmd(sys.executable, "-m", "apps.dashboard_tui.app", "--once"))
+
+    if args.cmd == "tui-demo":
+        raise SystemExit(_run_cmd(sys.executable, "-m", "apps.dashboard_tui.app", "--once", "--demo"))
 
     if args.cmd in {"smoke-test", "assistant-smoke-test", "runtime-smoke-test"}:
         modules = [

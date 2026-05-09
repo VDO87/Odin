@@ -1,0 +1,72 @@
+<div class="topbar">
+  <div class="title">ODIN VISUAL COMMAND CENTER :: {{mode}} :: {{runtime_state}}</div>
+  <div>
+    <span class="status-chip chip-bad">TRADING REAL: BLOCKED</span>
+    <span class="status-chip chip-bad">MT5 ORDER_SEND: BLOCKED</span>
+    <span class="status-chip chip-bad">BROKER REAL: BLOCKED</span>
+    <span class="status-chip chip-warn">ATLAS: SHADOW_ONLY</span>
+    <span class="status-chip chip-warn">LLM: READ_ONLY</span>
+  </div>
+</div>
+<div class="alerts">{{alerts}}</div>
+
+<div class="grid-main">
+  <div class="panel">
+    <h3>System / Runtime</h3>
+    {{system_block}}
+  </div>
+  <div class="panel">
+    <h3>Market / MT5 Shadow</h3>
+    {{market_block}}
+  </div>
+  <div class="panel">
+    <h3>Assistant / Risk</h3>
+    {{assistant_block}}
+  </div>
+</div>
+
+<div class="footer-grid">
+  <div class="panel">
+    <h3>Positions / Reconciliation</h3>
+    {{positions_block}}
+  </div>
+  <div class="panel">
+    <h3>Events / Logs</h3>
+    {{events_block}}
+  </div>
+</div>
+
+<div class="panel" style="margin-top:10px;">
+  <h3>Perguntar ao ODIN</h3>
+  <div class="input-line">
+    <input id="askInput" placeholder="Qual é o estado do ODIN?">
+    <button class="btn" onclick="askOdin()">Perguntar</button>
+  </div>
+  <pre id="askOut" class="logbox"></pre>
+  <div class="command-bar">
+    <button class="btn" onclick="runCommand('RUNTIME_STATUS')">Runtime Status</button>
+    <button class="btn" onclick="runCommand('RUNTIME_RUN_ONCE')">Run Once</button>
+    <button class="btn" onclick="runCommand('RUNTIME_PAUSE')">Pause</button>
+    <button class="btn" onclick="runCommand('RUNTIME_RESUME')">Resume</button>
+    <button class="btn" onclick="runCommand('RUN_HEALTHCHECK')">Healthcheck</button>
+    <button class="btn" onclick="runCommand('MT5_SYNC_POSITIONS')">Sync MT5</button>
+  </div>
+</div>
+
+<div class="page-links">
+  <a href="/">home</a> · <a href="/runtime">runtime</a> · <a href="/mt5">mt5</a> · <a href="/atlas">atlas</a> · <a href="/assistant">assistant</a> · <a href="/logs">logs</a>
+</div>
+
+<script>
+async function runCommand(name){
+  const r = await fetch('/api/command?name=' + encodeURIComponent(name), {method:'POST'});
+  const d = await r.json();
+  document.getElementById('askOut').textContent = JSON.stringify(d, null, 2);
+}
+async function askOdin(){
+  const q = document.getElementById('askInput').value || 'Qual é o estado do ODIN?';
+  const r = await fetch('/assistant/ask?q=' + encodeURIComponent(q));
+  const d = await r.json();
+  document.getElementById('askOut').textContent = JSON.stringify(d, null, 2);
+}
+</script>

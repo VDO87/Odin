@@ -57,3 +57,15 @@ jobs:
 
       - name: Soak test mini
         run: ./run_odin.sh --soak-test-mini
+
+      - name: Dashboard visual QA
+        run: python -m apps.dashboard_html.app --dashboard-qa
+
+      - name: Dashboard TUI smoke
+        run: python -m apps.dashboard_tui.app --smoke-test
+
+      - name: Dashboard preview via runner
+        run: ./run_odin.sh --dashboard-preview
+
+      - name: TUI smoke via runner
+        run: ./run_odin.sh --tui-smoke-test

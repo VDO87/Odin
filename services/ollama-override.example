@@ -1,0 +1,2 @@
+[Service]
+Environment="OLLAMA_MODELS=/home/vdo/ODIN_RUNTIME/models/ollama"

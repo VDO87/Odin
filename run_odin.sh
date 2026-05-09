@@ -45,6 +45,24 @@ if [[ $# -gt 0 ]]; then
     --dashboard)
       MODE="dashboard"
       ;;
+    --dashboard-preview)
+      MODE="dashboard-preview"
+      ;;
+    --dashboard-qa)
+      MODE="dashboard-qa"
+      ;;
+    --tui)
+      MODE="tui"
+      ;;
+    --tui-demo)
+      MODE="tui-demo"
+      ;;
+    --tui-once)
+      MODE="tui-once"
+      ;;
+    --tui-smoke-test)
+      MODE="tui-smoke-test"
+      ;;
     --healthcheck)
       MODE="healthcheck"
       ;;
@@ -73,7 +91,7 @@ if [[ $# -gt 0 ]]; then
       MODE="soak-report"
       ;;
     *)
-      echo "Uso: ./run_odin.sh [--smoke-test|--dashboard|--healthcheck|--runtime|--run-once|--runtime-smoke-test|--snapshot|--runtime-validate|--soak-test|--soak-test-mini|--soak-report]" >&2
+      echo "Uso: ./run_odin.sh [--smoke-test|--dashboard|--dashboard-preview|--dashboard-qa|--tui|--tui-demo|--tui-once|--tui-smoke-test|--healthcheck|--runtime|--run-once|--runtime-smoke-test|--snapshot|--runtime-validate|--soak-test|--soak-test-mini|--soak-report]" >&2
       exit 2
       ;;
   esac
@@ -122,6 +140,30 @@ assert "snapshot" in snap["data"]
 print("ODIN runtime smoke-test OK")
 PY
   exit 0
+fi
+
+if [[ "$MODE" == "dashboard-preview" ]]; then
+  exec "$PYTHON_BIN" -m apps.dashboard_html.app --export-preview
+fi
+
+if [[ "$MODE" == "dashboard-qa" ]]; then
+  exec "$PYTHON_BIN" -m apps.dashboard_html.app --dashboard-qa
+fi
+
+if [[ "$MODE" == "tui-smoke-test" ]]; then
+  exec "$PYTHON_BIN" -m apps.dashboard_tui.app --smoke-test
+fi
+
+if [[ "$MODE" == "tui-once" ]]; then
+  exec "$PYTHON_BIN" -m apps.dashboard_tui.app --once
+fi
+
+if [[ "$MODE" == "tui-demo" ]]; then
+  exec "$PYTHON_BIN" -m apps.dashboard_tui.app --once --demo
+fi
+
+if [[ "$MODE" == "tui" ]]; then
+  exec "$PYTHON_BIN" -m apps.dashboard_tui.app
 fi
 
 if [[ "$MODE" == "runtime-validate" ]]; then
@@ -188,6 +230,11 @@ controller = SystemController(log_root="logs")
 controller.execute("RUNTIME_START", actor="run_odin", role="system")
 controller.runtime.run_loop()
 PY
+fi
+
+if [[ "$MODE" == "dashboard" ]]; then
+  echo "Dashboard disponível em http://127.0.0.1:8000"
+  exec "$PYTHON_BIN" -m apps.dashboard_html.app --host 127.0.0.1 --port 8000
 fi
 
 exec "$PYTHON_BIN" -m apps.dashboard_html.app

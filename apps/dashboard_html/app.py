@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
-import sys
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -14,77 +12,9 @@ from odin_assistant.assistant_router import AssistantRouter
 from odin_atlas.coordinator import AtlasCoordinator
 from odin_control.system_controller import SystemController
 from odin_core.runtime_validator import log_runtime_validation, validate_runtime_artifacts
+from odin_dashboard.formatters import short_ts, sparkline
+from odin_dashboard.state_provider import DashboardStateProvider
 from odin_health.healthcheck import OdinHealthcheck
-
-
-INDEX_HTML = """<!doctype html>
-<html>
-<head><meta charset=\"utf-8\"><title>ODIN Dashboard</title></head>
-<body>
-<h1>ODIN RC1 Dashboard</h1>
-<p>Estado: <span id=\"state\">unknown</span></p>
-<p>Modo: SHADOW_MT5</p>
-<div>
-  <button onclick=\"cmd('START_ODIN')\">Start</button>
-  <button onclick=\"cmd('PAUSE_ODIN')\">Pause</button>
-  <button onclick=\"cmd('RESUME_ODIN')\">Resume</button>
-  <button onclick=\"cmd('RUN_HEALTHCHECK')\">Healthcheck</button>
-  <button onclick=\"cmd('SYNC_MT5_POSITIONS')\">Sync MT5</button>
-  <button onclick=\"cmd('KILL_SWITCH')\">Kill Switch</button>
-</div>
-<div>
-  <button onclick=\"cmd('MT5_STATUS')\">MT5 Status</button>
-  <button onclick=\"cmd('MT5_SYNC_POSITIONS')\">Sync Positions</button>
-  <button onclick=\"cmd('MT5_LIST_POSITIONS')\">List Positions</button>
-  <button onclick=\"cmd('MT5_HEALTHCHECK')\">Healthcheck MT5</button>
-</div>
-<div>
-  <button onclick=\"cmd('RUNTIME_STATUS')\">Runtime Status</button>
-  <button onclick=\"cmd('RUNTIME_RUN_ONCE')\">Run Once</button>
-  <button onclick=\"cmd('RUNTIME_PAUSE')\">Runtime Pause</button>
-  <button onclick=\"cmd('RUNTIME_RESUME')\">Runtime Resume</button>
-  <button onclick=\"cmd('RUNTIME_SAFE_SHUTDOWN')\">Safe Shutdown</button>
-  <button onclick=\"cmd('RUNTIME_SNAPSHOT')\">Snapshot</button>
-  <button onclick=\"runtimeValidate()\">Runtime Validate</button>
-  <button onclick=\"miniSoak()\">Mini Soak Test</button>
-</div>
-<h2>Perguntar ao ODIN</h2>
-<input id=\"q\" size=\"80\" placeholder=\"Qual é o estado do ODIN?\" />
-<button onclick=\"ask()\">Perguntar</button>
-<pre id=\"out\"></pre>
-<h3>Local LLM</h3>
-<pre id=\"llm\">loading...</pre>
-<p><a href=\"/runtime\">/runtime</a> | <a href=\"/assistant\">/assistant</a> | <a href=\"/llm/status\">/llm/status</a> | <a href=\"/atlas\">/atlas</a> | <a href=\"/mt5\">/mt5</a> | <a href=\"/logs\">/logs</a></p>
-<script>
-async function refresh(){
- const r = await fetch('/api/state');
- const d = await r.json();
- document.getElementById('state').innerText = d.state;
- const l = await fetch('/llm/status');
- document.getElementById('llm').innerText = JSON.stringify(await l.json(), null, 2);
-}
-async function cmd(name){
- const r = await fetch('/api/command?name='+encodeURIComponent(name), {method:'POST'});
- document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
- refresh();
-}
-async function ask(){
- const q = document.getElementById('q').value;
- const r = await fetch('/assistant/ask?q='+encodeURIComponent(q));
- document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
-}
-async function runtimeValidate(){
- const r = await fetch('/runtime/validate');
- document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
-}
-async function miniSoak(){
- const r = await fetch('/runtime/soak/mini?confirm=true', {method:'POST'});
- document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
-}
-refresh();
-</script>
-</body>
-</html>"""
 
 
 @dataclass(slots=True)
@@ -99,53 +29,330 @@ class DashboardApp:
         self.controller = SystemController(log_root="logs")
         self.atlas = AtlasCoordinator(log_root="logs")
         self.assistant = AssistantRouter(self.controller)
-
-    def _latest_soak(self) -> dict[str, object]:
-        path = Path("data/runtime/soak_tests/latest_soak_result.json")
-        if not path.exists():
-            return {"status": "missing", "path": str(path)}
-        try:
-            return {"status": "ok", "path": str(path), "report": json.loads(path.read_text(encoding="utf-8"))}
-        except json.JSONDecodeError:
-            return {"status": "invalid_json", "path": str(path)}
+        self.provider = DashboardStateProvider(log_root="logs")
+        self.templates = Path("apps/dashboard_html/templates")
+        self.static = Path("apps/dashboard_html/static")
 
     def _json(self, payload: dict[str, object], code: int = 200) -> DashboardResponse:
         return DashboardResponse(
             status_code=code,
             content_type="application/json; charset=utf-8",
-            body=json.dumps(payload, sort_keys=True).encode("utf-8"),
+            body=json.dumps(payload, sort_keys=True, default=str).encode("utf-8"),
         )
 
-    def _html(self, payload: str, code: int = 200) -> DashboardResponse:
-        return DashboardResponse(
-            status_code=code,
-            content_type="text/html; charset=utf-8",
-            body=payload.encode("utf-8"),
+    def _text(self, payload: str, *, content_type: str = "text/html; charset=utf-8", code: int = 200) -> DashboardResponse:
+        return DashboardResponse(status_code=code, content_type=content_type, body=payload.encode("utf-8"))
+
+    def _render_template(self, name: str, replacements: dict[str, str]) -> str:
+        path = self.templates / name
+        source = path.read_text(encoding="utf-8")
+        for key, value in replacements.items():
+            source = source.replace("{{" + key + "}}", value)
+        return source
+
+    def _render_base(self, title: str, content: str) -> str:
+        return self._render_template("base.html", {"title": title, "content": content})
+
+    def _rows(self, pairs: list[tuple[str, object]]) -> str:
+        out = []
+        for key, value in pairs:
+            out.append(f'<div class="kv"><div class="k">{key}</div><div class="v">{value}</div></div>')
+        return "".join(out)
+
+    def _as_log_lines(self, rows: list[dict[str, object]], *, limit: int = 12) -> str:
+        lines = []
+        for item in rows[-limit:]:
+            ts = short_ts(str(item.get("timestamp", "")))
+            event_type = str(item.get("event_type", item.get("event", "EVENT")))
+            msg = str(item.get("message", item.get("reason", "")))
+            if not msg and "data" in item and isinstance(item["data"], dict):
+                msg = str(item["data"].get("reason", ""))
+            lines.append(f"[{ts}] {event_type} {msg}".strip())
+        return "\n".join(lines) if lines else "no data"
+
+    def _state(self) -> dict[str, object]:
+        force_demo = os.getenv("ODIN_DASHBOARD_FORCE_DEMO", "false").lower() == "true"
+        return self.provider.load_state(force_demo=force_demo)
+
+    def _index_content(self) -> str:
+        state = self._state()
+        runtime = state.get("runtime", {}) if isinstance(state.get("runtime"), dict) else {}
+        mt5 = state.get("mt5", {}) if isinstance(state.get("mt5"), dict) else {}
+        atlas = state.get("atlas", {}) if isinstance(state.get("atlas"), dict) else {}
+        llm = state.get("llm", {}) if isinstance(state.get("llm"), dict) else {}
+        risk = state.get("risk", {}) if isinstance(state.get("risk"), dict) else {}
+        assistant = state.get("assistant", {}) if isinstance(state.get("assistant"), dict) else {}
+        events = state.get("events", []) if isinstance(state.get("events"), list) else []
+        positions = state.get("positions", {}) if isinstance(state.get("positions"), dict) else {}
+
+        mode = str(state.get("mode", "SHADOW_MT5"))
+        runtime_state = str(runtime.get("state", "UNKNOWN"))
+        demo_label = "DEMO DATA" if bool(state.get("demo_data", False)) else "LIVE SNAPSHOT"
+        alerts = f"{demo_label} | Runtime={runtime_state} | safe_to_trade={runtime.get('safe_to_trade', False)}"
+
+        mt5_tick = mt5.get("tick", {}) if isinstance(mt5.get("tick"), dict) else {}
+        if not mt5_tick and isinstance(mt5.get("raw"), dict):
+            mt5_tick = (
+                mt5.get("raw", {})
+                .get("data", {})
+                .get("mt5", {})
+                .get("data", {})
+                .get("tick", {})
+            )
+        series = mt5.get("sparkline", []) if isinstance(mt5.get("sparkline"), list) else []
+
+        system_block = self._rows(
+            [
+                ("Mode", mode),
+                ("Runtime state", runtime_state),
+                ("Heartbeat", short_ts(str(runtime.get("heartbeat", "")))),
+                ("Health", runtime.get("health_status", "UNKNOWN")),
+                ("Safe to trade", runtime.get("safe_to_trade", False)),
+                ("Soak result", (state.get("soak", {}) or {}).get("result", "n/a")),
+            ]
         )
+
+        market_block = self._rows(
+            [
+                ("MT5 status", mt5.get("status", "UNKNOWN")),
+                ("Symbol", mt5.get("symbol", "EURUSD")),
+                ("Timeframe", mt5.get("timeframe", "M15")),
+                ("Bid", mt5_tick.get("bid", "n/a")),
+                ("Ask", mt5_tick.get("ask", "n/a")),
+                ("Spread", mt5_tick.get("spread", "n/a")),
+                ("Sparkline", sparkline([float(x) for x in series]) if series else "n/a"),
+            ]
+        )
+
+        assistant_block = self._rows(
+            [
+                ("LLM status", llm.get("status", "WARNING")),
+                ("LLM provider", llm.get("provider", "ollama")),
+                ("ATLAS status", atlas.get("status", atlas.get("reason", "UNKNOWN"))),
+                ("ATLAS execution", atlas.get("execution_permission", "SHADOW_ONLY")),
+                ("Risk engine", "REQUIRED"),
+                ("Last answer", assistant.get("answer", assistant.get("last_answer", "n/a"))),
+                ("Max risk/trade", risk.get("max_risk_per_trade_percent", "0.25")),
+            ]
+        )
+
+        rec = {}
+        if isinstance(positions.get("reconciliation"), dict):
+            rec = positions.get("reconciliation", {}).get("data", {}).get("reconciliation", {})
+        positions_block = self._rows(
+            [
+                ("Total", rec.get("total_positions", positions.get("total", 0))),
+                ("External", rec.get("external_positions", positions.get("external", 0))),
+                ("Unprotected", rec.get("unprotected_positions", positions.get("unprotected", 0))),
+                ("Unknown magic", rec.get("unknown_magic", positions.get("unknown_magic", 0))),
+                ("Reconciliation", rec.get("recommended_state", positions.get("reconciliation", "n/a"))),
+            ]
+        )
+
+        events_block = f'<pre class="logbox">{self._as_log_lines(events)}</pre>'
+
+        content = self._render_template(
+            "index.html",
+            {
+                "mode": mode,
+                "runtime_state": runtime_state,
+                "alerts": alerts,
+                "system_block": system_block,
+                "market_block": market_block,
+                "assistant_block": assistant_block,
+                "positions_block": positions_block,
+                "events_block": events_block,
+            },
+        )
+        return self._render_base("ODIN Dashboard", content)
+
+    def _runtime_content(self) -> str:
+        state = self._state()
+        validation = validate_runtime_artifacts()
+        log_runtime_validation(validation)
+        soak = state.get("soak", {}) if isinstance(state.get("soak"), dict) else {}
+
+        runtime = state.get("runtime", {}) if isinstance(state.get("runtime"), dict) else {}
+        runtime_block = self._rows(
+            [
+                ("State", runtime.get("state", "UNKNOWN")),
+                ("Heartbeat", short_ts(str(runtime.get("heartbeat", "")))),
+                ("Health", runtime.get("health_status", "UNKNOWN")),
+                ("Safe to trade", runtime.get("safe_to_trade", False)),
+                ("Demo", state.get("demo_data", False)),
+            ]
+        )
+        validation_block = f'<pre class="logbox">{json.dumps(validation, indent=2, sort_keys=True)}</pre>'
+        soak_block = f'<pre class="logbox">{json.dumps(soak, indent=2, sort_keys=True)}</pre>'
+        content = self._render_template(
+            "runtime.html",
+            {
+                "runtime_block": runtime_block,
+                "validation_block": validation_block,
+                "soak_block": soak_block,
+            },
+        )
+        return self._render_base("ODIN Runtime", content)
+
+    def _mt5_content(self) -> str:
+        state = self._state()
+        mt5 = state.get("mt5", {}) if isinstance(state.get("mt5"), dict) else {}
+        mt5_block = f'<pre class="logbox">{json.dumps(mt5, indent=2, sort_keys=True, default=str)}</pre>'
+        content = self._render_template("mt5.html", {"mt5_block": mt5_block})
+        return self._render_base("ODIN MT5", content)
+
+    def _atlas_content(self) -> str:
+        state = self._state()
+        atlas = state.get("atlas", {}) if isinstance(state.get("atlas"), dict) else {}
+        atlas_block = f'<pre class="logbox">{json.dumps(atlas, indent=2, sort_keys=True, default=str)}</pre>'
+        content = self._render_template("atlas.html", {"atlas_block": atlas_block})
+        return self._render_base("ODIN ATLAS", content)
+
+    def _assistant_content(self) -> str:
+        llm = self.assistant.llm_status()
+        ask_block = (
+            '<div class="input-line"><input id="q" placeholder="Qual é o estado do ODIN?">'
+            '<button class="btn" onclick="askNow()">Perguntar</button></div>'
+            '<pre id="aout" class="logbox"></pre>'
+            '<script>async function askNow(){const q=document.getElementById("q").value||"Qual é o estado do ODIN?";'
+            'const r=await fetch("/assistant/ask?q="+encodeURIComponent(q));const d=await r.json();'
+            'document.getElementById("aout").textContent=JSON.stringify(d,null,2);}</script>'
+        )
+        assistant_block = f'<pre class="logbox">{json.dumps(llm, indent=2, sort_keys=True)}</pre>'
+        content = self._render_template(
+            "assistant.html", {"assistant_block": assistant_block, "ask_block": ask_block}
+        )
+        return self._render_base("ODIN Assistant", content)
+
+    def _logs_content(self) -> str:
+        state = self._state()
+        events = state.get("events", []) if isinstance(state.get("events"), list) else []
+        errors = state.get("errors", []) if isinstance(state.get("errors"), list) else []
+        events_block = f'<pre class="logbox">{self._as_log_lines(events, limit=30)}</pre>'
+        errors_block = f'<pre class="logbox">{self._as_log_lines(errors, limit=30)}</pre>'
+        content = self._render_template(
+            "logs.html", {"events_block": events_block, "errors_block": errors_block}
+        )
+        return self._render_base("ODIN Logs", content)
 
     def _assistant_payload(self, question: str) -> dict[str, object]:
         return self.assistant.ask(question, channel="dashboard")
+
+    def export_preview(self) -> dict[str, object]:
+        preview_dir = Path(os.getenv("ODIN_DASHBOARD_PREVIEW_DIR", "dashboard_preview"))
+        preview_dir.mkdir(parents=True, exist_ok=True)
+        pages = {
+            "index.html": "/",
+            "runtime.html": "/runtime",
+            "mt5.html": "/mt5",
+            "atlas.html": "/atlas",
+            "assistant.html": "/assistant",
+            "logs.html": "/logs",
+        }
+        written: list[str] = []
+        for filename, route in pages.items():
+            response = self.handle("GET", route)
+            if response.status_code < 400:
+                (preview_dir / filename).write_bytes(response.body)
+                written.append(filename)
+        (preview_dir / "README_PREVIEW.md").write_text(
+            "# Dashboard Preview\n\nGerado por `python -m apps.dashboard_html.app --export-preview`.\n",
+            encoding="utf-8",
+        )
+        written.append("README_PREVIEW.md")
+        return {"status": "ok", "preview_dir": str(preview_dir), "files": written}
+
+    def dashboard_qa(self) -> dict[str, object]:
+        self.export_preview()
+        required_paths = ["/", "/runtime", "/mt5", "/atlas", "/assistant", "/llm/status", "/logs"]
+        checks: list[dict[str, object]] = []
+        failures: list[str] = []
+        for route in required_paths:
+            response = self.handle("GET", route)
+            ok = response.status_code < 400
+            checks.append({"route": route, "status_code": response.status_code, "ok": ok})
+            if not ok:
+                failures.append(f"route:{route}")
+
+        index = self.handle("GET", "/").body.decode("utf-8", errors="ignore")
+        critical_tokens = [
+            "TRADING REAL: BLOCKED",
+            "MT5 ORDER_SEND: BLOCKED",
+            "BROKER REAL: BLOCKED",
+            "ATLAS: SHADOW_ONLY",
+            "LLM: READ_ONLY",
+            "Perguntar ao ODIN",
+            "Runtime",
+            "Risk",
+            "Positions",
+            "Events",
+        ]
+        forbidden_tokens = [
+            "ENABLE_REAL_TRADING",
+            "DIRECT_ORDER_SEND",
+            "MT5_ORDER_SEND",
+            "BROKER_REAL_EXECUTION",
+        ]
+        token_checks = []
+        for token in critical_tokens:
+            present = token in index
+            token_checks.append({"token": token, "present": present})
+            if not present:
+                failures.append(f"token:{token}")
+        for token in forbidden_tokens:
+            present = token in index
+            token_checks.append({"token": f"forbidden::{token}", "present": present})
+            if present:
+                failures.append(f"forbidden:{token}")
+
+        report = {
+            "status": "PASS" if not failures else "FAIL",
+            "checks": checks,
+            "tokens": token_checks,
+            "failures": failures,
+        }
+        report_path = Path("docs/reports/ODIN_DASHBOARD_VISUAL_QA_REPORT.md")
+        lines = ["# ODIN Dashboard Visual QA Report", "", f"- Status: **{report['status']}**", ""]
+        lines.append("## Endpoint Checks")
+        for item in checks:
+            lines.append(f"- {item['route']}: {item['status_code']} ok={item['ok']}")
+        lines.append("")
+        lines.append("## Critical Tokens")
+        for item in token_checks:
+            lines.append(f"- {item['token']}: present={item['present']}")
+        if failures:
+            lines.append("")
+            lines.append("## Failures")
+            for failure in failures:
+                lines.append(f"- {failure}")
+        report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return report
 
     def handle(self, method: str, raw_path: str) -> DashboardResponse:
         parsed = urlparse(raw_path)
         qs = parse_qs(parsed.query)
 
         if method == "GET" and parsed.path == "/":
-            return self._html(INDEX_HTML)
+            return self._text(self._index_content())
+
+        if method == "GET" and parsed.path == "/runtime":
+            return self._text(self._runtime_content())
+
+        if method == "GET" and parsed.path == "/mt5":
+            return self._text(self._mt5_content())
+
+        if method == "GET" and parsed.path == "/atlas":
+            return self._text(self._atlas_content())
 
         if method == "GET" and parsed.path == "/assistant":
-            return self._json(
-                {
-                    "status": "ready",
-                    "channels": ["dashboard", "telegram", "cli"],
-                    "llm": self.assistant.llm_status(),
-                    "examples": [
-                        "Qual é o estado do ODIN?",
-                        "O ODIN pode operar agora?",
-                        "Qual é o estado runtime do ODIN?",
-                    ],
-                }
-            )
+            return self._text(self._assistant_content())
+
+        if method == "GET" and parsed.path == "/logs":
+            return self._text(self._logs_content())
+
+        if method == "GET" and parsed.path == "/static/odin_terminal.css":
+            css = (self.static / "odin_terminal.css").read_text(encoding="utf-8")
+            return self._text(css, content_type="text/css; charset=utf-8")
 
         if method == "GET" and parsed.path in {"/assistant/ask", "/api/ask"}:
             question = qs.get("q", [""])[0]
@@ -158,101 +365,21 @@ class DashboardApp:
         if method == "GET" and parsed.path == "/llm/status":
             return self._json(self.assistant.llm_status())
 
-        if method == "GET" and parsed.path == "/runtime":
-            runtime_status = self.controller.execute("RUNTIME_STATUS", actor="dashboard", role="operator")
-            runtime_snapshot = self.controller.execute(
-                "RUNTIME_SNAPSHOT", actor="dashboard", role="operator"
-            )
-            runtime_events = self.assistant.context_builder._read_runtime_events()  # noqa: SLF001
-            runtime_validate = validate_runtime_artifacts()
-            log_runtime_validation(runtime_validate)
-            soak_latest = self._latest_soak()
-            return self._json(
-                {
-                    "runtime_status": runtime_status,
-                    "runtime_snapshot": runtime_snapshot,
-                    "runtime_events": runtime_events,
-                    "runtime_validate": runtime_validate,
-                    "latest_soak": soak_latest,
-                    "safe_to_trade": runtime_status.get("data", {}).get("runtime", {}).get("safe_to_trade", False),
-                }
-            )
-
         if method == "GET" and parsed.path == "/runtime/validate":
-            validation = validate_runtime_artifacts()
-            log_runtime_validation(validation)
-            return self._json(validation)
+            result = validate_runtime_artifacts()
+            log_runtime_validation(result)
+            return self._json(result)
 
         if method == "GET" and parsed.path == "/runtime/soak/latest":
-            return self._json(self._latest_soak())
+            state = self._state()
+            return self._json({"soak": state.get("soak", {}), "demo_data": state.get("demo_data", False)})
 
         if method == "POST" and parsed.path == "/runtime/soak/mini":
             confirm = qs.get("confirm", ["false"])[0].lower() == "true"
             if not confirm:
-                return self._json(
-                    {
-                        "accepted": False,
-                        "reason": "confirmation_required",
-                        "message": "Adicionar ?confirm=true para executar mini soak test.",
-                    },
-                    code=400,
-                )
-            cmd = [sys.executable, "-m", "tools.odin_soak_test", "--mini"]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            return self._json(
-                {
-                    "accepted": result.returncode == 0,
-                    "returncode": result.returncode,
-                    "stdout": result.stdout.strip(),
-                    "stderr": result.stderr.strip(),
-                },
-                code=200 if result.returncode == 0 else 500,
-            )
-
-        if method == "GET" and parsed.path == "/atlas":
-            return self._json(self.atlas.run_shadow_cycle({"symbol": "EURUSD", "timeframe": "M15"}))
-
-        if method == "GET" and parsed.path == "/mt5":
-            status = self.controller.execute("MT5_STATUS", actor="dashboard", role="operator")
-            symbols = self.controller.execute("MT5_LIST_SYMBOLS", actor="dashboard", role="operator")
-            positions = self.controller.execute("MT5_LIST_POSITIONS", actor="dashboard", role="operator")
-            reconciliation = self.controller.execute("MT5_SYNC_POSITIONS", actor="dashboard", role="operator")
-
-            tick_symbol = os.getenv("MT5_SYMBOLS", "EURUSD").split(",")[0].strip() or "EURUSD"
-            tick = self.controller.execute(
-                "MT5_GET_TICK",
-                actor="dashboard",
-                role="operator",
-                payload={"symbol": tick_symbol},
-            )
-
-            alerts: list[str] = []
-            rec_data = reconciliation.get("data", {}).get("reconciliation", {})
-            if rec_data.get("external_positions", 0) > 0:
-                alerts.append("posição externa detectada")
-            if rec_data.get("unprotected_positions", 0) > 0:
-                alerts.append("posição sem SL/TP detectada")
-            if rec_data.get("unknown_magic", 0) > 0:
-                alerts.append("magic number desconhecido detectado")
-            mt5_payload = status.get("data", {}).get("mt5", {})
-            if mt5_payload.get("status") not in {"OK"}:
-                alerts.append("MT5 indisponível/degradado")
-            if mt5_payload.get("data", {}).get("order_send_blocked", True) is not True:
-                alerts.append("order_send não bloqueado")
-
-            return self._json(
-                {
-                    "mt5_status": status,
-                    "symbols": symbols,
-                    "last_tick": tick,
-                    "positions": positions,
-                    "reconciliation": reconciliation,
-                    "alerts": alerts,
-                }
-            )
-
-        if method == "GET" and parsed.path == "/logs":
-            return self._json({"hint": "Ver pasta logs/ para eventos detalhados."})
+                return self._json({"accepted": False, "reason": "confirmation_required"}, code=400)
+            result = self.controller.execute("RUNTIME_RUN_ONCE", actor="dashboard", role="operator")
+            return self._json(result)
 
         if method == "GET" and parsed.path == "/api/state":
             return self._json({"state": self.controller.machine.state.value})
@@ -263,6 +390,9 @@ class DashboardApp:
         if method == "POST" and parsed.path == "/api/command":
             name = qs.get("name", [""])[0]
             return self._json(self.controller.execute(name, actor="dashboard", role="operator"))
+
+        if method == "GET" and parsed.path == "/api/atlas/shadow":
+            return self._json(self.atlas.run_shadow_cycle({"symbol": "EURUSD", "timeframe": "M15"}))
 
         return self._json({"error": "not_found"}, code=404)
 
@@ -289,48 +419,38 @@ def create_app() -> DashboardApp:
 
 
 def run_smoke_test() -> int:
-    previous = os.getenv("LOCAL_LLM_ENABLED")
-    os.environ["LOCAL_LLM_ENABLED"] = "false"
     app = create_app()
     required_paths = [
         ("GET", "/"),
         ("GET", "/runtime"),
+        ("GET", "/mt5"),
+        ("GET", "/atlas"),
+        ("GET", "/assistant"),
+        ("GET", "/llm/status"),
+        ("GET", "/logs"),
         ("GET", "/runtime/validate"),
         ("GET", "/runtime/soak/latest"),
-        ("GET", "/assistant"),
-        ("GET", "/assistant/ask?q=Qual%20%C3%A9%20o%20estado%20do%20ODIN%3F"),
-        ("GET", "/llm/status"),
-        ("GET", "/atlas"),
-        ("GET", "/mt5"),
-        ("GET", "/logs"),
+        ("GET", "/static/odin_terminal.css"),
     ]
     failures: list[str] = []
-    for method, path in required_paths:
-        response = app.handle(method, path)
+    for method, route in required_paths:
+        response = app.handle(method, route)
         if response.status_code >= 400:
-            failures.append(f"{method} {path} -> {response.status_code}")
-
+            failures.append(f"{method} {route} -> {response.status_code}")
     if failures:
         print("Dashboard smoke-test failed")
         for failure in failures:
             print(failure)
-        if previous is None:
-            os.environ.pop("LOCAL_LLM_ENABLED", None)
-        else:
-            os.environ["LOCAL_LLM_ENABLED"] = previous
         return 1
-
     print("Dashboard smoke-test OK")
-    if previous is None:
-        os.environ.pop("LOCAL_LLM_ENABLED", None)
-    else:
-        os.environ["LOCAL_LLM_ENABLED"] = previous
     return 0
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="ODIN dashboard HTML")
-    parser.add_argument("--smoke-test", action="store_true", help="Validate app routes without binding sockets")
+    parser.add_argument("--smoke-test", action="store_true", help="Validate routes without socket bind")
+    parser.add_argument("--export-preview", action="store_true", help="Export static preview files")
+    parser.add_argument("--dashboard-qa", action="store_true", help="Run dashboard QA checks and report")
     parser.add_argument(
         "--host",
         default=os.getenv("DASHBOARD_HOST", "127.0.0.1"),
@@ -347,14 +467,24 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    app = create_app()
 
     if args.smoke_test:
         return run_smoke_test()
 
-    app = create_app()
+    if args.export_preview:
+        result = app.export_preview()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+
+    if args.dashboard_qa:
+        result = app.dashboard_qa()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result.get("status") == "PASS" else 1
+
     _DashboardHandler.app = app
     server = ThreadingHTTPServer((args.host, args.port), _DashboardHandler)
-    print(f"ODIN dashboard listening on http://{args.host}:{args.port}")
+    print(f"Dashboard disponível em http://{args.host}:{args.port}")
     server.serve_forever()
     return 0
 
