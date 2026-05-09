@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from odin_assistant.assistant_router import AssistantRouter
 from odin_control.system_controller import SystemController
+from odin_core.runtime_validator import validate_runtime_artifacts
 from odin_logs.logger import JsonlLogger
 
 
@@ -33,6 +37,9 @@ COMMAND_TO_QUESTION = {
     "/runtime_status": "Qual é o estado runtime do ODIN?",
     "/runtime_snapshot": "Mostra o snapshot actual.",
     "/runtime_events": "Mostra os últimos eventos.",
+    "/runtime_validate": "O snapshot está válido?",
+    "/soak_status": "Qual foi o último soak test?",
+    "/soak_report": "Qual foi o último soak test?",
 }
 
 
@@ -64,6 +71,18 @@ class TelegramBot:
             "/runtime_pause": "RUNTIME_PAUSE",
             "/runtime_resume": "RUNTIME_RESUME",
         }
+        if text == "/runtime_validate":
+            result = validate_runtime_artifacts()
+            return {
+                "ok": result.get("status") in {"PASS", "WARNING"},
+                "answer": str(result),
+                "source": "runtime_validator",
+            }
+        if text in {"/soak_status", "/soak_report"}:
+            path = Path("data/runtime/soak_tests/latest_soak_result.json")
+            if not path.exists():
+                return {"ok": False, "answer": "Soak report indisponível.", "source": "soak_report"}
+            return {"ok": True, "answer": path.read_text(encoding="utf-8"), "source": "soak_report"}
         command = command_map.get(text)
         if not command:
             return None
@@ -81,10 +100,33 @@ class TelegramBot:
 
         text = message.text.strip()
 
+        if text == "/soak":
+            if not message.confirmed:
+                return {"ok": False, "answer": "Confirmação necessária para iniciar mini soak test."}
+            result = subprocess.run(
+                [sys.executable, "-m", "tools.odin_soak_test", "--mini"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            return {
+                "ok": result.returncode == 0,
+                "answer": result.stdout.strip() if result.stdout.strip() else result.stderr.strip(),
+                "source": "soak_runner",
+            }
+
         if text == "/help":
             command_list = sorted(
                 list(COMMAND_TO_QUESTION.keys())
-                + ["/ask", "/llm", "/llm_status", "/runtime_pause", "/runtime_resume", "/help"]
+                + [
+                    "/ask",
+                    "/llm",
+                    "/llm_status",
+                    "/runtime_pause",
+                    "/runtime_resume",
+                    "/soak",
+                    "/help",
+                ]
             )
             return {"ok": True, "answer": "Comandos: " + ", ".join(command_list)}
 
@@ -114,15 +156,13 @@ class TelegramBot:
 
 
 def build_dry_run_report(bot: TelegramBot) -> dict[str, object]:
+    extra = ["/ask", "/llm", "/llm_status", "/runtime_pause", "/runtime_resume", "/soak"]
     return {
         "dry_run": True,
         "token_present": bool(bot.token),
         "allowed_user_ids_count": len(bot.allowed_ids),
-        "commands_count": len(COMMAND_TO_QUESTION) + 5,
-        "commands": sorted(
-            list(COMMAND_TO_QUESTION.keys())
-            + ["/ask", "/llm", "/llm_status", "/runtime_pause", "/runtime_resume"]
-        ),
+        "commands_count": len(COMMAND_TO_QUESTION) + len(extra),
+        "commands": sorted(list(COMMAND_TO_QUESTION.keys()) + extra),
         "network_calls": "not_performed",
         "safe_mode": True,
         "llm_status": bot.assistant.llm_status(),

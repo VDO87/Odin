@@ -3,13 +3,17 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
+import sys
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from odin_assistant.assistant_router import AssistantRouter
 from odin_atlas.coordinator import AtlasCoordinator
 from odin_control.system_controller import SystemController
+from odin_core.runtime_validator import log_runtime_validation, validate_runtime_artifacts
 from odin_health.healthcheck import OdinHealthcheck
 
 
@@ -41,6 +45,8 @@ INDEX_HTML = """<!doctype html>
   <button onclick=\"cmd('RUNTIME_RESUME')\">Runtime Resume</button>
   <button onclick=\"cmd('RUNTIME_SAFE_SHUTDOWN')\">Safe Shutdown</button>
   <button onclick=\"cmd('RUNTIME_SNAPSHOT')\">Snapshot</button>
+  <button onclick=\"runtimeValidate()\">Runtime Validate</button>
+  <button onclick=\"miniSoak()\">Mini Soak Test</button>
 </div>
 <h2>Perguntar ao ODIN</h2>
 <input id=\"q\" size=\"80\" placeholder=\"Qual é o estado do ODIN?\" />
@@ -67,6 +73,14 @@ async function ask(){
  const r = await fetch('/assistant/ask?q='+encodeURIComponent(q));
  document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
 }
+async function runtimeValidate(){
+ const r = await fetch('/runtime/validate');
+ document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
+}
+async function miniSoak(){
+ const r = await fetch('/runtime/soak/mini?confirm=true', {method:'POST'});
+ document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
+}
 refresh();
 </script>
 </body>
@@ -85,6 +99,15 @@ class DashboardApp:
         self.controller = SystemController(log_root="logs")
         self.atlas = AtlasCoordinator(log_root="logs")
         self.assistant = AssistantRouter(self.controller)
+
+    def _latest_soak(self) -> dict[str, object]:
+        path = Path("data/runtime/soak_tests/latest_soak_result.json")
+        if not path.exists():
+            return {"status": "missing", "path": str(path)}
+        try:
+            return {"status": "ok", "path": str(path), "report": json.loads(path.read_text(encoding="utf-8"))}
+        except json.JSONDecodeError:
+            return {"status": "invalid_json", "path": str(path)}
 
     def _json(self, payload: dict[str, object], code: int = 200) -> DashboardResponse:
         return DashboardResponse(
@@ -141,13 +164,49 @@ class DashboardApp:
                 "RUNTIME_SNAPSHOT", actor="dashboard", role="operator"
             )
             runtime_events = self.assistant.context_builder._read_runtime_events()  # noqa: SLF001
+            runtime_validate = validate_runtime_artifacts()
+            log_runtime_validation(runtime_validate)
+            soak_latest = self._latest_soak()
             return self._json(
                 {
                     "runtime_status": runtime_status,
                     "runtime_snapshot": runtime_snapshot,
                     "runtime_events": runtime_events,
+                    "runtime_validate": runtime_validate,
+                    "latest_soak": soak_latest,
                     "safe_to_trade": runtime_status.get("data", {}).get("runtime", {}).get("safe_to_trade", False),
                 }
+            )
+
+        if method == "GET" and parsed.path == "/runtime/validate":
+            validation = validate_runtime_artifacts()
+            log_runtime_validation(validation)
+            return self._json(validation)
+
+        if method == "GET" and parsed.path == "/runtime/soak/latest":
+            return self._json(self._latest_soak())
+
+        if method == "POST" and parsed.path == "/runtime/soak/mini":
+            confirm = qs.get("confirm", ["false"])[0].lower() == "true"
+            if not confirm:
+                return self._json(
+                    {
+                        "accepted": False,
+                        "reason": "confirmation_required",
+                        "message": "Adicionar ?confirm=true para executar mini soak test.",
+                    },
+                    code=400,
+                )
+            cmd = [sys.executable, "-m", "tools.odin_soak_test", "--mini"]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            return self._json(
+                {
+                    "accepted": result.returncode == 0,
+                    "returncode": result.returncode,
+                    "stdout": result.stdout.strip(),
+                    "stderr": result.stderr.strip(),
+                },
+                code=200 if result.returncode == 0 else 500,
             )
 
         if method == "GET" and parsed.path == "/atlas":
@@ -236,6 +295,8 @@ def run_smoke_test() -> int:
     required_paths = [
         ("GET", "/"),
         ("GET", "/runtime"),
+        ("GET", "/runtime/validate"),
+        ("GET", "/runtime/soak/latest"),
         ("GET", "/assistant"),
         ("GET", "/assistant/ask?q=Qual%20%C3%A9%20o%20estado%20do%20ODIN%3F"),
         ("GET", "/llm/status"),

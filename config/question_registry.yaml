@@ -25,6 +25,14 @@ allowed_questions:
   - Mostra os últimos eventos.
   - O ODIN pode continuar em sombra?
   - O sistema está pronto para soak test?
+  - O ODIN está estável?
+  - Qual foi o último soak test?
+  - O heartbeat está actualizado?
+  - O snapshot está válido?
+  - Houve erros no runtime?
+  - Houve alguma tentativa de ordem?
+  - O ODIN está pronto para um soak test longo?
+  - O ODIN está pronto para correr em sombra durante várias horas?
   - Executa healthcheck.
   - Sincroniza posições MT5.
   - Pausa o ODIN.

@@ -60,8 +60,20 @@ if [[ $# -gt 0 ]]; then
     --snapshot)
       MODE="snapshot"
       ;;
+    --runtime-validate)
+      MODE="runtime-validate"
+      ;;
+    --soak-test)
+      MODE="soak-test"
+      ;;
+    --soak-test-mini)
+      MODE="soak-test-mini"
+      ;;
+    --soak-report)
+      MODE="soak-report"
+      ;;
     *)
-      echo "Uso: ./run_odin.sh [--smoke-test|--dashboard|--healthcheck|--runtime|--run-once|--runtime-smoke-test|--snapshot]" >&2
+      echo "Uso: ./run_odin.sh [--smoke-test|--dashboard|--healthcheck|--runtime|--run-once|--runtime-smoke-test|--snapshot|--runtime-validate|--soak-test|--soak-test-mini|--soak-report]" >&2
       exit 2
       ;;
   esac
@@ -110,6 +122,40 @@ assert "snapshot" in snap["data"]
 print("ODIN runtime smoke-test OK")
 PY
   exit 0
+fi
+
+if [[ "$MODE" == "runtime-validate" ]]; then
+  exec "$PYTHON_BIN" - <<'PY'
+from odin_core.runtime_validator import log_runtime_validation, validate_runtime_artifacts
+import json
+import sys
+
+result = validate_runtime_artifacts()
+log_runtime_validation(result)
+print(json.dumps(result, indent=2, sort_keys=True))
+sys.exit(0 if result.get("status") in {"PASS", "WARNING"} else 1)
+PY
+fi
+
+if [[ "$MODE" == "soak-test" ]]; then
+  exec "$PYTHON_BIN" -m tools.odin_soak_test --report docs/reports/ODIN_RC1_5_SOAK_TEST_RESULT.md
+fi
+
+if [[ "$MODE" == "soak-test-mini" ]]; then
+  exec "$PYTHON_BIN" -m tools.odin_soak_test --mini --report docs/reports/ODIN_RC1_5_SOAK_TEST_RESULT.md
+fi
+
+if [[ "$MODE" == "soak-report" ]]; then
+  exec "$PYTHON_BIN" - <<'PY'
+from pathlib import Path
+import json
+
+path = Path("data/runtime/soak_tests/latest_soak_result.json")
+if not path.exists():
+    print(json.dumps({"status": "missing", "message": "Soak report não encontrado"}, indent=2))
+    raise SystemExit(1)
+print(path.read_text(encoding="utf-8"))
+PY
 fi
 
 if [[ "$MODE" == "run-once" ]]; then

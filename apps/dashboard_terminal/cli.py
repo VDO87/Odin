@@ -4,11 +4,14 @@ import argparse
 import importlib
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 from odin_assistant.assistant_router import AssistantRouter
 from odin_atlas.coordinator import AtlasCoordinator
 from odin_control.system_controller import SystemController
+from odin_core.runtime_validator import log_runtime_validation, validate_runtime_artifacts
 from odin_health.healthcheck import OdinHealthcheck
 
 
@@ -52,6 +55,32 @@ def _runtime_events(limit: int = 20) -> dict[str, object]:
     return {"status": "ok", "events": events, "count": len(events)}
 
 
+def _latest_soak_report() -> dict[str, object]:
+    path = Path("data/runtime/soak_tests/latest_soak_result.json")
+    if not path.exists():
+        return {"status": "missing", "path": str(path)}
+    try:
+        return {"status": "ok", "path": str(path), "report": json.loads(path.read_text(encoding="utf-8"))}
+    except json.JSONDecodeError:
+        return {"status": "invalid", "path": str(path)}
+
+
+def _run_soak_test(*, mini: bool, duration_seconds: int | None) -> int:
+    cmd = [sys.executable, "-m", "tools.odin_soak_test"]
+    if mini:
+        cmd.append("--mini")
+    if duration_seconds is not None:
+        cmd.extend(["--duration-seconds", str(duration_seconds)])
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    payload: dict[str, object] = {
+        "returncode": result.returncode,
+        "stdout": result.stdout.strip(),
+        "stderr": result.stderr.strip(),
+    }
+    _print(payload)
+    return result.returncode
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="odin")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -73,6 +102,8 @@ def main() -> None:
     sub.add_parser("runtime-stop")
     sub.add_parser("runtime-snapshot")
     sub.add_parser("runtime-events")
+    sub.add_parser("runtime-validate")
+    sub.add_parser("soak-report")
     sub.add_parser("mt5-sync")
     sub.add_parser("mt5-status")
     sub.add_parser("mt5-healthcheck")
@@ -93,6 +124,10 @@ def main() -> None:
     candles_parser.add_argument("symbol")
     candles_parser.add_argument("timeframe")
     candles_parser.add_argument("count", type=int)
+
+    soak_parser = sub.add_parser("soak-test")
+    soak_parser.add_argument("--mini", action="store_true")
+    soak_parser.add_argument("--duration-seconds", type=int, default=None)
 
     args = parser.parse_args()
 
@@ -116,6 +151,19 @@ def main() -> None:
     if args.cmd == "runtime-events":
         _print(_runtime_events())
         return
+
+    if args.cmd == "runtime-validate":
+        validation = validate_runtime_artifacts()
+        log_runtime_validation(validation)
+        _print(validation)
+        return
+
+    if args.cmd == "soak-report":
+        _print(_latest_soak_report())
+        return
+
+    if args.cmd == "soak-test":
+        raise SystemExit(_run_soak_test(mini=args.mini, duration_seconds=args.duration_seconds))
 
     if args.cmd in {"smoke-test", "assistant-smoke-test", "runtime-smoke-test"}:
         modules = [
@@ -148,6 +196,7 @@ def main() -> None:
                     "RUNTIME_SNAPSHOT", actor="terminal-smoke", role="operator"
                 ),
                 "runtime_events": _runtime_events(10),
+                "runtime_validate": validate_runtime_artifacts(),
                 "mt5_status": controller.execute("MT5_STATUS", actor="terminal-smoke", role="operator"),
                 "assistant": assistant_result,
                 "assistant_blocked": blocked_result,

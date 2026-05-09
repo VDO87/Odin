@@ -21,6 +21,8 @@ jobs:
       OPENAI_SUPPORT_ENABLED: "false"
       ODIN_MODE: "SHADOW_MT5"
       ODIN_ENV: "TEST"
+      ODIN_SOAK_TEST_MINI_DURATION_SECONDS: "3"
+      ODIN_SOAK_TEST_CYCLE_SLEEP_SECONDS: "0.1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,3 +51,9 @@ jobs:
 
       - name: Runtime run-once
         run: ./run_odin.sh --run-once
+
+      - name: Runtime validate
+        run: ./run_odin.sh --runtime-validate
+
+      - name: Soak test mini
+        run: ./run_odin.sh --soak-test-mini

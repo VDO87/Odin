@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from odin_core.runtime_validator import validate_runtime_artifacts
 from odin_assistant.redaction import redact_for_assistant
 from odin_health.healthcheck import OdinHealthcheck
 
@@ -77,6 +78,8 @@ class ContextBuilder:
             "runtime_snapshot": lambda: _call("RUNTIME_SNAPSHOT"),
             "runtime_events": lambda: cls._read_runtime_events(),
             "runtime_heartbeat": lambda: cls._read_runtime_heartbeat(),
+            "runtime_validate": lambda: validate_runtime_artifacts(),
+            "runtime_soak_latest": lambda: cls._read_latest_soak_result(),
             "runtime_soak": lambda: cls._runtime_soak_readiness(_call("RUNTIME_STATUS"), _call("MT5_STATUS"), OdinHealthcheck(log_root=log_root).run()),
             "signals": lambda: {"active_signals": []},
             "news": lambda: {"status": "not_configured"},
@@ -121,6 +124,16 @@ class ContextBuilder:
             except json.JSONDecodeError:
                 continue
         return {"events": events, "count": len(events)}
+
+    @staticmethod
+    def _read_latest_soak_result() -> dict[str, Any]:
+        path = Path(os.getenv("ODIN_SOAK_TEST_OUTPUT_DIR", "data/runtime/soak_tests")) / "latest_soak_result.json"
+        if not path.exists():
+            return {"status": "missing_soak_report", "path": str(path)}
+        try:
+            return {"status": "ok", "path": str(path), "report": json.loads(path.read_text(encoding="utf-8"))}
+        except json.JSONDecodeError:
+            return {"status": "invalid_soak_report", "path": str(path)}
 
     @staticmethod
     def _runtime_soak_readiness(runtime: dict[str, Any], mt5: dict[str, Any], health: dict[str, Any]) -> dict[str, Any]:
@@ -187,10 +200,24 @@ class ContextBuilder:
                     "runtime_snapshot": base.get("runtime_snapshot", {}),
                     "runtime_events": base.get("runtime_events", {}),
                     "runtime_heartbeat": base.get("runtime_heartbeat", {}),
+                    "runtime_validate": base.get("runtime_validate", {}),
+                    "runtime_soak_latest": base.get("runtime_soak_latest", {}),
                     "runtime_soak": base.get("runtime_soak", {}),
                     "healthcheck": base.get("healthcheck", {}),
                     "mt5": base.get("mt5", {}),
                     "atlas": base.get("atlas", {}),
+                }
+            )
+
+        if "estável" in q or "varias horas" in q or "várias horas" in q:
+            return AssistantContext(
+                payload={
+                    "runtime": base.get("runtime", {}),
+                    "runtime_validate": base.get("runtime_validate", {}),
+                    "runtime_soak_latest": base.get("runtime_soak_latest", {}),
+                    "runtime_events": base.get("runtime_events", {}),
+                    "healthcheck": base.get("healthcheck", {}),
+                    "security": base.get("security", {}),
                 }
             )
 

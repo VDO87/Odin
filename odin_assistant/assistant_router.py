@@ -43,6 +43,11 @@ READ_MAP = {
     "read_runtime_events": "runtime_events",
     "read_runtime_shadow": "runtime",
     "read_runtime_soak": "runtime_soak",
+    "read_runtime_stable": "runtime_soak_latest",
+    "read_runtime_soak_latest": "runtime_soak_latest",
+    "read_runtime_validate": "runtime_validate",
+    "read_runtime_soak_safety": "runtime_soak_latest",
+    "read_runtime_soak_long": "runtime_soak",
     "read_free": "full_context",
 }
 

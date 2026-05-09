@@ -50,3 +50,5 @@ logs/runtime_test/
 # Runtime snapshots/events are local observability artifacts
 data/runtime/*.json
 data/runtime/*.jsonl
+data/runtime/soak_tests/*.json
+data/runtime/soak_tests/*.jsonl

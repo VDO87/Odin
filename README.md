@@ -3,7 +3,7 @@
 ODIN é uma plataforma local para decisão operacional, supervisão, auditoria e diagnóstico em trading assistido.
 
 ## Estado atual
-- Release: **RC1.4 Shadow Runtime Loop & Observability**
+- Release: **RC1.5 Soak Test & Runtime Stability**
 - Branch principal: `release/rc1`
 - Modo operacional de referência: `SHADOW_MT5`
 
@@ -42,12 +42,32 @@ python -m apps.dashboard_terminal.cli runtime-status
 python -m apps.dashboard_terminal.cli runtime-run-once
 python -m apps.dashboard_terminal.cli runtime-snapshot
 python -m apps.dashboard_terminal.cli runtime-events
+python -m apps.dashboard_terminal.cli runtime-validate
+python -m apps.dashboard_terminal.cli soak-test --mini
+python -m apps.dashboard_terminal.cli soak-report
 ```
 
 ### Snapshot e eventos
 - Snapshot: `data/runtime/odin_state_snapshot.json`
 - Heartbeat: `data/runtime/odin_heartbeat.json`
 - Eventos: `data/runtime/odin_events.jsonl`
+- Soak result: `data/runtime/soak_tests/latest_soak_result.json`
+
+## Soak Test & Estabilidade
+- Runner: `tools/odin_soak_test.py`
+- Valida heartbeat/snapshot/eventos/logs/comandos e bloqueios de segurança.
+- Falha imediata se detectar tentativa de ordem.
+
+### Comandos soak
+```bash
+./run_odin.sh --runtime-validate
+./run_odin.sh --soak-test-mini
+./run_odin.sh --soak-test
+./run_odin.sh --soak-report
+python -m apps.dashboard_terminal.cli runtime-validate
+python -m apps.dashboard_terminal.cli soak-test --mini
+python -m apps.dashboard_terminal.cli soak-report
+```
 
 ## Local LLM Assistant
 - Provider suportado: `ollama` (opcional).
@@ -62,6 +82,8 @@ python -m apps.dashboard_terminal.cli runtime-events
 ./run_odin.sh --smoke-test
 ./run_odin.sh --runtime-smoke-test
 ./run_odin.sh --run-once
+./run_odin.sh --runtime-validate
+./run_odin.sh --soak-test-mini
 python -m apps.dashboard_html.app --smoke-test
 python -m apps.dashboard_terminal.cli smoke-test
 python -m apps.telegram_bot.bot --dry-run
@@ -71,6 +93,7 @@ python -m apps.telegram_bot.bot --dry-run
 - MT5 Shadow: [docs/runbooks/MT5_SHADOW_MODE.md](docs/runbooks/MT5_SHADOW_MODE.md)
 - Local LLM Runtime: [docs/runbooks/LOCAL_LLM_RUNTIME.md](docs/runbooks/LOCAL_LLM_RUNTIME.md)
 - Shadow Runtime Loop: [docs/runbooks/SHADOW_RUNTIME_LOOP.md](docs/runbooks/SHADOW_RUNTIME_LOOP.md)
+- Soak Runtime Stability: [docs/runbooks/SOAK_TEST_RUNTIME_STABILITY.md](docs/runbooks/SOAK_TEST_RUNTIME_STABILITY.md)
 
 ## Aviso
 ODIN RC1 **não executa dinheiro real**.

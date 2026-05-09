@@ -30,6 +30,14 @@ READ_INTENTS = {
     "Mostra os últimos eventos.": "read_runtime_events",
     "O ODIN pode continuar em sombra?": "read_runtime_shadow",
     "O sistema está pronto para soak test?": "read_runtime_soak",
+    "O ODIN está estável?": "read_runtime_stable",
+    "Qual foi o último soak test?": "read_runtime_soak_latest",
+    "O heartbeat está actualizado?": "read_runtime_heartbeat",
+    "O snapshot está válido?": "read_runtime_validate",
+    "Houve erros no runtime?": "read_runtime_events",
+    "Houve alguma tentativa de ordem?": "read_runtime_soak_safety",
+    "O ODIN está pronto para um soak test longo?": "read_runtime_soak_long",
+    "O ODIN está pronto para correr em sombra durante várias horas?": "read_runtime_soak_long",
 }
 
 COMMAND_INTENTS = {
