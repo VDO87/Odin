@@ -184,3 +184,48 @@ Actualizado `.github/workflows/ci.yml` com:
 - broker real bloqueado: **SIM**
 - LLM sem execução directa: **SIM**
 - ATLAS sem execução directa: **SIM**
+
+## 16. RC1.6.1 Dashboard Usability Polish
+Melhorias aplicadas:
+- `apps/dashboard_html/templates/index.html` com maior densidade operacional.
+- `apps/dashboard_html/static/odin_terminal.css` com refinamento terminal/command-center.
+- `odin_dashboard/formatters.py` com:
+  - `render_ascii_sparkline`
+  - `render_html_sparkline`
+  - `normalize_price_series`
+  - `group_repeated_events`
+- `odin_dashboard/demo_state.py` e `odin_dashboard/state_provider.py` com Market Intelligence, Risk e Assistant mais completos.
+- `apps/dashboard_html/app.py` com blocos dedicados para:
+  - system/runtime
+  - market/mt5 + sparkline
+  - market intelligence
+  - atlas consensus
+  - risk engine
+  - positions/reconciliation
+  - assistant
+  - events agrupados com destaque para `ERROR` e `COMMAND_BLOCKED`
+
+Validação RC1.6.1:
+- `python -m apps.dashboard_html.app --smoke-test` -> OK
+- `python -m apps.dashboard_html.app --export-preview` -> OK
+- `python -m apps.dashboard_html.app --dashboard-qa` -> PASS
+- `./run_odin.sh --dashboard-preview` -> OK
+- `./run_odin.sh --dashboard-qa` -> PASS
+
+Preview gerado:
+- `dashboard_preview/index.html`
+- `dashboard_preview/runtime.html`
+- `dashboard_preview/mt5.html`
+- `dashboard_preview/atlas.html`
+- `dashboard_preview/assistant.html`
+- `dashboard_preview/logs.html`
+
+Limitações conhecidas:
+- Sem feed MT5 real no ambiente, o painel usa `DEMO DATA`.
+- Sparkline depende de série disponível no snapshot; em ausência total usa dados demo.
+- Sem WebSocket/live refresh nesta fase (renderização por página/endpoint).
+
+Próximos passos sugeridos:
+- Adicionar auto-refresh leve com polling local seguro.
+- Incluir filtros rápidos em eventos (`ERROR`, `COMMAND_BLOCKED`, `RUNTIME`).
+- Evoluir mini-chart para candle compacto mantendo modo offline.

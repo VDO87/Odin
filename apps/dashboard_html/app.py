@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
+import subprocess
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -12,7 +14,12 @@ from odin_assistant.assistant_router import AssistantRouter
 from odin_atlas.coordinator import AtlasCoordinator
 from odin_control.system_controller import SystemController
 from odin_core.runtime_validator import log_runtime_validation, validate_runtime_artifacts
-from odin_dashboard.formatters import short_ts, sparkline
+from odin_dashboard.formatters import (
+    group_repeated_events,
+    heartbeat_age_seconds,
+    render_html_sparkline,
+    short_ts,
+)
 from odin_dashboard.state_provider import DashboardStateProvider
 from odin_health.healthcheck import OdinHealthcheck
 
@@ -24,6 +31,25 @@ class DashboardResponse:
     body: bytes
 
 
+def _detect_version() -> str:
+    env_version = os.getenv("ODIN_DASHBOARD_VERSION", "").strip()
+    if env_version:
+        return env_version
+    try:
+        result = subprocess.run(
+            ["git", "describe", "--tags", "--always"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=1,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "RC1.6.1"
+
+
 class DashboardApp:
     def __init__(self) -> None:
         self.controller = SystemController(log_root="logs")
@@ -32,6 +58,7 @@ class DashboardApp:
         self.provider = DashboardStateProvider(log_root="logs")
         self.templates = Path("apps/dashboard_html/templates")
         self.static = Path("apps/dashboard_html/static")
+        self.version = _detect_version()
 
     def _json(self, payload: dict[str, object], code: int = 200) -> DashboardResponse:
         return DashboardResponse(
@@ -40,7 +67,13 @@ class DashboardApp:
             body=json.dumps(payload, sort_keys=True, default=str).encode("utf-8"),
         )
 
-    def _text(self, payload: str, *, content_type: str = "text/html; charset=utf-8", code: int = 200) -> DashboardResponse:
+    def _text(
+        self,
+        payload: str,
+        *,
+        content_type: str = "text/html; charset=utf-8",
+        code: int = 200,
+    ) -> DashboardResponse:
         return DashboardResponse(status_code=code, content_type=content_type, body=payload.encode("utf-8"))
 
     def _render_template(self, name: str, replacements: dict[str, str]) -> str:
@@ -56,112 +89,199 @@ class DashboardApp:
     def _rows(self, pairs: list[tuple[str, object]]) -> str:
         out = []
         for key, value in pairs:
-            out.append(f'<div class="kv"><div class="k">{key}</div><div class="v">{value}</div></div>')
+            out.append(
+                '<div class="kv">'
+                f'<div class="k">{html.escape(str(key))}</div>'
+                f'<div class="v">{html.escape(str(value))}</div>'
+                "</div>"
+            )
         return "".join(out)
 
     def _as_log_lines(self, rows: list[dict[str, object]], *, limit: int = 12) -> str:
-        lines = []
-        for item in rows[-limit:]:
-            ts = short_ts(str(item.get("timestamp", "")))
-            event_type = str(item.get("event_type", item.get("event", "EVENT")))
-            msg = str(item.get("message", item.get("reason", "")))
-            if not msg and "data" in item and isinstance(item["data"], dict):
-                msg = str(item["data"].get("reason", ""))
-            lines.append(f"[{ts}] {event_type} {msg}".strip())
+        grouped = group_repeated_events(rows[-max(1, limit * 4) :])
+        lines: list[str] = []
+        for item in grouped[-limit:]:
+            ts = short_ts(str(item.get("last_timestamp") or item.get("timestamp") or ""))
+            event_type = str(item.get("event_type", "EVENT"))
+            message = str(item.get("message", ""))
+            count = int(item.get("count", 1))
+            suffix = f" x{count}" if count > 1 else ""
+            rendered = f"[{ts}] {event_type}{suffix} {message}".strip()
+            escaped = html.escape(rendered)
+
+            event_up = event_type.upper()
+            if event_up in {"ERROR", "ORDER_ATTEMPT"}:
+                lines.append(f'<span class="critical-line">{escaped}</span>')
+            elif event_up == "COMMAND_BLOCKED":
+                lines.append(f'<span class="blocked-line">{escaped}</span>')
+            else:
+                lines.append(escaped)
         return "\n".join(lines) if lines else "no data"
 
     def _state(self) -> dict[str, object]:
         force_demo = os.getenv("ODIN_DASHBOARD_FORCE_DEMO", "false").lower() == "true"
         return self.provider.load_state(force_demo=force_demo)
 
-    def _index_content(self) -> str:
-        state = self._state()
+    def _system_block(self, state: dict[str, object]) -> str:
         runtime = state.get("runtime", {}) if isinstance(state.get("runtime"), dict) else {}
-        mt5 = state.get("mt5", {}) if isinstance(state.get("mt5"), dict) else {}
-        atlas = state.get("atlas", {}) if isinstance(state.get("atlas"), dict) else {}
-        llm = state.get("llm", {}) if isinstance(state.get("llm"), dict) else {}
-        risk = state.get("risk", {}) if isinstance(state.get("risk"), dict) else {}
-        assistant = state.get("assistant", {}) if isinstance(state.get("assistant"), dict) else {}
-        events = state.get("events", []) if isinstance(state.get("events"), list) else []
-        positions = state.get("positions", {}) if isinstance(state.get("positions"), dict) else {}
-
-        mode = str(state.get("mode", "SHADOW_MT5"))
-        runtime_state = str(runtime.get("state", "UNKNOWN"))
-        demo_label = "DEMO DATA" if bool(state.get("demo_data", False)) else "LIVE SNAPSHOT"
-        alerts = f"{demo_label} | Runtime={runtime_state} | safe_to_trade={runtime.get('safe_to_trade', False)}"
-
-        mt5_tick = mt5.get("tick", {}) if isinstance(mt5.get("tick"), dict) else {}
-        if not mt5_tick and isinstance(mt5.get("raw"), dict):
-            mt5_tick = (
-                mt5.get("raw", {})
-                .get("data", {})
-                .get("mt5", {})
-                .get("data", {})
-                .get("tick", {})
-            )
-        series = mt5.get("sparkline", []) if isinstance(mt5.get("sparkline"), list) else []
-
-        system_block = self._rows(
+        soak = state.get("soak", {}) if isinstance(state.get("soak"), dict) else {}
+        validate = state.get("runtime_validate", {}) if isinstance(state.get("runtime_validate"), dict) else {}
+        hb = str(runtime.get("heartbeat", ""))
+        hb_age = heartbeat_age_seconds(hb)
+        return self._rows(
             [
-                ("Mode", mode),
-                ("Runtime state", runtime_state),
-                ("Heartbeat", short_ts(str(runtime.get("heartbeat", "")))),
+                ("Mode", state.get("mode", "SHADOW_MT5")),
+                ("Runtime state", runtime.get("state", "UNKNOWN")),
+                ("Heartbeat ts", hb or "n/a"),
+                ("Heartbeat age", f"{hb_age}s" if hb_age is not None else "n/a"),
                 ("Health", runtime.get("health_status", "UNKNOWN")),
-                ("Safe to trade", runtime.get("safe_to_trade", False)),
-                ("Soak result", (state.get("soak", {}) or {}).get("result", "n/a")),
+                ("Soak", soak.get("result", "n/a")),
+                ("Runtime validate", validate.get("status", runtime.get("runtime_validate", "n/a"))),
+                ("Uptime", runtime.get("uptime_seconds", "n/a")),
+                ("safe_to_trade", runtime.get("safe_to_trade", False)),
             ]
         )
 
-        market_block = self._rows(
+    def _market_block(self, state: dict[str, object]) -> str:
+        mt5 = state.get("mt5", {}) if isinstance(state.get("mt5"), dict) else {}
+        mt5_tick = mt5.get("tick", {}) if isinstance(mt5.get("tick"), dict) else {}
+        series = mt5.get("sparkline", []) if isinstance(mt5.get("sparkline"), list) else []
+        chart = render_html_sparkline(series)
+        chart_label = "DEMO DATA" if state.get("demo_data", False) else mt5.get("chart_label", "LIVE")
+        rows = self._rows(
             [
-                ("MT5 status", mt5.get("status", "UNKNOWN")),
                 ("Symbol", mt5.get("symbol", "EURUSD")),
                 ("Timeframe", mt5.get("timeframe", "M15")),
                 ("Bid", mt5_tick.get("bid", "n/a")),
                 ("Ask", mt5_tick.get("ask", "n/a")),
                 ("Spread", mt5_tick.get("spread", "n/a")),
-                ("Sparkline", sparkline([float(x) for x in series]) if series else "n/a"),
+                ("MT5 status", mt5.get("status", "UNKNOWN")),
             ]
         )
+        return (
+            rows
+            + '<div class="kv"><div class="k">SPARKLINE</div>'
+            f'<div class="v">{chart} <span class="small">{html.escape(str(chart_label))}</span></div></div>'
+        )
 
-        assistant_block = self._rows(
+    def _intel_block(self, state: dict[str, object]) -> str:
+        intel = state.get("market_intelligence", {}) if isinstance(state.get("market_intelligence"), dict) else {}
+        events = intel.get("high_impact_events", []) if isinstance(intel.get("high_impact_events"), list) else []
+        rows = self._rows(
             [
-                ("LLM status", llm.get("status", "WARNING")),
-                ("LLM provider", llm.get("provider", "ollama")),
-                ("ATLAS status", atlas.get("status", atlas.get("reason", "UNKNOWN"))),
-                ("ATLAS execution", atlas.get("execution_permission", "SHADOW_ONLY")),
-                ("Risk engine", "REQUIRED"),
-                ("Last answer", assistant.get("answer", assistant.get("last_answer", "n/a"))),
-                ("Max risk/trade", risk.get("max_risk_per_trade_percent", "0.25")),
+                ("News status", intel.get("news_status", "UNAVAILABLE")),
+                ("Macro calendar", intel.get("macro_calendar_status", "UNAVAILABLE")),
+                ("Sentiment", intel.get("sentiment_summary", "neutral")),
+                ("Blocked by news", intel.get("blocked_by_news", False)),
+            ]
+        )
+        event_text = "\n".join([f"- {html.escape(str(item))}" for item in events[:4]]) or "- none"
+        return rows + f'<pre class="logbox">{event_text}</pre>'
+
+    def _atlas_block(self, state: dict[str, object]) -> str:
+        atlas = state.get("atlas", {}) if isinstance(state.get("atlas"), dict) else {}
+        profile = state.get("atlas_profile", {}) if isinstance(state.get("atlas_profile"), dict) else {}
+        agents = atlas.get("agents", {}) if isinstance(atlas.get("agents"), dict) else {}
+        decision_packet = atlas.get("decision_packet", {}) if isinstance(atlas.get("decision_packet"), dict) else {}
+        return self._rows(
+            [
+                ("Profile", profile.get("profile", atlas.get("profile", "lite"))),
+                ("Consensus", atlas.get("consensus", decision_packet.get("consensus_score", "n/a"))),
+                ("Market agent", agents.get("market_agent", atlas.get("market_agent_score", "n/a"))),
+                ("Technical agent", agents.get("technical_agent", atlas.get("technical_agent_score", "n/a"))),
+                ("News agent", agents.get("news_agent", atlas.get("news_agent_score", "n/a"))),
+                ("Risk agent", agents.get("risk_agent", atlas.get("risk_agent_result", "n/a"))),
+                ("Critic", agents.get("critic_agent", atlas.get("critic_agent_result", "n/a"))),
+                ("Execution permission", atlas.get("execution_permission", "SHADOW_ONLY")),
             ]
         )
 
-        rec = {}
-        if isinstance(positions.get("reconciliation"), dict):
-            rec = positions.get("reconciliation", {}).get("data", {}).get("reconciliation", {})
-        positions_block = self._rows(
+    def _risk_block(self, state: dict[str, object]) -> str:
+        risk = state.get("risk", {}) if isinstance(state.get("risk"), dict) else {}
+        blocked_reasons = risk.get("blocked_reasons", "n/a")
+        if isinstance(blocked_reasons, list):
+            blocked_reasons = ", ".join(str(item) for item in blocked_reasons) if blocked_reasons else "n/a"
+        return self._rows(
+            [
+                ("Status", risk.get("status", "ACTIVE")),
+                ("Risk per trade", risk.get("max_risk_per_trade_percent", "0.25")),
+                ("Max daily loss", risk.get("max_daily_loss_percent", "1.00")),
+                ("Trades today", risk.get("trades_today", 0)),
+                ("Max trades/day", risk.get("max_trades_per_day", 5)),
+                ("Consecutive losses", risk.get("consecutive_losses", 0)),
+                ("Blocked reasons", blocked_reasons),
+                ("safe_to_trade", risk.get("safe_to_trade", False)),
+            ]
+        )
+
+    def _positions_block(self, state: dict[str, object]) -> str:
+        positions = state.get("positions", {}) if isinstance(state.get("positions"), dict) else {}
+        rec: dict[str, object] = {}
+        rec_source = positions.get("reconciliation")
+        if isinstance(rec_source, dict):
+            rec_data = rec_source.get("data", {})
+            if isinstance(rec_data, dict):
+                maybe = rec_data.get("reconciliation", {})
+                if isinstance(maybe, dict):
+                    rec = maybe
+        if not rec and isinstance(positions, dict):
+            rec = positions
+        return self._rows(
             [
                 ("Total", rec.get("total_positions", positions.get("total", 0))),
+                ("ODIN managed", rec.get("odin_managed", rec.get("odin_managed_positions", 0))),
                 ("External", rec.get("external_positions", positions.get("external", 0))),
                 ("Unprotected", rec.get("unprotected_positions", positions.get("unprotected", 0))),
                 ("Unknown magic", rec.get("unknown_magic", positions.get("unknown_magic", 0))),
                 ("Reconciliation", rec.get("recommended_state", positions.get("reconciliation", "n/a"))),
+                ("Recommended state", rec.get("recommended_state", "n/a")),
             ]
         )
 
-        events_block = f'<pre class="logbox">{self._as_log_lines(events)}</pre>'
+    def _assistant_state_block(self, state: dict[str, object]) -> str:
+        assistant = state.get("assistant", {}) if isinstance(state.get("assistant"), dict) else {}
+        llm = state.get("llm", {}) if isinstance(state.get("llm"), dict) else {}
+        return self._rows(
+            [
+                ("Última pergunta", assistant.get("last_question", assistant.get("question", "n/a"))),
+                ("Última resposta", assistant.get("last_answer", assistant.get("answer", "n/a"))),
+                ("Source", assistant.get("source", "fallback")),
+                ("LLM status", llm.get("status", "WARNING")),
+                ("LLM provider", llm.get("provider", "ollama")),
+                ("LLM model", llm.get("model", "")),
+            ]
+        )
+
+    def _index_content(self) -> str:
+        state = self._state()
+        runtime = state.get("runtime", {}) if isinstance(state.get("runtime"), dict) else {}
+        events = state.get("events", []) if isinstance(state.get("events"), list) else []
+
+        mode = str(state.get("mode", "SHADOW_MT5"))
+        runtime_state = str(runtime.get("state", "UNKNOWN"))
+        hb_age = heartbeat_age_seconds(str(runtime.get("heartbeat", "")))
+        safe_to_trade = runtime.get("safe_to_trade", False)
+        demo_label = "DEMO DATA" if bool(state.get("demo_data", False)) else "LIVE SNAPSHOT"
+        alerts = f"{demo_label} | Runtime={runtime_state} | safe_to_trade={safe_to_trade}"
 
         content = self._render_template(
             "index.html",
             {
-                "mode": mode,
-                "runtime_state": runtime_state,
-                "alerts": alerts,
-                "system_block": system_block,
-                "market_block": market_block,
-                "assistant_block": assistant_block,
-                "positions_block": positions_block,
-                "events_block": events_block,
+                "mode": html.escape(mode),
+                "runtime_state": html.escape(runtime_state),
+                "safe_to_trade": html.escape(str(safe_to_trade)),
+                "heartbeat_age": html.escape(str(hb_age if hb_age is not None else "n/a")),
+                "version": html.escape(self.version),
+                "demo_label": html.escape(demo_label),
+                "alerts": html.escape(alerts),
+                "system_block": self._system_block(state),
+                "market_block": self._market_block(state),
+                "intel_block": self._intel_block(state),
+                "atlas_block": self._atlas_block(state),
+                "risk_block": self._risk_block(state),
+                "positions_block": self._positions_block(state),
+                "assistant_block": self._assistant_state_block(state),
+                "events_block": f'<pre class="logbox">{self._as_log_lines(events, limit=14)}</pre>',
             },
         )
         return self._render_base("ODIN Dashboard", content)
@@ -177,13 +297,14 @@ class DashboardApp:
             [
                 ("State", runtime.get("state", "UNKNOWN")),
                 ("Heartbeat", short_ts(str(runtime.get("heartbeat", "")))),
+                ("Heartbeat age", heartbeat_age_seconds(str(runtime.get("heartbeat", ""))) or "n/a"),
                 ("Health", runtime.get("health_status", "UNKNOWN")),
                 ("Safe to trade", runtime.get("safe_to_trade", False)),
                 ("Demo", state.get("demo_data", False)),
             ]
         )
-        validation_block = f'<pre class="logbox">{json.dumps(validation, indent=2, sort_keys=True)}</pre>'
-        soak_block = f'<pre class="logbox">{json.dumps(soak, indent=2, sort_keys=True)}</pre>'
+        validation_block = f'<pre class="logbox">{html.escape(json.dumps(validation, indent=2, sort_keys=True))}</pre>'
+        soak_block = f'<pre class="logbox">{html.escape(json.dumps(soak, indent=2, sort_keys=True))}</pre>'
         content = self._render_template(
             "runtime.html",
             {
@@ -197,15 +318,24 @@ class DashboardApp:
     def _mt5_content(self) -> str:
         state = self._state()
         mt5 = state.get("mt5", {}) if isinstance(state.get("mt5"), dict) else {}
-        mt5_block = f'<pre class="logbox">{json.dumps(mt5, indent=2, sort_keys=True, default=str)}</pre>'
-        content = self._render_template("mt5.html", {"mt5_block": mt5_block})
+        events = state.get("events", []) if isinstance(state.get("events"), list) else []
+        mt5_block = f'<pre class="logbox">{html.escape(json.dumps(mt5, indent=2, sort_keys=True, default=str))}</pre>'
+        events_block = f'<pre class="logbox">{self._as_log_lines(events, limit=12)}</pre>'
+        content = self._render_template("mt5.html", {"mt5_block": mt5_block, "events_block": events_block})
         return self._render_base("ODIN MT5", content)
 
     def _atlas_content(self) -> str:
         state = self._state()
         atlas = state.get("atlas", {}) if isinstance(state.get("atlas"), dict) else {}
-        atlas_block = f'<pre class="logbox">{json.dumps(atlas, indent=2, sort_keys=True, default=str)}</pre>'
-        content = self._render_template("atlas.html", {"atlas_block": atlas_block})
+        profile = state.get("atlas_profile", {}) if isinstance(state.get("atlas_profile"), dict) else {}
+        atlas_block = f'<pre class="logbox">{html.escape(json.dumps(atlas, indent=2, sort_keys=True, default=str))}</pre>'
+        atlas_profile_block = (
+            f'<pre class="logbox">{html.escape(json.dumps(profile, indent=2, sort_keys=True, default=str))}</pre>'
+        )
+        content = self._render_template(
+            "atlas.html",
+            {"atlas_block": atlas_block, "atlas_profile_block": atlas_profile_block},
+        )
         return self._render_base("ODIN ATLAS", content)
 
     def _assistant_content(self) -> str:
@@ -218,9 +348,10 @@ class DashboardApp:
             'const r=await fetch("/assistant/ask?q="+encodeURIComponent(q));const d=await r.json();'
             'document.getElementById("aout").textContent=JSON.stringify(d,null,2);}</script>'
         )
-        assistant_block = f'<pre class="logbox">{json.dumps(llm, indent=2, sort_keys=True)}</pre>'
+        assistant_block = f'<pre class="logbox">{html.escape(json.dumps(llm, indent=2, sort_keys=True))}</pre>'
         content = self._render_template(
-            "assistant.html", {"assistant_block": assistant_block, "ask_block": ask_block}
+            "assistant.html",
+            {"assistant_block": assistant_block, "ask_block": ask_block},
         )
         return self._render_base("ODIN Assistant", content)
 
@@ -230,9 +361,7 @@ class DashboardApp:
         errors = state.get("errors", []) if isinstance(state.get("errors"), list) else []
         events_block = f'<pre class="logbox">{self._as_log_lines(events, limit=30)}</pre>'
         errors_block = f'<pre class="logbox">{self._as_log_lines(errors, limit=30)}</pre>'
-        content = self._render_template(
-            "logs.html", {"events_block": events_block, "errors_block": errors_block}
-        )
+        content = self._render_template("logs.html", {"events_block": events_block, "errors_block": errors_block})
         return self._render_base("ODIN Logs", content)
 
     def _assistant_payload(self, question: str) -> dict[str, object]:
@@ -274,6 +403,7 @@ class DashboardApp:
             if not ok:
                 failures.append(f"route:{route}")
 
+        state = self._state()
         index = self.handle("GET", "/").body.decode("utf-8", errors="ignore")
         critical_tokens = [
             "TRADING REAL: BLOCKED",
@@ -282,25 +412,34 @@ class DashboardApp:
             "ATLAS: SHADOW_ONLY",
             "LLM: READ_ONLY",
             "Perguntar ao ODIN",
-            "Runtime",
-            "Risk",
-            "Positions",
-            "Events",
+            "RISK ENGINE",
+            "POSITIONS",
+            "EVENTS",
+            "ASSISTANT",
+            "COMMAND BAR",
+            "SPARKLINE",
+            "MARKET INTELLIGENCE",
         ]
+        if state.get("demo_data", False):
+            critical_tokens.append("DEMO DATA")
+
         forbidden_tokens = [
             "ENABLE_REAL_TRADING",
             "DIRECT_ORDER_SEND",
             "MT5_ORDER_SEND",
             "BROKER_REAL_EXECUTION",
+            "Activa trading real",
+            "Abrir ordem",
+            "Fechar posição",
         ]
         token_checks = []
         for token in critical_tokens:
-            present = token in index
+            present = token.upper() in index.upper()
             token_checks.append({"token": token, "present": present})
             if not present:
                 failures.append(f"token:{token}")
         for token in forbidden_tokens:
-            present = token in index
+            present = token.upper() in index.upper()
             token_checks.append({"token": f"forbidden::{token}", "present": present})
             if present:
                 failures.append(f"forbidden:{token}")

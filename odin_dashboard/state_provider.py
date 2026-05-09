@@ -7,6 +7,7 @@ from typing import Any
 
 from odin_assistant.assistant_router import AssistantRouter
 from odin_control.system_controller import SystemController
+from odin_core.runtime_validator import validate_runtime_artifacts
 from odin_dashboard.demo_state import get_demo_state
 from odin_dashboard.security_badges import build_security_badges
 
@@ -90,25 +91,42 @@ def atlas_profile_status() -> dict[str, object]:
     }
 
 
+def _market_intelligence_demo_or_default(snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
+    if snapshot and isinstance(snapshot.get("market_intelligence"), dict):
+        return snapshot["market_intelligence"]
+    return {
+        "news_status": "UNAVAILABLE",
+        "macro_calendar_status": "UNAVAILABLE",
+        "sentiment_summary": "neutral",
+        "high_impact_events": [],
+        "blocked_by_news": False,
+    }
+
+
 class DashboardStateProvider:
     def __init__(self, *, log_root: str | Path = "logs") -> None:
         self.log_root = Path(log_root)
         self.snapshot_path = Path(os.getenv("ODIN_STATE_SNAPSHOT_FILE", "data/runtime/odin_state_snapshot.json"))
         self.heartbeat_path = Path(os.getenv("ODIN_HEARTBEAT_FILE", "data/runtime/odin_heartbeat.json"))
         self.events_path = Path(os.getenv("ODIN_EVENTS_FILE", "data/runtime/odin_events.jsonl"))
-        self.soak_path = Path(os.getenv("ODIN_SOAK_TEST_OUTPUT_DIR", "data/runtime/soak_tests")) / "latest_soak_result.json"
+        self.soak_path = (
+            Path(os.getenv("ODIN_SOAK_TEST_OUTPUT_DIR", "data/runtime/soak_tests"))
+            / "latest_soak_result.json"
+        )
 
     def _safe_controller_status(self) -> dict[str, Any]:
         try:
             controller = SystemController(log_root=self.log_root)
             assistant = AssistantRouter(controller)
             mt5 = controller.execute("MT5_STATUS", actor="dashboard:state", role="assistant")
-            atlas = controller.execute("RUNTIME_STATUS", actor="dashboard:state", role="assistant")
+            runtime = controller.execute("RUNTIME_STATUS", actor="dashboard:state", role="assistant")
+            llm = assistant.llm_status()
+            question = assistant.ask("Qual é o estado do ODIN?", channel="dashboard")
             return {
                 "mt5": mt5,
-                "runtime": atlas,
-                "llm": assistant.llm_status(),
-                "assistant_last": assistant.ask("Qual é o estado do ODIN?", channel="dashboard"),
+                "runtime": runtime,
+                "llm": llm,
+                "assistant_last": question,
             }
         except Exception as error:
             return {"status_error": f"{error.__class__.__name__}: {error}"}
@@ -119,11 +137,12 @@ class DashboardStateProvider:
             demo["security_badges"] = build_security_badges()
             demo["install_paths"] = resolve_odin_home_paths()
             demo["atlas_profile"] = atlas_profile_status()
+            demo["runtime_validate"] = validate_runtime_artifacts()
             return _sanitize(demo)
 
         snapshot = _read_json(self.snapshot_path)
         heartbeat = _read_json(self.heartbeat_path)
-        events = _read_jsonl_tail(self.events_path, limit=50)
+        events = _read_jsonl_tail(self.events_path, limit=120)
         soak = _read_json(self.soak_path)
 
         if not snapshot:
@@ -132,11 +151,18 @@ class DashboardStateProvider:
             demo["security_badges"] = build_security_badges()
             demo["install_paths"] = resolve_odin_home_paths()
             demo["atlas_profile"] = atlas_profile_status()
+            demo["runtime_validate"] = validate_runtime_artifacts()
             return _sanitize(demo)
 
         control = self._safe_controller_status()
         system_errors = _read_jsonl_tail(self.log_root / "errors" / "errors.log", limit=20)
         blocked_commands = _read_jsonl_tail(self.log_root / "assistant" / "blocked_requests.log", limit=20)
+
+        runtime_validate = validate_runtime_artifacts()
+
+        mt5_payload = snapshot.get("mt5", {}) if isinstance(snapshot.get("mt5"), dict) else {}
+        mt5_data = mt5_payload.get("data", {}).get("mt5", {}).get("data", {}) if isinstance(mt5_payload.get("data"), dict) else {}
+        series = mt5_data.get("series", []) if isinstance(mt5_data, dict) else []
 
         state: dict[str, Any] = {
             "demo_data": False,
@@ -148,6 +174,8 @@ class DashboardStateProvider:
                 "heartbeat": heartbeat.get("timestamp"),
                 "health_status": snapshot.get("health", {}).get("status", "UNKNOWN"),
                 "blocked_reasons": snapshot.get("health", {}).get("checks", {}).get("runtime", {}).get("reason", ""),
+                "uptime_seconds": snapshot.get("uptime_seconds"),
+                "runtime_validate": runtime_validate.get("status", "UNKNOWN"),
             },
             "security": {
                 "trading_real_blocked": not bool(snapshot.get("trading_real_enabled", False)),
@@ -161,22 +189,43 @@ class DashboardStateProvider:
                 "status": snapshot.get("mt5", {}).get("data", {}).get("mt5", {}).get("status", "WARNING"),
                 "raw": snapshot.get("mt5", {}),
                 "positions": snapshot.get("positions", {}),
+                "symbol": os.getenv("MT5_SYMBOLS", "EURUSD").split(",")[0].strip(),
+                "timeframe": os.getenv("MT5_DEFAULT_TIMEFRAME", "M15"),
+                "tick": mt5_data.get("tick", {}),
+                "sparkline": series if isinstance(series, list) else [],
+                "chart_label": "LIVE SNAPSHOT",
             },
+            "market_intelligence": _market_intelligence_demo_or_default(snapshot),
             "atlas": snapshot.get("atlas", {}),
             "llm": snapshot.get("llm", {}),
-            "risk": snapshot.get("risk", {}),
+            "risk": {
+                "status": "ACTIVE",
+                "engine": "REQUIRED",
+                "max_risk_per_trade_percent": os.getenv("MAX_RISK_PER_TRADE_PERCENT", "0.25"),
+                "max_daily_loss_percent": os.getenv("MAX_DAILY_LOSS_PERCENT", "1.00"),
+                "max_trades_per_day": os.getenv("MAX_TRADES_PER_DAY", "5"),
+                "trades_today": snapshot.get("trades_today", 0),
+                "consecutive_losses": snapshot.get("consecutive_losses", 0),
+                "blocked_reasons": snapshot.get("health", {}).get("checks", {}).get("network", {}).get("reason", ""),
+                "safe_to_trade": bool(snapshot.get("safe_to_trade", False)),
+            },
             "broker_router": {
                 "enabled": os.getenv("BROKER_ROUTER_ENABLED", "true").lower() == "true",
                 "primary": os.getenv("BROKER_PRIMARY", "XTB"),
                 "allow_real_execution": os.getenv("BROKER_ALLOW_REAL_EXECUTION", "false").lower() == "true",
             },
             "positions": snapshot.get("positions", {}),
-            "assistant": snapshot.get("assistant", {}),
+            "assistant": {
+                "last_question": control.get("assistant_last", {}).get("question", "n/a") if isinstance(control.get("assistant_last"), dict) else "n/a",
+                "last_answer": control.get("assistant_last", {}).get("answer", "n/a") if isinstance(control.get("assistant_last"), dict) else "n/a",
+                "source": control.get("assistant_last", {}).get("source", "fallback") if isinstance(control.get("assistant_last"), dict) else "fallback",
+            },
             "events": events,
             "errors": system_errors,
             "blocked_commands": blocked_commands,
             "soak": soak.get("summary", soak),
             "atlas_profile": atlas_profile_status(),
+            "runtime_validate": runtime_validate,
             "controller": control,
             "security_badges": build_security_badges(),
             "install_paths": resolve_odin_home_paths(),

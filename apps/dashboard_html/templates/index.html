@@ -1,16 +1,19 @@
 <div class="topbar">
-  <div class="title">ODIN VISUAL COMMAND CENTER :: {{mode}} :: {{runtime_state}}</div>
-  <div>
-    <span class="status-chip chip-bad">TRADING REAL: BLOCKED</span>
-    <span class="status-chip chip-bad">MT5 ORDER_SEND: BLOCKED</span>
-    <span class="status-chip chip-bad">BROKER REAL: BLOCKED</span>
-    <span class="status-chip chip-warn">ATLAS: SHADOW_ONLY</span>
-    <span class="status-chip chip-warn">LLM: READ_ONLY</span>
+  <div class="title">
+    ODIN VISUAL COMMAND CENTER · {{mode}} · {{runtime_state}} · safe_to_trade={{safe_to_trade}} · hb_age={{heartbeat_age}}s
   </div>
+  <div class="small">version={{version}} · {{demo_label}}</div>
 </div>
-<div class="alerts">{{alerts}}</div>
 
-<div class="grid-main">
+<div class="security-strip">
+  <span class="badge blocked">TRADING REAL: BLOCKED</span>
+  <span class="badge blocked">MT5 ORDER_SEND: BLOCKED</span>
+  <span class="badge blocked">BROKER REAL: BLOCKED</span>
+  <span class="badge shadow">ATLAS: SHADOW_ONLY</span>
+  <span class="badge readonly">LLM: READ_ONLY</span>
+</div>
+
+<div class="grid-main-dense">
   <div class="panel">
     <h3>System / Runtime</h3>
     {{system_block}}
@@ -20,29 +23,49 @@
     {{market_block}}
   </div>
   <div class="panel">
-    <h3>Assistant / Risk</h3>
-    {{assistant_block}}
+    <h3>Market Intelligence</h3>
+    {{intel_block}}
   </div>
-</div>
-
-<div class="footer-grid">
+  <div class="panel">
+    <h3>ATLAS Consensus</h3>
+    {{atlas_block}}
+  </div>
+  <div class="panel">
+    <h3>Risk Engine</h3>
+    {{risk_block}}
+  </div>
   <div class="panel">
     <h3>Positions / Reconciliation</h3>
     {{positions_block}}
   </div>
-  <div class="panel">
-    <h3>Events / Logs</h3>
-    {{events_block}}
-  </div>
 </div>
 
 <div class="panel" style="margin-top:10px;">
-  <h3>Perguntar ao ODIN</h3>
+  <h3>Events / Logs</h3>
+  {{events_block}}
+</div>
+
+<div class="panel" style="margin-top:10px;">
+  <h3>Assistant / ODIN Chat</h3>
+  <div class="small">LLM não executa comandos. Operações passam pelo Command Bus.</div>
+  <div class="quick-asks">
+    <button class="btn" onclick="askQuick('Qual é o estado do ODIN?')">Estado</button>
+    <button class="btn" onclick="askQuick('O ODIN pode operar agora?')">Posso operar?</button>
+    <button class="btn" onclick="askQuick('O MT5 está ligado?')">MT5</button>
+    <button class="btn" onclick="askQuick('Qual é o estado do ATLAS?')">ATLAS</button>
+    <button class="btn" onclick="askQuick('Qual é o estado do risco?')">Risco</button>
+    <button class="btn" onclick="askQuick('Mostra os últimos erros.')">Logs</button>
+  </div>
   <div class="input-line">
     <input id="askInput" placeholder="Qual é o estado do ODIN?">
-    <button class="btn" onclick="askOdin()">Perguntar</button>
+    <button class="btn" onclick="askOdin()">Perguntar ao ODIN</button>
   </div>
+  {{assistant_block}}
   <pre id="askOut" class="logbox"></pre>
+</div>
+
+<div class="panel" style="margin-top:10px;">
+  <h3>COMMAND BAR</h3>
   <div class="command-bar">
     <button class="btn" onclick="runCommand('RUNTIME_STATUS')">Runtime Status</button>
     <button class="btn" onclick="runCommand('RUNTIME_RUN_ONCE')">Run Once</button>
@@ -50,6 +73,7 @@
     <button class="btn" onclick="runCommand('RUNTIME_RESUME')">Resume</button>
     <button class="btn" onclick="runCommand('RUN_HEALTHCHECK')">Healthcheck</button>
     <button class="btn" onclick="runCommand('MT5_SYNC_POSITIONS')">Sync MT5</button>
+    <button class="btn" onclick="runCommand('RUNTIME_SNAPSHOT')">Snapshot</button>
   </div>
 </div>
 
@@ -68,5 +92,9 @@ async function askOdin(){
   const r = await fetch('/assistant/ask?q=' + encodeURIComponent(q));
   const d = await r.json();
   document.getElementById('askOut').textContent = JSON.stringify(d, null, 2);
+}
+async function askQuick(q){
+  document.getElementById('askInput').value = q;
+  await askOdin();
 }
 </script>

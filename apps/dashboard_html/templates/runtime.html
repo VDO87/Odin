@@ -1,4 +1,12 @@
-<div class="topbar"><div class="title">Runtime View</div><div><a href="/">voltar</a></div></div>
+<div class="topbar"><div class="title">Runtime Module</div><div><a href="/">home</a></div></div>
+<div class="security-strip">
+  <span class="badge blocked">TRADING REAL: BLOCKED</span>
+  <span class="badge blocked">MT5 ORDER_SEND: BLOCKED</span>
+  <span class="badge blocked">BROKER REAL: BLOCKED</span>
+  <span class="badge shadow">ATLAS: SHADOW_ONLY</span>
+  <span class="badge readonly">LLM: READ_ONLY</span>
+</div>
 <div class="panel"><h3>Runtime Snapshot</h3>{{runtime_block}}</div>
 <div class="panel" style="margin-top:10px;"><h3>Validation</h3>{{validation_block}}</div>
 <div class="panel" style="margin-top:10px;"><h3>Latest Soak</h3>{{soak_block}}</div>
+<div class="page-links"><a href="/runtime/validate">runtime validate</a> · <a href="/runtime/soak/latest">soak latest</a></div>

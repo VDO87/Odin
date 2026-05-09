@@ -39,6 +39,20 @@ RC1.6 introduz dashboard visual estilo terminal (HTML + TUI), com foco operacion
 - command bar apenas com comandos seguros
 - preview estático e QA visual automatizado
 
+### RC1.6.1 Dashboard Usability Polish
+- layout HTML principal mais denso e orientado a operação
+- sparkline/mini chart sempre presente
+- Market Intelligence panel (`news_status`, macro calendar, sentiment e high impact events)
+- ATLAS consensus e Risk Engine com leitura operacional rápida
+- events/logs com agrupamento de repetição (`xN`) e destaque de críticos
+- Assistant panel mais vivo (quick actions, última pergunta/resposta, source e LLM status)
+- strip de segurança sempre visível:
+  - `TRADING REAL: BLOCKED`
+  - `MT5 ORDER_SEND: BLOCKED`
+  - `BROKER REAL: BLOCKED`
+  - `ATLAS: SHADOW_ONLY`
+  - `LLM: READ_ONLY`
+
 ### Comandos dashboard/TUI
 ```bash
 ./run_odin.sh --dashboard

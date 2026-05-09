@@ -11,6 +11,9 @@
 ## 3) Gerar preview
 ```bash
 ./run_odin.sh --dashboard-preview
+./run_odin.sh --dashboard-qa
+python -m apps.dashboard_html.app --export-preview
+python -m apps.dashboard_html.app --dashboard-qa
 ```
 
 ## 4) Testar dashboard TUI
@@ -25,13 +28,25 @@
 - runtime state visível
 - trading real bloqueado visível
 - MT5 visível
+- sparkline/market chart visível
+- `DEMO DATA` visível quando não há snapshot real
+- Market Intelligence visível
 - ATLAS visível
 - LLM visível
 - Risk Engine visível
 - posições visíveis
 - logs visíveis
 - campo Perguntar ao ODIN visível
+- command bar visível (apenas comandos seguros)
 - comandos perigosos ausentes
 
-## 6) Critério
+## 6) RC1.6.1 comandos rápidos do painel Assistant
+- Estado
+- Posso operar?
+- MT5
+- ATLAS
+- Risco
+- Logs
+
+## 7) Critério
 - operador percebe estado do ODIN em menos de 30 segundos.
