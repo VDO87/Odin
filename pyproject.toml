@@ -35,7 +35,7 @@ mypy_path = "src"
 warn_unused_configs = true
 check_untyped_defs = true
 strict_optional = true
-exclude = "^(apps/|Odin_Teste_BACKUP_.*?/)"
+exclude = "^(apps/|Odin_Teste_BACKUP_.*?/|Odin_GitHub_Check/)"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
