@@ -98,9 +98,11 @@
 - `python -m apps.dashboard_terminal.cli smoke-test` -> `OK`
 - `python -m apps.telegram_bot.bot --dry-run` -> `OK`
 
-## 12. Estado final (antes do commit final desta limpeza)
+## 12. Estado final (após commit e push de cleanup)
 - Branch atual: `release/rc1`
 - Upstream: `origin/release/rc1`
+- Commit final de cleanup: `44fa85b` (`ODIN RC1: clean GitHub structure, branch strategy and CI`)
+- Push final: `493494c..44fa85b  release/rc1 -> release/rc1`
 - `origin/main`: preservada
 - `origin/archive/legacy-main-before-rc1`: criada e publicada
 - `origin/release/rc1`: publicada e definida como default
