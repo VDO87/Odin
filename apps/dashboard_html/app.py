@@ -1,55 +1,16 @@
 from __future__ import annotations
 
+import argparse
 import json
+import os
+from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from odin_assistant.assistant_router import AssistantRouter
 from odin_atlas.coordinator import AtlasCoordinator
 from odin_control.system_controller import SystemController
-
-
-controller = SystemController(log_root="logs")
-atlas = AtlasCoordinator(log_root="logs")
-assistant = AssistantRouter(
-    controller,
-    context_builder=None,
-)
-
-
-def context_payload() -> dict[str, object]:
-    return {
-        "status": {"state": controller.machine.state.value},
-        "can_operate": {"can_operate": controller.machine.state.value in {"READY", "RUNNING"}},
-        "signals": {"active_signals": []},
-        "risk": {"risk_engine_required": True, "risk_engine_active": True},
-        "mt5": {"shadow_mode": True},
-        "mt5_positions": {"positions": []},
-        "mt5_reconciliation": {"status": "not_run"},
-        "atlas": {"status": "enabled_consensus_only"},
-        "atlas_last_signal": {"status": "no_signals"},
-        "news": {"status": "not_configured"},
-        "fire": {"status": "monitoring"},
-        "errors": {"last_errors": []},
-        "blocked_signals": {"last_blocked": []},
-    }
-
-
-assistant.context_builder.providers = {
-    "status": lambda: {"state": controller.machine.state.value},
-    "can_operate": lambda: {"can_operate": controller.machine.state.value in {"READY", "RUNNING"}},
-    "signals": lambda: {"active_signals": []},
-    "risk": lambda: {"risk_engine_required": True, "risk_engine_active": True},
-    "mt5": lambda: {"shadow_mode": True},
-    "mt5_positions": lambda: {"positions": []},
-    "mt5_reconciliation": lambda: {"status": "not_run"},
-    "atlas": lambda: {"status": "enabled_consensus_only"},
-    "atlas_last_signal": lambda: {"status": "no_signals"},
-    "news": lambda: {"status": "not_configured"},
-    "fire": lambda: {"status": "monitoring"},
-    "errors": lambda: {"last_errors": []},
-    "blocked_signals": lambda: {"last_blocked": []},
-}
+from odin_health.healthcheck import OdinHealthcheck
 
 
 INDEX_HTML = """<!doctype html>
@@ -94,62 +55,150 @@ refresh();
 </html>"""
 
 
-class Handler(BaseHTTPRequestHandler):
-    def _json(self, payload: dict[str, object], code: int = 200) -> None:
-        body = json.dumps(payload, sort_keys=True).encode("utf-8")
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+@dataclass(slots=True)
+class DashboardResponse:
+    status_code: int
+    content_type: str
+    body: bytes
 
-    def _html(self, payload: str, code: int = 200) -> None:
-        body = payload.encode("utf-8")
-        self.send_response(code)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
+
+class DashboardApp:
+    def __init__(self) -> None:
+        self.controller = SystemController(log_root="logs")
+        self.atlas = AtlasCoordinator(log_root="logs")
+        self.assistant = AssistantRouter(self.controller, context_builder=None)
+        self.assistant.context_builder.providers = {
+            "status": lambda: {"state": self.controller.machine.state.value},
+            "can_operate": lambda: {
+                "can_operate": self.controller.machine.state.value in {"READY", "RUNNING"}
+            },
+            "signals": lambda: {"active_signals": []},
+            "risk": lambda: {"risk_engine_required": True, "risk_engine_active": True},
+            "mt5": lambda: {"shadow_mode": True},
+            "mt5_positions": lambda: {"positions": []},
+            "mt5_reconciliation": lambda: {"status": "not_run"},
+            "atlas": lambda: {"status": "enabled_consensus_only"},
+            "atlas_last_signal": lambda: {"status": "no_signals"},
+            "news": lambda: {"status": "not_configured"},
+            "fire": lambda: {"status": "monitoring"},
+            "errors": lambda: {"last_errors": []},
+            "blocked_signals": lambda: {"last_blocked": []},
+        }
+
+    def _json(self, payload: dict[str, object], code: int = 200) -> DashboardResponse:
+        return DashboardResponse(
+            status_code=code,
+            content_type="application/json; charset=utf-8",
+            body=json.dumps(payload, sort_keys=True).encode("utf-8"),
+        )
+
+    def _html(self, payload: str, code: int = 200) -> DashboardResponse:
+        return DashboardResponse(
+            status_code=code,
+            content_type="text/html; charset=utf-8",
+            body=payload.encode("utf-8"),
+        )
+
+    def handle(self, method: str, raw_path: str) -> DashboardResponse:
+        parsed = urlparse(raw_path)
+        qs = parse_qs(parsed.query)
+
+        if method == "GET" and parsed.path == "/":
+            return self._html(INDEX_HTML)
+        if method == "GET" and parsed.path == "/atlas":
+            return self._json(self.atlas.analyze({"symbol": "EURUSD"}))
+        if method == "GET" and parsed.path == "/logs":
+            return self._json({"hint": "Ver pasta logs/ para eventos detalhados."})
+        if method == "GET" and parsed.path == "/api/state":
+            return self._json({"state": self.controller.machine.state.value})
+        if method == "GET" and parsed.path == "/api/ask":
+            question = qs.get("q", [""])[0]
+            return self._json(self.assistant.ask(question, channel="dashboard"))
+        if method == "GET" and parsed.path == "/api/healthcheck":
+            return self._json(OdinHealthcheck(log_root="logs").run())
+        if method == "POST" and parsed.path == "/api/command":
+            name = qs.get("name", [""])[0]
+            return self._json(self.controller.execute(name, actor="dashboard", role="operator"))
+
+        return self._json({"error": "not_found"}, code=404)
+
+
+class _DashboardHandler(BaseHTTPRequestHandler):
+    app: DashboardApp
+
+    def _send(self, response: DashboardResponse) -> None:
+        self.send_response(response.status_code)
+        self.send_header("Content-Type", response.content_type)
+        self.send_header("Content-Length", str(len(response.body)))
         self.end_headers()
-        self.wfile.write(body)
+        self.wfile.write(response.body)
 
     def do_GET(self) -> None:  # noqa: N802
-        parsed = urlparse(self.path)
-        qs = parse_qs(parsed.query)
-
-        if parsed.path == "/":
-            self._html(INDEX_HTML)
-            return
-        if parsed.path == "/atlas":
-            result = atlas.analyze({"symbol": "EURUSD"})
-            self._json(result)
-            return
-        if parsed.path == "/logs":
-            self._json({"hint": "Ver pasta logs/ para eventos detalhados."})
-            return
-        if parsed.path == "/api/state":
-            self._json({"state": controller.machine.state.value})
-            return
-        if parsed.path == "/api/ask":
-            question = qs.get("q", [""])[0]
-            self._json(assistant.ask(question, channel="dashboard"))
-            return
-
-        self._json({"error": "not_found"}, code=404)
+        self._send(self.app.handle("GET", self.path))
 
     def do_POST(self) -> None:  # noqa: N802
-        parsed = urlparse(self.path)
-        qs = parse_qs(parsed.query)
-        if parsed.path == "/api/command":
-            name = qs.get("name", [""])[0]
-            self._json(controller.execute(name, actor="dashboard", role="operator"))
-            return
-        self._json({"error": "not_found"}, code=404)
+        self._send(self.app.handle("POST", self.path))
 
 
-def main() -> None:
-    server = ThreadingHTTPServer(("127.0.0.1", 8000), Handler)
-    print("ODIN dashboard listening on http://127.0.0.1:8000")
+def create_app() -> DashboardApp:
+    return DashboardApp()
+
+
+def run_smoke_test() -> int:
+    app = create_app()
+    required_paths = [
+        ("GET", "/"),
+        ("GET", "/atlas"),
+        ("GET", "/logs"),
+        ("GET", "/api/ask?q=Qual%20%C3%A9%20o%20estado%20do%20ODIN%3F"),
+        ("GET", "/api/healthcheck"),
+    ]
+    failures: list[str] = []
+    for method, path in required_paths:
+        response = app.handle(method, path)
+        if response.status_code >= 400:
+            failures.append(f"{method} {path} -> {response.status_code}")
+
+    if failures:
+        print("Dashboard smoke-test failed")
+        for failure in failures:
+            print(failure)
+        return 1
+
+    print("Dashboard smoke-test OK")
+    return 0
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="ODIN dashboard HTML")
+    parser.add_argument("--smoke-test", action="store_true", help="Validate app routes without binding sockets")
+    parser.add_argument(
+        "--host",
+        default=os.getenv("DASHBOARD_HOST", "127.0.0.1"),
+        help="Dashboard host",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.getenv("DASHBOARD_PORT", "8000")),
+        help="Dashboard port",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+
+    if args.smoke_test:
+        return run_smoke_test()
+
+    app = create_app()
+    _DashboardHandler.app = app
+    server = ThreadingHTTPServer((args.host, args.port), _DashboardHandler)
+    print(f"ODIN dashboard listening on http://{args.host}:{args.port}")
     server.serve_forever()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

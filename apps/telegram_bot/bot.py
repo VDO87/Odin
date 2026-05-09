@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import os
 from dataclasses import dataclass
 
@@ -41,6 +42,7 @@ class TelegramBot:
         self.log_approvals = JsonlLogger("logs/telegram/approvals.log")
         allowed_raw = os.getenv("TELEGRAM_ALLOWED_USER_IDS", "")
         self.allowed_ids = {x.strip() for x in allowed_raw.split(",") if x.strip()}
+        self.token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 
     def is_allowed(self, user_id: str) -> bool:
         return user_id in self.allowed_ids if self.allowed_ids else False
@@ -64,12 +66,40 @@ class TelegramBot:
         return self.assistant.ask(question, channel="telegram", confirmed=message.confirmed)
 
 
-def main() -> None:
+def build_dry_run_report(bot: TelegramBot) -> dict[str, object]:
+    return {
+        "dry_run": True,
+        "token_present": bool(bot.token),
+        "allowed_user_ids_count": len(bot.allowed_ids),
+        "commands_count": len(COMMAND_TO_QUESTION),
+        "commands": sorted(COMMAND_TO_QUESTION.keys()),
+        "network_calls": "not_performed",
+        "safe_mode": True,
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="ODIN Telegram bot")
+    parser.add_argument("--dry-run", action="store_true", help="Validate config and command mapping without contacting Telegram")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
     controller = SystemController(log_root="logs")
     bot = TelegramBot(controller)
+    if args.dry_run:
+        print(build_dry_run_report(bot))
+        return 0
+
+    if not bot.token:
+        print("Telegram token ausente. Use --dry-run para validação segura sem ligação externa.")
+        return 0
+
     print("Telegram bot structure ready. Configure polling/webhook externally.")
     print(bot.handle(TelegramMessage(user_id="0", text="/help")))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

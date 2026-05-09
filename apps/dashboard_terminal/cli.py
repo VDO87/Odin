@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 from pathlib import Path
 
 from odin_assistant.assistant_router import AssistantRouter
+from odin_atlas.coordinator import AtlasCoordinator
 from odin_control.system_controller import SystemController
 from odin_health.healthcheck import OdinHealthcheck
 
@@ -32,6 +34,7 @@ def main() -> None:
     sub.add_parser("stop")
     sub.add_parser("kill")
     sub.add_parser("healthcheck")
+    sub.add_parser("smoke-test")
     sub.add_parser("mt5-sync")
     sub.add_parser("atlas-status")
 
@@ -55,6 +58,39 @@ def main() -> None:
 
     if args.cmd == "healthcheck":
         print(json.dumps(OdinHealthcheck(log_root="logs").run(), indent=2, sort_keys=True))
+        return
+
+    if args.cmd == "smoke-test":
+        modules = [
+            "odin_control",
+            "odin_health",
+            "odin_assistant",
+            "odin_atlas",
+            "odin_brokers",
+            "apps.dashboard_html.app",
+        ]
+        for module_name in modules:
+            importlib.import_module(module_name)
+
+        command_result = controller.execute("RELOAD_CONFIG", actor="terminal-smoke", role="operator")
+        assistant_result = assistant.ask("Qual é o estado do ODIN?", channel="dashboard")
+        atlas_result = AtlasCoordinator(log_root="logs").analyze({"symbol": "EURUSD"})
+        print(
+            json.dumps(
+                {
+                    "smoke_test": "ok",
+                    "command_bus": command_result,
+                    "assistant": assistant_result,
+                    "atlas": {
+                        "accepted": atlas_result["accepted"],
+                        "execution_permission": atlas_result["decision_packet"]["execution_permission"],
+                        "atlas_executes_orders": atlas_result["atlas_executes_orders"],
+                    },
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return
 
     if args.cmd in COMMAND_MAP:
