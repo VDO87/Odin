@@ -1,0 +1,60 @@
+[profile]
+name = "lite"
+
+[core]
+startup_timeout_ms = 15000
+event_queue_max_size = 2048
+heartbeat_timeout_ms = 5000
+heartbeat_grace_count = 2
+allow_real_mode = false
+recovery_required_on_unclean_shutdown = true
+persist_on_critical_transition = true
+
+[market]
+instrument_scope = ["EURUSD"]
+feed_scope = ["primary"]
+news_guard_enabled = false
+spread_guard_enabled = true
+heavy_enrichment_enabled = false
+
+[risk]
+kill_persistence_enabled = true
+manual_clear_required = true
+
+[exec]
+mode = "demo"
+default_ttl_ms = 3000
+default_max_slippage = 0.0002
+
+[real]
+require_explicit_confirmation = true
+confirmation_phrase = "CONFIRM_REAL_MODE"
+require_change_ticket = true
+require_approval_ref = true
+require_all_heartbeats_ok = true
+stricter_max_slippage_factor = 0.5
+execution_adapter_name = "simulated_real"
+audit_export_dir = "runtime/logs/real-audit"
+
+[memory]
+enabled = false
+provider = "mempalace"
+mode = "advisory"
+freeze_into_decision_snapshot = true
+freeze_into_learn_snapshot = true
+allow_core_authority = false
+allow_risk_authority = false
+allow_exec_authority = false
+palace_dir = "runtime/memory/mempalace"
+include_globs = ["docs/**/*.md", "runtime/logs/**/*.jsonl"]
+exclude_globs = ["runtime/state/**", "runtime/backups/**", "runtime/memory/**"]
+
+[observability]
+log_level = "INFO"
+json_logs = true
+
+[runtime]
+state_dir = "runtime/state"
+log_dir = "runtime/logs"
+backup_dir = "runtime/backups"
+memory_dir = "runtime/memory"

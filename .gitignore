@@ -1,0 +1,47 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+.venv*/
+venv/
+dist/
+build/
+*.egg-info/
+config/odin.local.toml
+config/secrets/
+*.secrets.toml
+.env
+
+runtime/logs/*
+!runtime/logs/.gitkeep
+runtime/state/*
+!runtime/state/.gitkeep
+runtime/backups/*
+!runtime/backups/.gitkeep
+runtime/memory/*
+!runtime/memory/.gitkeep
+
+.DS_Store
+.codex
+.agents/
+
+# RC1 local artifacts and backups
+Odin_GitHub_Check/
+Odin_Teste_BACKUP_*/
+*.bak
+*.tmp
+*.temp
+*.swp
+*~
+
+# Never version real env files
+.env
+.env.local
+.env.*.local
+
+# Logs should remain local
+logs/**/*.log

@@ -1,0 +1,152 @@
+{
+  "action_availability": {
+    "available_actions": [
+      "STOP",
+      "PAUSE",
+      "EXPORT_LOGS"
+    ],
+    "confirmation_required_actions": [
+      "STOP"
+    ],
+    "forbidden_actions": [
+      "MAINTENANCE_ENTER",
+      "MAINTENANCE_EXIT",
+      "MANUAL_BLOCK",
+      "MANUAL_CLEAR",
+      "MODE_CHANGE",
+      "REQUEST_RECOVERY_VALIDATION",
+      "RESUME",
+      "START"
+    ],
+    "maintenance_profile_required": true,
+    "resume_allowed": false
+  },
+  "alarms": [],
+  "block_vector_panel": {
+    "active_block_vector": {
+      "blocks": [],
+      "dominant_block_priority": 0,
+      "dominant_block_reason": null,
+      "manual_clear_required": false,
+      "updated_at_utc": "2026-04-28T17:58:19.805391+00:00",
+      "vector_id": "vector-2109c477eb624ddb9044d8680e195620"
+    },
+    "block_count": 0,
+    "dominant_block_reason": null,
+    "has_fault_block": false,
+    "has_kill_block": false,
+    "has_manual_block": false
+  },
+  "global_state_model": {
+    "active_block_vector": {
+      "blocks": [],
+      "dominant_block_priority": 0,
+      "dominant_block_reason": null,
+      "manual_clear_required": false,
+      "updated_at_utc": "2026-04-28T17:58:19.805391+00:00",
+      "vector_id": "vector-2109c477eb624ddb9044d8680e195620"
+    },
+    "active_version": null,
+    "approval_status": null,
+    "available_actions": [
+      "STOP",
+      "PAUSE",
+      "EXPORT_LOGS"
+    ],
+    "critical_flags": {
+      "fault_block_active": false,
+      "kill_active": false,
+      "manual_block_active": false,
+      "recovery_required": false,
+      "risk_block_active": false
+    },
+    "current_mode": "MD-20",
+    "dashboard_profile": "lite",
+    "dominant_block_reason": null,
+    "global_state": "ST-30",
+    "health_summary": {
+      "active_block_codes": [],
+      "active_block_count": 0,
+      "active_block_vector": {
+        "blocks": [],
+        "dominant_block_priority": 0,
+        "dominant_block_reason": null,
+        "manual_clear_required": false,
+        "updated_at_utc": "2026-04-28T17:58:19.805391+00:00",
+        "vector_id": "vector-2109c477eb624ddb9044d8680e195620"
+      },
+      "critical_module_delayed_count": 0,
+      "critical_module_ok_count": 3,
+      "critical_module_timeout_count": 0,
+      "fail_safe_engaged": false,
+      "integrity_class": "degraded",
+      "last_control_action_rejection": null,
+      "last_persistence_error": null,
+      "persistence_status": "ok",
+      "readiness_class": "monitoring",
+      "startup_missing_heartbeat_modules": [],
+      "startup_required_modules": [
+        "MARKET",
+        "RISK",
+        "EXEC"
+      ],
+      "startup_unavailable_modules": [],
+      "status_summary": "monitoring:monitoring"
+    },
+    "heartbeat_health_summary": {
+      "EXEC": "OK",
+      "MARKET": "OK",
+      "RISK": "OK"
+    },
+    "last_change_summary": null,
+    "learn_operational_hints": [],
+    "learn_shadow_audit": null,
+    "learn_state": null,
+    "operation_focus": {
+      "active_block_count": 0,
+      "dashboard_surface": "lite",
+      "dominant_block_reason": null,
+      "execution_gate": "standby",
+      "kill_active": false,
+      "market_runtime": {
+        "active_restrictions": [
+          "instrument_scope:1",
+          "feed_scope:1",
+          "news_guard_disabled",
+          "heavy_enrichment_disabled"
+        ],
+        "applied_restrictions": [],
+        "execution_profile": "lite",
+        "feed_scope": [
+          "primary"
+        ],
+        "heavy_enrichment_enabled": false,
+        "instrument_scope": [
+          "EURUSD"
+        ],
+        "last_feed_id": "primary",
+        "last_gate_status": "accepted",
+        "last_instrument_id": "EURUSD",
+        "last_rejection_reason": null,
+        "market_profile": "simple",
+        "max_feeds": 1,
+        "max_instruments": 1,
+        "news_guard_enabled": false,
+        "spread_guard_enabled": true
+      },
+      "mode_code": "MD-20",
+      "next_actions": [
+        "STOP",
+        "PAUSE",
+        "EXPORT_LOGS"
+      ],
+      "resume_allowed": false,
+      "state_code": "ST-30"
+    },
+    "pending_proposal": null,
+    "rollback_state": null,
+    "state_updated_at_utc": "2026-04-28T17:58:19.768339+00:00"
+  },
+  "learn_query_results": null,
+  "recovery_panel": null
+}

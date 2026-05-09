@@ -1,0 +1,18 @@
+allowed_questions:
+  - Qual é o estado do ODIN?
+  - O ODIN pode operar agora?
+  - Quais são os sinais activos?
+  - Qual é o estado do risco?
+  - O MT5 está ligado?
+  - Que posições estão abertas no MT5?
+  - O ODIN reconhece todas as posições?
+  - Qual é o estado do ATLAS?
+  - O que diz o ATLAS sobre o último sinal?
+  - Há notícias financeiras relevantes?
+  - Qual é o estado FIRE?
+  - Mostra os últimos erros.
+  - Mostra os últimos sinais bloqueados.
+  - Executa healthcheck.
+  - Sincroniza posições MT5.
+  - Pausa o ODIN.
+  - Retoma o ODIN.

@@ -1,0 +1,25 @@
+[Unit]
+Description=Odin CORE daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__ODIN_USER__
+Group=__ODIN_GROUP__
+WorkingDirectory=__ODIN_ROOT__
+Environment=PYTHONUNBUFFERED=1
+Environment=ODIN_CONFIG_PATH=__ODIN_CONFIG__
+Environment=ODIN_STATUS_FILE=__ODIN_STATUS_FILE__
+Environment=ODIN_POLL_INTERVAL_MS=1000
+ExecStart=__ODIN_ROOT__/start_odin.sh
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=__ODIN_ROOT__/runtime __ODIN_ROOT__/config
+
+[Install]
+WantedBy=multi-user.target

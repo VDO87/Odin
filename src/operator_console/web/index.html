@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ODIN Trader Console v1</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h1>ODIN</h1>
+
+      <div class="menu-group">
+        <span class="menu-title">OPERAÇÃO</span>
+        <nav>
+          <a class="nav-link" data-route="dashboard" href="#dashboard">Dashboard</a>
+          <a class="nav-link" data-route="market" href="#market">Market</a>
+          <a class="nav-link" data-route="risk" href="#risk">Risk</a>
+          <a class="nav-link" data-route="decision" href="#decision">Decision</a>
+          <a class="nav-link" data-route="logs" href="#logs">Logs</a>
+        </nav>
+      </div>
+
+      <div class="menu-group">
+        <span class="menu-title">EXECUTION</span>
+        <nav>
+          <a class="nav-link" data-route="execution" href="#execution">MT5 Forex</a>
+          <a class="nav-link" data-route="execution" href="#execution">XTB Assisted</a>
+          <a class="nav-link" data-route="execution" href="#execution">Manual Orders</a>
+          <a class="nav-link" data-route="execution" href="#execution">Execution Ledger</a>
+        </nav>
+      </div>
+
+      <div class="menu-group">
+        <span class="menu-title">PORTFOLIOS</span>
+        <nav>
+          <a class="nav-link" data-route="portfolios" href="#portfolios">Forex Trading</a>
+          <a class="nav-link" data-route="portfolios" href="#portfolios">ETFs</a>
+          <a class="nav-link" data-route="portfolios" href="#portfolios">Ações</a>
+          <a class="nav-link" data-route="portfolios" href="#portfolios">FIRE / Reforma</a>
+          <a class="nav-link" data-route="portfolios" href="#portfolios">3–5 anos</a>
+        </nav>
+      </div>
+
+      <div class="menu-group">
+        <span class="menu-title">ADMINISTRAÇÃO</span>
+        <nav>
+          <a class="nav-link" data-route="config" href="#config">Config</a>
+          <a class="nav-link" data-route="commands" href="#commands">Commands</a>
+        </nav>
+      </div>
+
+      <div class="menu-group secondary">
+        <span class="menu-title">DADOS</span>
+        <nav>
+          <a class="nav-link" data-route="market-data" href="#market-data">Market Data</a>
+          <a class="nav-link" data-route="economic-calendar" href="#economic-calendar">Economic Calendar</a>
+        </nav>
+      </div>
+
+      <div class="menu-group secondary">
+        <span class="menu-title">INTEGRAÇÕES</span>
+        <nav>
+          <a class="nav-link future" data-route="integrations" href="#integrations">Telegram <span class="dev-tag">dev</span></a>
+          <a class="nav-link future" data-route="integrations" href="#integrations">MT5 <span class="dev-tag">dev</span></a>
+          <a class="nav-link future" data-route="integrations" href="#integrations">XTB <span class="dev-tag">dev</span></a>
+          <a class="nav-link future" data-route="integrations" href="#integrations">OpenAI <span class="dev-tag">dev</span></a>
+          <a class="nav-link future" data-route="integrations" href="#integrations">Providers <span class="dev-tag">dev</span></a>
+        </nav>
+      </div>
+
+      <div class="menu-group secondary">
+        <span class="menu-title">INTELIGÊNCIA</span>
+        <nav>
+          <a class="nav-link future" data-route="intelligence" href="#intelligence">Intelligence <span class="dev-tag">dev</span></a>
+          <a class="nav-link future" data-route="intelligence" href="#intelligence">Memory <span class="dev-tag">dev</span></a>
+          <a class="nav-link future" data-route="intelligence" href="#intelligence">Learn <span class="dev-tag">dev</span></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p class="sub">ODIN Trader Console v1</p>
+        </div>
+        <div class="topbar-controls">
+          <label for="pollInterval">Polling</label>
+          <select id="pollInterval">
+            <option value="1000">1s</option>
+            <option value="2000" selected>2s</option>
+            <option value="5000">5s</option>
+          </select>
+          <button id="modeOperator" class="mode-btn active">Modo Operador</button>
+          <button id="modeTechnical" class="mode-btn">Modo Técnico</button>
+        </div>
+      </header>
+
+      <section id="page-dashboard" class="route-page">
+        <section class="panel">
+          <h3>Estado Crítico</h3>
+          <div class="critical-grid">
+            <article class="metric-card"><span>Estado</span><strong id="generalState"></strong></article>
+            <article class="metric-card"><span>Saúde geral</span><strong id="generalHealth"></strong></article>
+            <article class="metric-card"><span>Modo</span><strong id="generalMode"></strong></article>
+            <article class="metric-card"><span>Profile</span><strong id="generalProfile"></strong></article>
+            <article class="metric-card"><span>Kill</span><strong id="generalKill"></strong></article>
+            <article class="metric-card"><span>Bloqueios</span><strong id="generalBlocks"></strong></article>
+          </div>
+        </section>
+
+        <section id="diagnostic" class="panel diagnosis-panel">
+          <h3>Diagnóstico Automático</h3>
+          <p id="diagnosisHeadline"></p>
+          <div class="diag-columns">
+            <div>
+              <h4>Problemas detetados</h4>
+              <ul id="diagnosisIssues"></ul>
+            </div>
+            <div>
+              <h4>Próxima ação recomendada</h4>
+              <ul id="diagnosisActions"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>Saúde Geral dos Módulos</h3>
+          <div class="dashboard-compact">
+            <div id="healthBars" class="bars"></div>
+            <div id="stateTimeline" class="timeline"></div>
+            <div id="severityCounters" class="severity-grid"></div>
+          </div>
+          <table class="simple-table">
+            <thead>
+              <tr>
+                <th>Módulo</th>
+                <th>Estado</th>
+                <th>Diagnóstico</th>
+                <th>Ação sugerida</th>
+              </tr>
+            </thead>
+            <tbody id="moduleHealthBody"></tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <h3>Mini Resumo Operacional</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Market</span><strong id="miniMarket"></strong></article>
+            <article class="metric-card"><span>Risk</span><strong id="miniRisk"></strong></article>
+            <article class="metric-card"><span>Decision</span><strong id="miniDecision"></strong></article>
+            <article class="metric-card"><span>Execution</span><strong id="miniExecution"></strong></article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>External Market Data v1</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card">
+              <span>EUR/USD</span>
+              <strong id="externalEurUsdPrice"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Próximo evento macro</span>
+              <strong id="externalNextMacroEvent"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Provider ativo</span>
+              <strong id="externalActiveProvider"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Tipo de dado</span>
+              <strong id="externalSourceMode"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Última atualização</span>
+              <strong id="externalLastUpdate"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Qualidade do dado</span>
+              <strong id="externalDataQuality"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Provider health</span>
+              <strong id="externalProviderHealth"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Cache state</span>
+              <strong id="externalCacheState"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Alimenta MARKET runtime</span>
+              <strong id="externalFeedsMarket"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Aviso providers reais</span>
+              <strong id="externalProviderWarning"></strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3>Eventos Críticos Recentes</h3>
+          <ul id="dashboardCriticalEvents" class="events-list"></ul>
+        </section>
+
+        <section class="panel">
+          <h3>Controlos Operacionais Principais</h3>
+          <div class="controls-line">
+            <button id="dashPauseBtn" data-command="pause">Pause</button>
+            <button id="dashResumeBtn" data-command="resume">Resume</button>
+            <button id="dashStopBtn" data-command="stop">Stop</button>
+          </div>
+          <div id="commandResultDashboard" class="summary-line"></div>
+        </section>
+
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Dashboard</h3>
+          <pre id="techDashboard"></pre>
+        </section>
+      </section>
+
+      <section id="page-market" class="route-page hidden">
+        <section class="panel">
+          <h3>Market Runtime</h3>
+          <div id="marketSummary" class="summary-line"></div>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Instrumento</span><strong id="marketInstrument"></strong></article>
+            <article class="metric-card"><span>Feed</span><strong id="marketFeed"></strong></article>
+            <article class="metric-card"><span>Gate</span><strong id="marketGate"></strong></article>
+            <article class="metric-card"><span>Restrições</span><strong id="marketRestrictions"></strong></article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Preço/Spread</h3>
+          <canvas id="marketCanvas" width="720" height="170"></canvas>
+          <div class="controls-line">
+            <button id="simulateMarket" disabled>Simular dados EUR/USD</button>
+            <span class="hint">Endpoint não disponível neste corte.</span>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Último sample</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Last gate status</span><strong id="marketLastGateStatus"></strong></article>
+            <article class="metric-card"><span>Last rejection reason</span><strong id="marketLastRejection"></strong></article>
+            <article class="metric-card"><span>Readiness result</span><strong id="marketReadinessResult"></strong></article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Histórico de gate/rejeições</h3>
+          <ul id="marketGateHistory" class="events-list"></ul>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Market</h3>
+          <pre id="techMarket"></pre>
+        </section>
+      </section>
+
+      <section id="page-risk" class="route-page hidden">
+        <section class="panel">
+          <h3>Risk Summary</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Risk state</span><strong id="riskState"></strong></article>
+            <article class="metric-card"><span>Kill state</span><strong id="riskKillState"></strong></article>
+            <article class="metric-card"><span>Active blocks</span><strong id="riskCount"></strong></article>
+            <article class="metric-card"><span>Dominant reason</span><strong id="riskReason"></strong></article>
+            <article class="metric-card"><span>Cooldown</span><strong id="riskCooldown"></strong></article>
+            <article class="metric-card"><span>Limites principais</span><strong id="riskLimits"></strong></article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Indicador de risco</h3>
+          <div class="risk-gauge"><div id="riskGaugeFill" class="risk-gauge-fill"></div></div>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Risk</h3>
+          <pre id="techRisk"></pre>
+        </section>
+      </section>
+
+      <section id="page-decision" class="route-page hidden">
+        <section class="panel">
+          <h3>Decision Summary</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Última decisão</span><strong id="decisionResult"></strong></article>
+            <article class="metric-card"><span>Ciclo</span><strong id="decisionCycle"></strong></article>
+            <article class="metric-card"><span>Tática</span><strong id="decisionTactic"></strong></article>
+            <article class="metric-card"><span>Score</span><strong id="decisionScore"></strong></article>
+            <article class="metric-card"><span>Racional</span><strong id="decisionRationale"></strong></article>
+            <article class="metric-card"><span>Intenção emitida</span><strong id="decisionIntent"></strong></article>
+            <article class="metric-card"><span>Executada em demo</span><strong id="decisionExecutedDemo"></strong></article>
+            <article class="metric-card"><span>Motivo bloqueio/não-operação</span><strong id="decisionBlockedReason"></strong></article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Teste de ciclo DECISION -> EXEC (demo)</h3>
+          <div class="controls-line">
+            <button id="runDecisionCycleBtn">Run Decision Cycle (test)</button>
+          </div>
+          <div id="decisionRunResult" class="summary-line"></div>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Decision</h3>
+          <pre id="techDecision"></pre>
+        </section>
+      </section>
+
+      <section id="page-execution" class="route-page hidden">
+        <section class="panel">
+          <h3>Execution Venues</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card">
+              <span>MT5 Forex</span>
+              <strong id="mt5ExecutionFocus"></strong>
+            </article>
+            <article class="metric-card">
+              <span>XTB Assisted</span>
+              <strong id="xtbExecutionFocus"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Manual Orders</span>
+              <strong id="manualExecutionFocus"></strong>
+            </article>
+          </div>
+          <p class="hint">
+            MT5 é adapter preferencial inicial para Forex/demo/execução curta. XTB real execution fica
+            preparado, mas não ativo neste corte.
+          </p>
+        </section>
+
+        <section class="panel">
+          <h3>Execution Ledger Summary</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Ledger</span><strong id="execLedger"></strong></article>
+            <article class="metric-card"><span>Estado exec</span><strong id="execState"></strong></article>
+            <article class="metric-card"><span>Slippage</span><strong id="execSlippage"></strong></article>
+            <article class="metric-card"><span>Divergence flag</span><strong id="execDivergence"></strong></article>
+            <article class="metric-card"><span>Intent ID</span><strong id="execIntentId"></strong></article>
+            <article class="metric-card"><span>Request ID</span><strong id="execRequestId"></strong></article>
+            <article class="metric-card"><span>Reason code</span><strong id="execReason"></strong></article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Execuções recentes</h3>
+          <table class="simple-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Exec state</th>
+                <th>Intent</th>
+                <th>Request</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody id="executionRows"></tbody>
+          </table>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Execution</h3>
+          <pre id="techExecution"></pre>
+        </section>
+      </section>
+
+      <section id="page-portfolios" class="route-page hidden">
+        <section class="panel">
+          <h3>Portfolio Buckets</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card">
+              <span>Forex Trading</span>
+              <strong id="portfolioForex"></strong>
+            </article>
+            <article class="metric-card">
+              <span>ETFs</span>
+              <strong id="portfolioEtf"></strong>
+            </article>
+            <article class="metric-card">
+              <span>Ações</span>
+              <strong id="portfolioStock"></strong>
+            </article>
+            <article class="metric-card">
+              <span>FIRE / Reforma</span>
+              <strong id="portfolioFire"></strong>
+            </article>
+            <article class="metric-card">
+              <span>3–5 anos</span>
+              <strong id="portfolio3to5y"></strong>
+            </article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Governance</h3>
+          <ul class="events-list">
+            <li>Decisões médio/longo prazo ficam em advisory ou confirmação humana.</li>
+            <li>Telegram nunca executa diretamente sem CommandGateway e confirmação explícita.</li>
+            <li>XTB real execution permanece preparado, sem ativação neste corte.</li>
+          </ul>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Portfolios</h3>
+          <pre id="techPortfolios"></pre>
+        </section>
+      </section>
+
+      <section id="page-market-data" class="route-page hidden">
+        <section class="panel">
+          <h3>External Market Data</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Provider health</span><strong id="marketDataProviderHealth"></strong></article>
+            <article class="metric-card"><span>Cache state</span><strong id="marketDataCacheState"></strong></article>
+            <article class="metric-card"><span>Provider real status</span><strong id="marketDataRealStatus"></strong></article>
+            <article class="metric-card"><span>API keys</span><strong id="marketDataApiKeysWarning"></strong></article>
+            <article class="metric-card"><span>EUR/USD</span><strong id="marketDataEurUsd"></strong></article>
+            <article class="metric-card"><span>GBP/USD</span><strong id="marketDataGbpUsd"></strong></article>
+            <article class="metric-card"><span>Fonte quote</span><strong id="marketDataQuoteSource"></strong></article>
+            <article class="metric-card"><span>Quote atualizada</span><strong id="marketDataQuoteUpdated"></strong></article>
+            <article class="metric-card"><span>Qualidade</span><strong id="marketDataQuoteQuality"></strong></article>
+            <article class="metric-card"><span>Feed -> MARKET</span><strong id="marketDataFeedToMarket"></strong></article>
+            <article class="metric-card"><span>Próximo evento</span><strong id="marketDataCalendarNext"></strong></article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Providers</h3>
+          <ul id="marketDataProviderList" class="events-list"></ul>
+        </section>
+        <section class="panel">
+          <h3>Calendário Económico</h3>
+          <ul id="marketDataCalendarList" class="events-list"></ul>
+        </section>
+        <section class="panel">
+          <h3>Teste de Ingestão MARKET</h3>
+          <div class="controls-line">
+            <button id="marketDataInjectBtn">Enviar EUR/USD demo para MARKET</button>
+          </div>
+          <div id="marketDataInjectResult" class="summary-line"></div>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Market Data</h3>
+          <pre id="techMarketData"></pre>
+        </section>
+      </section>
+
+      <section id="page-economic-calendar" class="route-page hidden">
+        <section class="panel">
+          <h3>Economic Calendar</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card"><span>Próximo evento</span><strong id="economicCalendarNext"></strong></article>
+            <article class="metric-card"><span>Provider status</span><strong id="economicCalendarProviderStatus"></strong></article>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Eventos</h3>
+          <ul id="economicCalendarList" class="events-list"></ul>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Economic Calendar</h3>
+          <pre id="techEconomicCalendar"></pre>
+        </section>
+      </section>
+
+      <section id="page-logs" class="route-page hidden">
+        <section class="panel">
+          <h3>Logs</h3>
+          <div class="controls-line">
+            <label for="logSeverity">Severidade</label>
+            <select id="logSeverity">
+              <option value="all">Todas</option>
+              <option value="info">Info</option>
+              <option value="warn">Warn</option>
+              <option value="error">Error</option>
+            </select>
+            <label for="logModule">Módulo</label>
+            <select id="logModule">
+              <option value="all">Todos</option>
+              <option value="OPERATOR_CONSOLE">OPERATOR_CONSOLE</option>
+            </select>
+            <button id="exportLogs">Export Logs</button>
+          </div>
+          <table class="simple-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Severidade</th>
+                <th>Módulo</th>
+                <th>Comando</th>
+                <th>Resultado</th>
+              </tr>
+            </thead>
+            <tbody id="logRows"></tbody>
+          </table>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Logs</h3>
+          <pre id="techLogs"></pre>
+        </section>
+      </section>
+
+      <section id="page-config" class="route-page hidden">
+        <section class="panel">
+          <h3>Configuração Atual</h3>
+          <div id="configSummary" class="summary-line"></div>
+          <div class="controls-line">
+            <button id="validateConfigBtn">Validate Config</button>
+            <button id="applyConfigBtn" disabled>Apply (não suportado)</button>
+            <button id="reloadConfigBtn" disabled>Reload (não suportado)</button>
+          </div>
+          <p class="hint">Alterações de configuração podem exigir restart do runtime.</p>
+        </section>
+        <section class="panel">
+          <h3>Staged Config</h3>
+          <div id="stagedConfigSummary" class="summary-line"></div>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Config</h3>
+          <pre id="techConfig"></pre>
+        </section>
+      </section>
+
+      <section id="page-commands" class="route-page hidden">
+        <section class="panel">
+          <h3>Comandos Operacionais</h3>
+          <div class="controls-line">
+            <button id="cmdStatusBtn" data-command="status" class="noncritical">Status</button>
+            <button id="cmdValidateBtn" data-command="validate-config" class="noncritical">Validate Config</button>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>Comandos Críticos</h3>
+          <div class="controls-line">
+            <button id="pauseBtn" data-command="pause">Pause</button>
+            <button id="resumeBtn" data-command="resume">Resume</button>
+            <button id="stopBtn" data-command="stop">Stop</button>
+          </div>
+          <div id="commandResult" class="summary-line"></div>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Commands</h3>
+          <pre id="techCommands"></pre>
+        </section>
+      </section>
+
+      <section id="page-integrations" class="route-page hidden">
+        <section class="panel">
+          <h3>Integrações</h3>
+          <div class="critical-grid compact">
+            <article class="metric-card dev-card"><span>MT5</span><strong id="integrationMt5"></strong></article>
+            <article class="metric-card dev-card"><span>XTB</span><strong id="integrationXtb"></strong></article>
+            <article class="metric-card dev-card"><span>Telegram</span><strong id="integrationTelegram"></strong></article>
+            <article class="metric-card dev-card"><span>OpenAI</span><strong id="integrationOpenai"></strong></article>
+            <article class="metric-card dev-card"><span>Providers</span><strong id="integrationProviders"></strong></article>
+          </div>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Integrations</h3>
+          <pre id="techIntegrations"></pre>
+        </section>
+      </section>
+
+      <section id="page-intelligence" class="route-page hidden">
+        <section class="panel">
+          <h3>Intelligence</h3>
+          <div class="summary-line warning" id="intelligenceAdvisoryWarning">
+            Advisory only: não altera CORE/RISK/EXEC/RECOVERY, não limpa bloqueios, não executa ordens.
+          </div>
+          <div class="controls-line" style="margin-top: 0.75rem;">
+            <input id="intelligenceQuestion" type="text" placeholder="Pergunta (estado, bloqueio, logs, decisão, documentação)" style="flex: 1;" />
+            <button id="intelligenceAskBtn" class="noncritical">Perguntar</button>
+          </div>
+          <div class="critical-grid compact" style="margin-top: 0.75rem;">
+            <article class="metric-card">
+              <span>Provider</span>
+              <strong id="intelligenceProvider">n/d</strong>
+            </article>
+            <article class="metric-card">
+              <span>Resultado</span>
+              <strong id="intelligenceAccepted">n/d</strong>
+            </article>
+            <article class="metric-card">
+              <span>Reason Code</span>
+              <strong id="intelligenceReasonCode">n/d</strong>
+            </article>
+            <article class="metric-card">
+              <span>Query Scope</span>
+              <strong id="intelligenceQueryScope">n/d</strong>
+            </article>
+          </div>
+          <div class="summary-line" id="intelligenceAnswer">Sem resposta ainda.</div>
+          <ul id="intelligenceSources" class="events-list"></ul>
+          <div class="summary-line">Contexto usado: <span id="intelligenceContext">n/d</span></div>
+        </section>
+        <section class="panel page-tech hidden">
+          <h3>Modo Técnico - Intelligence</h3>
+          <pre id="techIntelligence"></pre>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

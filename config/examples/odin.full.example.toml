@@ -1,0 +1,46 @@
+[profile]
+name = "full"
+
+[core]
+startup_timeout_ms = 15000
+event_queue_max_size = 2048
+heartbeat_timeout_ms = 5000
+heartbeat_grace_count = 2
+allow_real_mode = false
+recovery_required_on_unclean_shutdown = true
+persist_on_critical_transition = true
+
+[market]
+instrument_scope = ["EURUSD", "GBPUSD", "USDJPY"]
+feed_scope = ["primary", "backup"]
+news_guard_enabled = true
+spread_guard_enabled = true
+heavy_enrichment_enabled = true
+
+[exec]
+mode = "demo"
+default_ttl_ms = 3000
+default_max_slippage = 0.0002
+
+[real]
+require_explicit_confirmation = true
+confirmation_phrase = "CONFIRM_REAL_MODE"
+require_change_ticket = true
+require_approval_ref = true
+require_all_heartbeats_ok = true
+stricter_max_slippage_factor = 0.5
+execution_adapter_name = "simulated_real"
+audit_export_dir = "runtime/logs/real-audit"
+
+[memory]
+enabled = true
+provider = "mempalace"
+mode = "advisory"
+freeze_into_decision_snapshot = true
+freeze_into_learn_snapshot = true
+
+[runtime]
+state_dir = "runtime/state"
+log_dir = "runtime/logs"
+backup_dir = "runtime/backups"
+memory_dir = "runtime/memory"

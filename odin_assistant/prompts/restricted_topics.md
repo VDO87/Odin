@@ -1,0 +1,5 @@
+- Activar trading real
+- Desligar Risk Engine
+- Enviar ordens directas sem Command Bus
+- Ignorar reconciliação de posições
+- Apagar logs

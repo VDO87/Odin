@@ -1,0 +1,307 @@
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class GlobalState(StrEnum):
+    OFFLINE = "ST-00"
+    STARTUP = "ST-10"
+    IDLE = "ST-20"
+    MONITORING = "ST-30"
+    READY = "ST-40"
+    ACTIVE = "ST-50"
+    PAUSED = "ST-60"
+    BLOCKED_RISK = "ST-70"
+    BLOCKED_FAULT = "ST-80"
+    ERROR = "ST-90"
+    RECOVERY = "ST-100"
+    TRAINING = "ST-110"
+    MAINTENANCE = "ST-120"
+
+
+class OperationalMode(StrEnum):
+    OBSERVATION = "MD-10"
+    DEMO = "MD-20"
+    REAL = "MD-30"
+    TRAINING = "MD-40"
+    MAINTENANCE = "MD-50"
+
+
+class ExecutionProfile(StrEnum):
+    LITE = "lite"
+    STANDARD = "standard"
+    FULL = "full"
+
+
+class DashboardSurface(StrEnum):
+    LITE = "lite"
+    STANDARD = "standard"
+    FULL = "full"
+
+
+class MarketProfile(StrEnum):
+    SIMPLE = "simple"
+    STANDARD = "standard"
+    FULL = "full"
+
+
+class ExecutionVenue(StrEnum):
+    MT5 = "MT5"
+    XTB = "XTB"
+    MANUAL = "MANUAL"
+
+
+class AssetClass(StrEnum):
+    FOREX = "FOREX"
+    ETF = "ETF"
+    STOCK = "STOCK"
+    CFD = "CFD"
+    CRYPTO = "CRYPTO"
+    COMMODITY = "COMMODITY"
+    INDEX = "INDEX"
+
+
+class PortfolioBucket(StrEnum):
+    SHORT_TERM_TRADING = "SHORT_TERM_TRADING"
+    MEDIUM_TERM_3_5Y = "MEDIUM_TERM_3_5Y"
+    FIRE_LONG_TERM = "FIRE_LONG_TERM"
+
+
+class OrderWorkflow(StrEnum):
+    AUTO_DEMO = "AUTO_DEMO"
+    AUTO_REAL = "AUTO_REAL"
+    TELEGRAM_ASSISTED = "TELEGRAM_ASSISTED"
+    MANUAL_CONFIRMATION = "MANUAL_CONFIRMATION"
+
+
+class Severity(StrEnum):
+    DEBUG = "SEV-10"
+    INFO = "SEV-20"
+    WARN = "SEV-30"
+    ERROR = "SEV-40"
+    CRITICAL = "SEV-50"
+
+
+class EventType(StrEnum):
+    START = "EV-START"
+    STOP = "EV-STOP"
+    PAUSE = "EV-PAUSE"
+    RESUME = "EV-RESUME"
+    MANUAL_BLOCK = "EV-MANUAL-BLOCK"
+    MANUAL_CLEAR = "EV-MANUAL-CLEAR"
+    MODE_CHANGE = "EV-MODE-CHANGE"
+    MAINTENANCE_ENTER = "EV-MAINTENANCE-ENTER"
+    MAINTENANCE_EXIT = "EV-MAINTENANCE-EXIT"
+    MARKET_READY = "EV-MARKET-READY"
+    MARKET_INVALID = "EV-MARKET-INVALID"
+    MARKET_DEGRADED = "EV-MARKET-DEGRADED"
+    MARKET_CLOSED = "EV-MARKET-CLOSED"
+    MARKET_HOSTILE = "EV-MARKET-HOSTILE"
+    MARKET_NEWS_GUARD = "EV-MARKET-NEWS-GUARD"
+    RISK_ALLOW = "EV-RISK-ALLOW"
+    RISK_RESTRICT = "EV-RISK-RESTRICT"
+    RISK_BLOCK = "EV-RISK-BLOCK"
+    KILL_ACTIVE = "EV-KILL-ACTIVE"
+    KILL_CLEARED = "EV-KILL-CLEARED"
+    EXEC_SUBMITTED = "EV-EXEC-SUBMITTED"
+    EXEC_CONFIRMED = "EV-EXEC-CONFIRMED"
+    EXEC_REJECTED = "EV-EXEC-REJECTED"
+    EXEC_REJECTED_SLIPPAGE = "EV-EXEC-REJECTED-SLIPPAGE"
+    EXEC_DIVERGENCE = "EV-EXEC-DIVERGENCE"
+    INTENTION_EXPIRED = "EV-INTENTION-EXPIRED"
+    RECOVERY_START = "EV-RECOVERY-START"
+    RECOVERY_OK = "EV-RECOVERY-OK"
+    RECOVERY_OK_RESTRICTED = "EV-RECOVERY-OK-RESTRICTED"
+    RECOVERY_FAIL = "EV-RECOVERY-FAIL"
+    RECOVERY_INTERVENTION_REQUIRED = "EV-RECOVERY-INTERVENTION-REQUIRED"
+    HB_OK = "EV-HB-OK"
+    HB_DELAYED = "EV-HB-DELAYED"
+    HB_TIMEOUT = "EV-HB-TIMEOUT"
+    FAULT_BLOCK = "EV-FAULT-BLOCK"
+    ERROR = "EV-ERROR"
+    PERSISTENCE_INCONSISTENT = "EV-PERSISTENCE-INCONSISTENT"
+    MODULE_UNAVAILABLE = "EV-MODULE-UNAVAILABLE"
+    LEARN_VERSION_ACTIVATED = "EV-LEARN-VERSION-ACTIVATED"
+    LEARN_ROLLBACK = "EV-LEARN-ROLLBACK"
+    LEARN_BLOCKED = "EV-LEARN-BLOCKED"
+    LEARN_ERROR = "EV-LEARN-ERROR"
+    DECISION_STATE_UPDATE = "decision_state_update"
+    DECISION_CYCLE_CLOSED = "decision_cycle_closed"
+    DECISION_ERROR = "decision_error"
+
+
+class BlockCode(StrEnum):
+    KILL = "BLK-KILL"
+    MANUAL = "BLK-10"
+    RISK = "BLK-20"
+    FAULT = "BLK-30"
+    ADMIN = "BLK-40"
+    RECOVERY_PENDING = "BLK-50"
+    MAINTENANCE = "BLK-60"
+
+
+class HeartbeatStatus(StrEnum):
+    OK = "OK"
+    DELAYED = "DELAYED"
+    TIMEOUT = "TIMEOUT"
+
+
+class ReadinessClass(StrEnum):
+    BLOCKED = "blocked"
+    STARTING = "starting"
+    MONITORING = "monitoring"
+    READY = "ready"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    MAINTENANCE = "maintenance"
+    TRAINING = "training"
+    RECOVERY = "recovery"
+
+
+class IntegrityClass(StrEnum):
+    OK = "ok"
+    DEGRADED = "degraded"
+    BLOCKED = "blocked"
+    RECOVERY_REQUIRED = "recovery_required"
+
+
+class DecisionState(StrEnum):
+    WAITING_INPUTS = "DS-10"
+    READY_TO_EVALUATE = "DS-20"
+    EVALUATING = "DS-30"
+    NO_VALID_OPPORTUNITY = "DS-40"
+    OPPORTUNITY_SELECTED = "DS-50"
+    BLOCKED_EXTERNALLY = "DS-60"
+    INTENT_EMITTED = "DS-70"
+    DECISION_ERROR = "DS-80"
+
+
+class DecisionOutput(StrEnum):
+    NO_ACTION = "NO_ACTION"
+    WAIT = "WAIT"
+    CANDIDATE_SELECTED = "CANDIDATE_SELECTED"
+    RESTRICTED = "RESTRICTED"
+    BLOCKED = "BLOCKED"
+    ERROR = "ERROR"
+
+
+class ExecutionState(StrEnum):
+    WAITING_INTENT = "ES-10"
+    INTENT_LOADED = "ES-20"
+    PRECHECK = "ES-30"
+    READY_TO_SUBMIT = "ES-40"
+    SUBMITTED = "ES-50"
+    PENDING_CONFIRMATION = "ES-60"
+    EXECUTION_CONFIRMED = "ES-70"
+    REJECTED = "ES-80"
+    FAILED = "ES-90"
+    DIVERGENT = "ES-100"
+    CANCELLED_EXPIRED = "ES-110"
+
+
+class ExecutionInitialResult(StrEnum):
+    ACCEPTED = "ER-10"
+    REJECTED = "ER-20"
+    PENDING = "ER-30"
+    TECHNICAL_FAILURE = "ER-40"
+    AMBIGUOUS = "ER-50"
+
+
+class ExecutionFinalResult(StrEnum):
+    CONFIRMED_EXECUTED = "EX-10"
+    CONFIRMED_REJECTED = "EX-20"
+    CONFIRMED_FAILED = "EX-30"
+    PENDING_RESOLUTION = "EX-40"
+    CRITICAL_DIVERGENCE = "EX-50"
+    CANCELLED_EXPIRED = "EX-60"
+
+
+class RecoveryIncidentType(StrEnum):
+    UNEXPECTED_RESTART = "INC-10"
+    POWER_LOSS = "INC-20"
+    COMMUNICATION_LOSS = "INC-30"
+    FEED_LOSS = "INC-40"
+    EXEC_DIVERGENCE = "INC-50"
+    PERSISTENCE_INCONSISTENT = "INC-60"
+    CRITICAL_MODULE_TIMEOUT = "INC-70"
+    MANUAL_RECOVERY_REQUEST = "INC-80"
+
+
+class RecoveryState(StrEnum):
+    STARTED = "RCS-10"
+    RECONCILING = "RCS-20"
+    VALIDATED = "RCS-30"
+    VALIDATED_RESTRICTED = "RCS-40"
+    INCONCLUSIVE = "RCS-50"
+    FAILED = "RCS-60"
+    MANUAL_REQUIRED = "RCS-70"
+
+
+class RecoveryConsistencyGrade(StrEnum):
+    CONSISTENT = "CONSISTENT"
+    CONSISTENT_WITH_RESTRICTIONS = "CONSISTENT_WITH_RESTRICTIONS"
+    INCONCLUSIVE = "INCONCLUSIVE"
+    DIVERGENT = "DIVERGENT"
+
+
+class RecoveryConfidenceClass(StrEnum):
+    HIGH = "HIGH"
+    MEDIUM_RESTRICTED = "MEDIUM_RESTRICTED"
+    LOW = "LOW"
+    UNSAFE = "UNSAFE"
+
+
+class RecoveryResultCode(StrEnum):
+    VALIDATED = "RCV-10"
+    VALIDATED_RESTRICTED = "RCV-20"
+    INCONCLUSIVE = "RCV-30"
+    FAILED = "RCV-40"
+    MANUAL_REQUIRED = "RCV-50"
+
+
+class LearnState(StrEnum):
+    INACTIVE = "LS-10"
+    COLLECTING_HISTORY = "LS-20"
+    ANALYZING = "LS-30"
+    PROPOSAL_GENERATED = "LS-40"
+    WAITING_APPROVAL = "LS-50"
+    PREPARING_ACTIVATION = "LS-60"
+    SHADOW_RUNNING = "LS-70"
+    VERSION_ACTIVE_MONITORING = "LS-80"
+    ROLLED_BACK = "LS-90"
+    LEARN_BLOCKED = "LS-100"
+    LEARN_ERROR = "LS-110"
+
+
+class LearnSnapshotType(StrEnum):
+    PRE_ACTIVATION = "PRE_ACTIVATION"
+    ACTIVE_BASELINE = "ACTIVE_BASELINE"
+    ROLLBACK_TARGET = "ROLLBACK_TARGET"
+    SHADOW_BASELINE = "SHADOW_BASELINE"
+
+
+class ApprovalMode(StrEnum):
+    MANUAL = "AP-10"
+    AUTO_LIMITED = "AP-20"
+    SHADOW_THEN_APPROVE = "AP-30"
+
+
+class ApprovalStatus(StrEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    BLOCKED = "BLOCKED"
+
+
+class PromotionResult(StrEnum):
+    PROMOTE = "PROMOTE"
+    PROMOTE_RESTRICTED = "PROMOTE_RESTRICTED"
+    HOLD = "HOLD"
+    REJECT = "REJECT"
+    ROLLBACK_REQUIRED = "ROLLBACK_REQUIRED"
+
+
+class RollbackResult(StrEnum):
+    COMPLETED = "COMPLETED"
+    BLOCKED = "BLOCKED"
+    FAILED = "FAILED"
