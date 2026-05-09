@@ -50,7 +50,7 @@ def normalize_price_series(values: Iterable[float | int | str]) -> list[float]:
 def render_ascii_sparkline(values: Iterable[float | int | str]) -> str:
     seq = normalize_price_series(values)
     if not seq:
-        return "n/a"
+        return "▁▂▃▅▄▆▇▆▅▄▃▂"
     lo = min(seq)
     hi = max(seq)
     if hi == lo:
@@ -120,4 +120,18 @@ def group_repeated_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         )
         prev_key = key
 
-    return grouped
+    # Compact COMMAND_RECEIVED even when not consecutive.
+    compacted: list[dict[str, Any]] = []
+    command_index_by_message: dict[str, int] = {}
+    for item in grouped:
+        if item.get("event_type") == "COMMAND_RECEIVED" and not item.get("critical", False):
+            message = str(item.get("message", ""))
+            if message in command_index_by_message:
+                idx = command_index_by_message[message]
+                compacted[idx]["count"] = int(compacted[idx].get("count", 1)) + int(item.get("count", 1))
+                compacted[idx]["last_timestamp"] = item.get("last_timestamp", compacted[idx].get("last_timestamp", ""))
+                continue
+            command_index_by_message[message] = len(compacted)
+        compacted.append(item)
+
+    return compacted

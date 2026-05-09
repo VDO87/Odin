@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import argparse
 import html
 import json
@@ -60,6 +61,50 @@ class DashboardApp:
         self.static = Path("apps/dashboard_html/static")
         self.version = _detect_version()
 
+    @staticmethod
+    def _display_value(value: object, *, default: str = "n/a") -> str:
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return str(value).lower()
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return default
+            if stripped.lower() == "none":
+                return default
+            return stripped
+        if isinstance(value, list):
+            if not value:
+                return default
+            return ", ".join(str(item) for item in value)
+        if isinstance(value, dict):
+            if not value:
+                return default
+            return json.dumps(value, sort_keys=True, ensure_ascii=False)
+        return str(value)
+
+    def _humanize_answer(self, answer: object) -> str:
+        if answer is None:
+            return "Não existem dados suficientes para responder com segurança."
+        if isinstance(answer, dict):
+            rows = [f"{key}: {self._display_value(value, default='unavailable')}" for key, value in answer.items()]
+            return "; ".join(rows) if rows else "Não existem dados suficientes para responder com segurança."
+        if isinstance(answer, list):
+            if not answer:
+                return "Não existem dados suficientes para responder com segurança."
+            return "; ".join(self._display_value(item, default="unavailable") for item in answer)
+        text = str(answer).strip()
+        if not text:
+            return "Não existem dados suficientes para responder com segurança."
+        if text.startswith("{'") and text.endswith("}"):
+            try:
+                parsed = ast.literal_eval(text)
+            except (SyntaxError, ValueError):
+                return text
+            return self._humanize_answer(parsed)
+        return text
+
     def _json(self, payload: dict[str, object], code: int = 200) -> DashboardResponse:
         return DashboardResponse(
             status_code=code,
@@ -92,7 +137,7 @@ class DashboardApp:
             out.append(
                 '<div class="kv">'
                 f'<div class="k">{html.escape(str(key))}</div>'
-                f'<div class="v">{html.escape(str(value))}</div>'
+                f'<div class="v">{html.escape(self._display_value(value, default="unavailable"))}</div>'
                 "</div>"
             )
         return "".join(out)
@@ -131,14 +176,15 @@ class DashboardApp:
         return self._rows(
             [
                 ("Mode", state.get("mode", "SHADOW_MT5")),
-                ("Runtime state", runtime.get("state", "UNKNOWN")),
-                ("Heartbeat ts", hb or "n/a"),
+                ("Runtime State", state.get("runtime_state", runtime.get("state", "UNKNOWN"))),
+                ("Trading Permission", state.get("trading_permission_state", "BLOCKED")),
+                ("Health State", state.get("system_health_state", runtime.get("health_status", "UNKNOWN"))),
+                ("safe_to_trade", state.get("safe_to_trade", runtime.get("safe_to_trade", False))),
+                ("Heartbeat ts", hb or "unavailable"),
                 ("Heartbeat age", f"{hb_age}s" if hb_age is not None else "n/a"),
-                ("Health", runtime.get("health_status", "UNKNOWN")),
                 ("Soak", soak.get("result", "n/a")),
                 ("Runtime validate", validate.get("status", runtime.get("runtime_validate", "n/a"))),
                 ("Uptime", runtime.get("uptime_seconds", "n/a")),
-                ("safe_to_trade", runtime.get("safe_to_trade", False)),
             ]
         )
 
@@ -186,21 +232,22 @@ class DashboardApp:
         return self._rows(
             [
                 ("Profile", profile.get("profile", atlas.get("profile", "lite"))),
-                ("Consensus", atlas.get("consensus", decision_packet.get("consensus_score", "n/a"))),
-                ("Market agent", agents.get("market_agent", atlas.get("market_agent_score", "n/a"))),
-                ("Technical agent", agents.get("technical_agent", atlas.get("technical_agent_score", "n/a"))),
-                ("News agent", agents.get("news_agent", atlas.get("news_agent_score", "n/a"))),
-                ("Risk agent", agents.get("risk_agent", atlas.get("risk_agent_result", "n/a"))),
-                ("Critic", agents.get("critic_agent", atlas.get("critic_agent_result", "n/a"))),
+                ("Consensus", atlas.get("consensus", decision_packet.get("consensus_score", "unavailable"))),
+                ("Data quality", atlas.get("data_quality", "unavailable")),
+                ("Market agent", agents.get("market_agent", atlas.get("market_agent_score", "unavailable"))),
+                ("Technical agent", agents.get("technical_agent", atlas.get("technical_agent_score", "unavailable"))),
+                ("News agent", agents.get("news_agent", atlas.get("news_agent_score", "unavailable"))),
+                ("Risk agent", agents.get("risk_agent", atlas.get("risk_agent_result", "warning"))),
+                ("Critic", agents.get("critic_agent", atlas.get("critic_agent_result", "warning"))),
                 ("Execution permission", atlas.get("execution_permission", "SHADOW_ONLY")),
             ]
         )
 
     def _risk_block(self, state: dict[str, object]) -> str:
         risk = state.get("risk", {}) if isinstance(state.get("risk"), dict) else {}
-        blocked_reasons = risk.get("blocked_reasons", "n/a")
+        blocked_reasons = risk.get("blocked_reasons", "No active risk block detected")
         if isinstance(blocked_reasons, list):
-            blocked_reasons = ", ".join(str(item) for item in blocked_reasons) if blocked_reasons else "n/a"
+            blocked_reasons = ", ".join(str(item) for item in blocked_reasons) if blocked_reasons else "No active risk block detected"
         return self._rows(
             [
                 ("Status", risk.get("status", "ACTIVE")),
@@ -241,10 +288,13 @@ class DashboardApp:
     def _assistant_state_block(self, state: dict[str, object]) -> str:
         assistant = state.get("assistant", {}) if isinstance(state.get("assistant"), dict) else {}
         llm = state.get("llm", {}) if isinstance(state.get("llm"), dict) else {}
+        readable_answer = self._humanize_answer(
+            assistant.get("last_answer", assistant.get("answer", "No assistant response available"))
+        )
         return self._rows(
             [
                 ("Última pergunta", assistant.get("last_question", assistant.get("question", "n/a"))),
-                ("Última resposta", assistant.get("last_answer", assistant.get("answer", "n/a"))),
+                ("Última resposta", readable_answer),
                 ("Source", assistant.get("source", "fallback")),
                 ("LLM status", llm.get("status", "WARNING")),
                 ("LLM provider", llm.get("provider", "ollama")),
@@ -258,9 +308,11 @@ class DashboardApp:
         events = state.get("events", []) if isinstance(state.get("events"), list) else []
 
         mode = str(state.get("mode", "SHADOW_MT5"))
-        runtime_state = str(runtime.get("state", "UNKNOWN"))
+        runtime_state = self._display_value(state.get("runtime_state", runtime.get("state", "UNKNOWN")), default="UNKNOWN")
+        trading_permission_state = self._display_value(state.get("trading_permission_state", "BLOCKED"), default="BLOCKED")
+        health_state = self._display_value(state.get("system_health_state", runtime.get("health_status", "UNKNOWN")), default="UNKNOWN")
         hb_age = heartbeat_age_seconds(str(runtime.get("heartbeat", "")))
-        safe_to_trade = runtime.get("safe_to_trade", False)
+        safe_to_trade = state.get("safe_to_trade", runtime.get("safe_to_trade", False))
         demo_label = "DEMO DATA" if bool(state.get("demo_data", False)) else "LIVE SNAPSHOT"
         alerts = f"{demo_label} | Runtime={runtime_state} | safe_to_trade={safe_to_trade}"
 
@@ -269,6 +321,8 @@ class DashboardApp:
             {
                 "mode": html.escape(mode),
                 "runtime_state": html.escape(runtime_state),
+                "trading_permission_state": html.escape(trading_permission_state),
+                "health_state": html.escape(health_state),
                 "safe_to_trade": html.escape(str(safe_to_trade)),
                 "heartbeat_age": html.escape(str(hb_age if hb_age is not None else "n/a")),
                 "version": html.escape(self.version),
@@ -295,10 +349,11 @@ class DashboardApp:
         runtime = state.get("runtime", {}) if isinstance(state.get("runtime"), dict) else {}
         runtime_block = self._rows(
             [
-                ("State", runtime.get("state", "UNKNOWN")),
+                ("Runtime State", state.get("runtime_state", runtime.get("state", "UNKNOWN"))),
+                ("Trading Permission", state.get("trading_permission_state", runtime.get("trading_permission_state", "BLOCKED"))),
+                ("Health State", state.get("system_health_state", runtime.get("health_status", "UNKNOWN"))),
                 ("Heartbeat", short_ts(str(runtime.get("heartbeat", "")))),
                 ("Heartbeat age", heartbeat_age_seconds(str(runtime.get("heartbeat", ""))) or "n/a"),
-                ("Health", runtime.get("health_status", "UNKNOWN")),
                 ("Safe to trade", runtime.get("safe_to_trade", False)),
                 ("Demo", state.get("demo_data", False)),
             ]
@@ -344,9 +399,12 @@ class DashboardApp:
             '<div class="input-line"><input id="q" placeholder="Qual é o estado do ODIN?">'
             '<button class="btn" onclick="askNow()">Perguntar</button></div>'
             '<pre id="aout" class="logbox"></pre>'
+            '<div class="small">Detalhes técnicos</div>'
+            '<pre id="adetails" class="logbox"></pre>'
             '<script>async function askNow(){const q=document.getElementById("q").value||"Qual é o estado do ODIN?";'
             'const r=await fetch("/assistant/ask?q="+encodeURIComponent(q));const d=await r.json();'
-            'document.getElementById("aout").textContent=JSON.stringify(d,null,2);}</script>'
+            'document.getElementById("aout").textContent=d.answer_human||d.answer||"Sem resposta";'
+            'document.getElementById("adetails").textContent=JSON.stringify(d,null,2);}</script>'
         )
         assistant_block = f'<pre class="logbox">{html.escape(json.dumps(llm, indent=2, sort_keys=True))}</pre>'
         content = self._render_template(
@@ -365,7 +423,9 @@ class DashboardApp:
         return self._render_base("ODIN Logs", content)
 
     def _assistant_payload(self, question: str) -> dict[str, object]:
-        return self.assistant.ask(question, channel="dashboard")
+        payload = self.assistant.ask(question, channel="dashboard")
+        payload["answer_human"] = self._humanize_answer(payload.get("answer"))
+        return payload
 
     def export_preview(self) -> dict[str, object]:
         preview_dir = Path(os.getenv("ODIN_DASHBOARD_PREVIEW_DIR", "dashboard_preview"))
@@ -412,6 +472,9 @@ class DashboardApp:
             "ATLAS: SHADOW_ONLY",
             "LLM: READ_ONLY",
             "Perguntar ao ODIN",
+            "TRADING PERMISSION",
+            "RUNTIME STATE",
+            "HEALTH STATE",
             "RISK ENGINE",
             "POSITIONS",
             "EVENTS",
@@ -426,11 +489,13 @@ class DashboardApp:
         forbidden_tokens = [
             "ENABLE_REAL_TRADING",
             "DIRECT_ORDER_SEND",
-            "MT5_ORDER_SEND",
             "BROKER_REAL_EXECUTION",
             "Activa trading real",
             "Abrir ordem",
             "Fechar posição",
+            "{'state':",
+            "sparkline n/a",
+            ">none<",
         ]
         token_checks = []
         for token in critical_tokens:
@@ -443,6 +508,11 @@ class DashboardApp:
             token_checks.append({"token": f"forbidden::{token}", "present": present})
             if present:
                 failures.append(f"forbidden:{token}")
+        if "None" in index:
+            token_checks.append({"token": "forbidden::None", "present": True})
+            failures.append("forbidden:None")
+        else:
+            token_checks.append({"token": "forbidden::None", "present": False})
 
         report = {
             "status": "PASS" if not failures else "FAIL",

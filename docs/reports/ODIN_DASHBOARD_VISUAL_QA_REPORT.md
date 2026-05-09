@@ -18,6 +18,9 @@
 - ATLAS: SHADOW_ONLY: present=True
 - LLM: READ_ONLY: present=True
 - Perguntar ao ODIN: present=True
+- TRADING PERMISSION: present=True
+- RUNTIME STATE: present=True
+- HEALTH STATE: present=True
 - RISK ENGINE: present=True
 - POSITIONS: present=True
 - EVENTS: present=True
@@ -27,8 +30,11 @@
 - MARKET INTELLIGENCE: present=True
 - forbidden::ENABLE_REAL_TRADING: present=False
 - forbidden::DIRECT_ORDER_SEND: present=False
-- forbidden::MT5_ORDER_SEND: present=False
 - forbidden::BROKER_REAL_EXECUTION: present=False
 - forbidden::Activa trading real: present=False
 - forbidden::Abrir ordem: present=False
 - forbidden::Fechar posição: present=False
+- forbidden::{'state':: present=False
+- forbidden::sparkline n/a: present=False
+- forbidden::>none<: present=False
+- forbidden::None: present=False

@@ -1,6 +1,6 @@
 <div class="topbar">
   <div class="title">
-    ODIN VISUAL COMMAND CENTER · {{mode}} · {{runtime_state}} · safe_to_trade={{safe_to_trade}} · hb_age={{heartbeat_age}}s
+    ODIN VISUAL COMMAND CENTER · {{mode}} · Runtime State: {{runtime_state}} · Trading Permission: {{trading_permission_state}} · Health State: {{health_state}} · safe_to_trade={{safe_to_trade}} · hb_age={{heartbeat_age}}s
   </div>
   <div class="small">version={{version}} · {{demo_label}}</div>
 </div>
@@ -62,6 +62,8 @@
   </div>
   {{assistant_block}}
   <pre id="askOut" class="logbox"></pre>
+  <div class="small">Detalhes técnicos da resposta</div>
+  <pre id="askDetails" class="logbox"></pre>
 </div>
 
 <div class="panel" style="margin-top:10px;">
@@ -85,13 +87,15 @@
 async function runCommand(name){
   const r = await fetch('/api/command?name=' + encodeURIComponent(name), {method:'POST'});
   const d = await r.json();
-  document.getElementById('askOut').textContent = JSON.stringify(d, null, 2);
+  document.getElementById('askOut').textContent = d.answer_human || d.answer || 'Sem resposta';
+  document.getElementById('askDetails').textContent = JSON.stringify(d, null, 2);
 }
 async function askOdin(){
   const q = document.getElementById('askInput').value || 'Qual é o estado do ODIN?';
   const r = await fetch('/assistant/ask?q=' + encodeURIComponent(q));
   const d = await r.json();
-  document.getElementById('askOut').textContent = JSON.stringify(d, null, 2);
+  document.getElementById('askOut').textContent = d.answer_human || d.answer || 'Sem resposta';
+  document.getElementById('askDetails').textContent = JSON.stringify(d, null, 2);
 }
 async function askQuick(q){
   document.getElementById('askInput').value = q;
