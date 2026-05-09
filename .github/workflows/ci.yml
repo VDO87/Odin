@@ -1,0 +1,42 @@
+name: ODIN CI
+
+on:
+  push:
+    branches: ["release/rc1"]
+  pull_request:
+    branches: ["release/rc1"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ENABLE_REAL_TRADING: "false"
+      ENABLE_AUTO_EXECUTION: "false"
+      MT5_ORDER_SEND_ENABLED: "false"
+      XTB_REAL_ENABLED: "false"
+      BROKER_ALLOW_REAL_EXECUTION: "false"
+      OPENAI_SUPPORT_ENABLED: "false"
+      ODIN_MODE: "SHADOW_MT5"
+      ODIN_ENV: "TEST"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: pytest -q
+
+      - name: Run ruff
+        run: ruff check .
+
+      - name: Run mypy
+        run: mypy .
