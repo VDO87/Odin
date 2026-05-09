@@ -7,6 +7,7 @@ from odin_health.checks_llm import check_local_llm
 from odin_health.checks_market_apis import check_market_apis
 from odin_health.checks_mt5 import check_mt5
 from odin_health.checks_network import check_network
+from odin_health.checks_runtime import check_runtime
 from odin_health.checks_system import check_system
 from odin_health.checks_telegram import check_telegram
 from odin_logs.logger import JsonlLogger
@@ -30,6 +31,7 @@ class OdinHealthcheck:
             "telegram": check_telegram(),
             "local_llm": check_local_llm(),
             "market_apis": check_market_apis(),
+            "runtime": check_runtime(),
         }
         self.mt5_logger.write("mt5_healthcheck", checks["mt5"])
         self.llm_logger.write("llm_healthcheck", checks["local_llm"])

@@ -34,6 +34,7 @@ export XTB_REAL_ENABLED="false"
 export BROKER_ALLOW_REAL_EXECUTION="false"
 export ENABLE_XTB_REAL="false"
 export ENABLE_MT5_ORDER_SEND="false"
+export OPENAI_SUPPORT_ENABLED="false"
 
 MODE="dashboard"
 if [[ $# -gt 0 ]]; then
@@ -47,8 +48,20 @@ if [[ $# -gt 0 ]]; then
     --healthcheck)
       MODE="healthcheck"
       ;;
+    --runtime)
+      MODE="runtime"
+      ;;
+    --run-once)
+      MODE="run-once"
+      ;;
+    --runtime-smoke-test)
+      MODE="runtime-smoke"
+      ;;
+    --snapshot)
+      MODE="snapshot"
+      ;;
     *)
-      echo "Uso: ./run_odin.sh [--smoke-test|--dashboard|--healthcheck]" >&2
+      echo "Uso: ./run_odin.sh [--smoke-test|--dashboard|--healthcheck|--runtime|--run-once|--runtime-smoke-test|--snapshot]" >&2
       exit 2
       ;;
   esac
@@ -80,6 +93,55 @@ fi
 
 if [[ "$MODE" == "healthcheck" ]]; then
   exec "$ROOT_DIR/healthcheck.sh"
+fi
+
+if [[ "$MODE" == "runtime-smoke" ]]; then
+  "$PYTHON_BIN" - <<'PY'
+from odin_control.system_controller import SystemController
+
+controller = SystemController(log_root="logs")
+status = controller.execute("RUNTIME_STATUS", actor="run_odin", role="system")
+once = controller.execute("RUNTIME_RUN_ONCE", actor="run_odin", role="system")
+snap = controller.execute("RUNTIME_SNAPSHOT", actor="run_odin", role="system")
+assert status["accepted"] is True
+assert "runtime" in status["data"]
+assert "runtime" in once["data"]
+assert "snapshot" in snap["data"]
+print("ODIN runtime smoke-test OK")
+PY
+  exit 0
+fi
+
+if [[ "$MODE" == "run-once" ]]; then
+  exec "$PYTHON_BIN" - <<'PY'
+from odin_control.system_controller import SystemController
+import json
+
+controller = SystemController(log_root="logs")
+result = controller.execute("RUNTIME_RUN_ONCE", actor="run_odin", role="system")
+print(json.dumps(result, indent=2, sort_keys=True))
+PY
+fi
+
+if [[ "$MODE" == "snapshot" ]]; then
+  exec "$PYTHON_BIN" - <<'PY'
+from odin_control.system_controller import SystemController
+import json
+
+controller = SystemController(log_root="logs")
+result = controller.execute("RUNTIME_SNAPSHOT", actor="run_odin", role="system")
+print(json.dumps(result, indent=2, sort_keys=True))
+PY
+fi
+
+if [[ "$MODE" == "runtime" ]]; then
+  exec "$PYTHON_BIN" - <<'PY'
+from odin_control.system_controller import SystemController
+
+controller = SystemController(log_root="logs")
+controller.execute("RUNTIME_START", actor="run_odin", role="system")
+controller.runtime.run_loop()
+PY
 fi
 
 exec "$PYTHON_BIN" -m apps.dashboard_html.app

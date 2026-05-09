@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -72,6 +73,11 @@ class ContextBuilder:
                 "broker_real_blocked": os.getenv("BROKER_ALLOW_REAL_EXECUTION", "false").lower() != "true",
             },
             "last_error": lambda: cls._read_last_error(log_root),
+            "runtime": lambda: _call("RUNTIME_STATUS"),
+            "runtime_snapshot": lambda: _call("RUNTIME_SNAPSHOT"),
+            "runtime_events": lambda: cls._read_runtime_events(),
+            "runtime_heartbeat": lambda: cls._read_runtime_heartbeat(),
+            "runtime_soak": lambda: cls._runtime_soak_readiness(_call("RUNTIME_STATUS"), _call("MT5_STATUS"), OdinHealthcheck(log_root=log_root).run()),
             "signals": lambda: {"active_signals": []},
             "news": lambda: {"status": "not_configured"},
             "fire": lambda: {"status": "monitoring"},
@@ -92,6 +98,42 @@ class ContextBuilder:
             if lines:
                 return {"path": str(path), "last_error": lines[-1][:800]}
         return {"last_error": None}
+
+    @staticmethod
+    def _read_runtime_heartbeat() -> dict[str, Any]:
+        path = Path(os.getenv("ODIN_HEARTBEAT_FILE", "data/runtime/odin_heartbeat.json"))
+        if not path.exists():
+            return {"status": "missing_heartbeat"}
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {"status": "invalid_heartbeat"}
+
+    @staticmethod
+    def _read_runtime_events(limit: int = 20) -> dict[str, Any]:
+        path = Path(os.getenv("ODIN_EVENTS_FILE", "data/runtime/odin_events.jsonl"))
+        if not path.exists():
+            return {"events": [], "status": "missing_events"}
+        events: list[dict[str, Any]] = []
+        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines()[-max(1, limit) :]:
+            try:
+                events.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return {"events": events, "count": len(events)}
+
+    @staticmethod
+    def _runtime_soak_readiness(runtime: dict[str, Any], mt5: dict[str, Any], health: dict[str, Any]) -> dict[str, Any]:
+        runtime_state = str(runtime.get("data", {}).get("runtime", {}).get("state", "UNKNOWN"))
+        mt5_status = str(mt5.get("data", {}).get("mt5", {}).get("status", "WARNING"))
+        health_status = str(health.get("status", "WARNING"))
+        ready = runtime_state in {"RUNNING", "DEGRADED"} and health_status in {"OK", "WARNING"} and mt5_status in {"OK", "WARNING", "BLOCKED"}
+        return {
+            "ready_for_soak_test": ready,
+            "runtime_state": runtime_state,
+            "mt5_status": mt5_status,
+            "health_status": health_status,
+        }
 
     def build(self) -> AssistantContext:
         data: dict[str, Any] = {}
@@ -135,6 +177,20 @@ class ContextBuilder:
                     "mode": base.get("mode", {}),
                     "broker_router": base.get("broker_router", {}),
                     "security": base.get("security", {}),
+                }
+            )
+
+        if "runtime" in q or "heartbeat" in q or "snapshot" in q or "evento" in q or "soak" in q:
+            return AssistantContext(
+                payload={
+                    "runtime": base.get("runtime", {}),
+                    "runtime_snapshot": base.get("runtime_snapshot", {}),
+                    "runtime_events": base.get("runtime_events", {}),
+                    "runtime_heartbeat": base.get("runtime_heartbeat", {}),
+                    "runtime_soak": base.get("runtime_soak", {}),
+                    "healthcheck": base.get("healthcheck", {}),
+                    "mt5": base.get("mt5", {}),
+                    "atlas": base.get("atlas", {}),
                 }
             )
 

@@ -34,13 +34,21 @@ INDEX_HTML = """<!doctype html>
   <button onclick=\"cmd('MT5_LIST_POSITIONS')\">List Positions</button>
   <button onclick=\"cmd('MT5_HEALTHCHECK')\">Healthcheck MT5</button>
 </div>
+<div>
+  <button onclick=\"cmd('RUNTIME_STATUS')\">Runtime Status</button>
+  <button onclick=\"cmd('RUNTIME_RUN_ONCE')\">Run Once</button>
+  <button onclick=\"cmd('RUNTIME_PAUSE')\">Runtime Pause</button>
+  <button onclick=\"cmd('RUNTIME_RESUME')\">Runtime Resume</button>
+  <button onclick=\"cmd('RUNTIME_SAFE_SHUTDOWN')\">Safe Shutdown</button>
+  <button onclick=\"cmd('RUNTIME_SNAPSHOT')\">Snapshot</button>
+</div>
 <h2>Perguntar ao ODIN</h2>
 <input id=\"q\" size=\"80\" placeholder=\"Qual é o estado do ODIN?\" />
 <button onclick=\"ask()\">Perguntar</button>
 <pre id=\"out\"></pre>
 <h3>Local LLM</h3>
 <pre id=\"llm\">loading...</pre>
-<p><a href=\"/assistant\">/assistant</a> | <a href=\"/llm/status\">/llm/status</a> | <a href=\"/atlas\">/atlas</a> | <a href=\"/mt5\">/mt5</a> | <a href=\"/logs\">/logs</a></p>
+<p><a href=\"/runtime\">/runtime</a> | <a href=\"/assistant\">/assistant</a> | <a href=\"/llm/status\">/llm/status</a> | <a href=\"/atlas\">/atlas</a> | <a href=\"/mt5\">/mt5</a> | <a href=\"/logs\">/logs</a></p>
 <script>
 async function refresh(){
  const r = await fetch('/api/state');
@@ -93,8 +101,7 @@ class DashboardApp:
         )
 
     def _assistant_payload(self, question: str) -> dict[str, object]:
-        result = self.assistant.ask(question, channel="dashboard")
-        return result
+        return self.assistant.ask(question, channel="dashboard")
 
     def handle(self, method: str, raw_path: str) -> DashboardResponse:
         parsed = urlparse(raw_path)
@@ -112,7 +119,7 @@ class DashboardApp:
                     "examples": [
                         "Qual é o estado do ODIN?",
                         "O ODIN pode operar agora?",
-                        "O MT5 está ligado?",
+                        "Qual é o estado runtime do ODIN?",
                     ],
                 }
             )
@@ -128,8 +135,23 @@ class DashboardApp:
         if method == "GET" and parsed.path == "/llm/status":
             return self._json(self.assistant.llm_status())
 
+        if method == "GET" and parsed.path == "/runtime":
+            runtime_status = self.controller.execute("RUNTIME_STATUS", actor="dashboard", role="operator")
+            runtime_snapshot = self.controller.execute(
+                "RUNTIME_SNAPSHOT", actor="dashboard", role="operator"
+            )
+            runtime_events = self.assistant.context_builder._read_runtime_events()  # noqa: SLF001
+            return self._json(
+                {
+                    "runtime_status": runtime_status,
+                    "runtime_snapshot": runtime_snapshot,
+                    "runtime_events": runtime_events,
+                    "safe_to_trade": runtime_status.get("data", {}).get("runtime", {}).get("safe_to_trade", False),
+                }
+            )
+
         if method == "GET" and parsed.path == "/atlas":
-            return self._json(self.atlas.analyze({"symbol": "EURUSD", "timeframe": "M15"}))
+            return self._json(self.atlas.run_shadow_cycle({"symbol": "EURUSD", "timeframe": "M15"}))
 
         if method == "GET" and parsed.path == "/mt5":
             status = self.controller.execute("MT5_STATUS", actor="dashboard", role="operator")
@@ -213,6 +235,7 @@ def run_smoke_test() -> int:
     app = create_app()
     required_paths = [
         ("GET", "/"),
+        ("GET", "/runtime"),
         ("GET", "/assistant"),
         ("GET", "/assistant/ask?q=Qual%20%C3%A9%20o%20estado%20do%20ODIN%3F"),
         ("GET", "/llm/status"),

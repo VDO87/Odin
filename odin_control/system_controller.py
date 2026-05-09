@@ -39,6 +39,9 @@ class SystemController:
             odin_magic=self.mt5_magic,
             log_root=log_root_path,
         )
+        from odin_core.orchestrator import ShadowRuntimeOrchestrator
+
+        self.runtime = ShadowRuntimeOrchestrator(self, log_root=log_root_path)
 
         self.command_bus = CommandBus(
             get_state=lambda: self.machine.state,
@@ -60,6 +63,14 @@ class SystemController:
                 "MT5_LIST_SYMBOLS": self._mt5_list_symbols,
                 "MT5_GET_TICK": self._mt5_get_tick,
                 "MT5_GET_CANDLES": self._mt5_get_candles,
+                "RUNTIME_STATUS": self._runtime_status,
+                "RUNTIME_START": self._runtime_start,
+                "RUNTIME_STOP": self._runtime_stop,
+                "RUNTIME_PAUSE": self._runtime_pause,
+                "RUNTIME_RESUME": self._runtime_resume,
+                "RUNTIME_RUN_ONCE": self._runtime_run_once,
+                "RUNTIME_SAFE_SHUTDOWN": self._runtime_safe_shutdown,
+                "RUNTIME_SNAPSHOT": self._runtime_snapshot,
             },
         )
 
@@ -187,6 +198,31 @@ class SystemController:
             "mt5": candles,
         }
 
+    def _runtime_status(self, _: CommandRequest) -> dict[str, Any]:
+        return {"accepted": True, "reason": "runtime_status", "runtime": self.runtime.get_status()}
+
+    def _runtime_start(self, _: CommandRequest) -> dict[str, Any]:
+        return {"accepted": True, "reason": "runtime_started", "runtime": self.runtime.start()}
+
+    def _runtime_stop(self, _: CommandRequest) -> dict[str, Any]:
+        return {"accepted": True, "reason": "runtime_stopped", "runtime": self.runtime.stop()}
+
+    def _runtime_pause(self, _: CommandRequest) -> dict[str, Any]:
+        return {"accepted": True, "reason": "runtime_paused", "runtime": self.runtime.pause()}
+
+    def _runtime_resume(self, _: CommandRequest) -> dict[str, Any]:
+        return {"accepted": True, "reason": "runtime_resumed", "runtime": self.runtime.resume()}
+
+    def _runtime_run_once(self, _: CommandRequest) -> dict[str, Any]:
+        result = self.runtime.run_once()
+        return {"accepted": bool(result.get("accepted", False)), "reason": result.get("reason", "runtime_cycle"), "runtime": result}
+
+    def _runtime_safe_shutdown(self, _: CommandRequest) -> dict[str, Any]:
+        return {"accepted": True, "reason": "runtime_safe_shutdown", "runtime": self.runtime.safe_shutdown()}
+
+    def _runtime_snapshot(self, _: CommandRequest) -> dict[str, Any]:
+        return {"accepted": True, "reason": "runtime_snapshot", "snapshot": self.runtime.snapshot()}
+
     def execute(
         self,
         command: str,
@@ -197,6 +233,19 @@ class SystemController:
         result = self.command_bus.execute(
             CommandRequest(command=command, actor=actor, role=role, payload=payload or {})
         )
+        try:
+            if result.accepted:
+                self.runtime.events.write(
+                    "COMMAND_RECEIVED",
+                    {"command": result.command, "actor": actor, "role": role},
+                )
+            else:
+                self.runtime.events.write(
+                    "COMMAND_BLOCKED",
+                    {"command": result.command, "actor": actor, "role": role, "reason": result.reason},
+                )
+        except Exception:
+            pass
         return {
             "command_id": result.command_id,
             "command": result.command,

@@ -34,6 +34,15 @@ READ_MAP = {
     "read_mt5_external": "mt5_reconciliation",
     "read_mt5_safety": "mt5_health",
     "read_mt5_reconciliation_last": "mt5_reconciliation",
+    "read_runtime_status": "runtime",
+    "read_runtime_alive": "runtime",
+    "read_runtime_heartbeat": "runtime_heartbeat",
+    "read_runtime_blocked": "runtime",
+    "read_runtime_blocked_reason": "runtime",
+    "read_runtime_snapshot": "runtime_snapshot",
+    "read_runtime_events": "runtime_events",
+    "read_runtime_shadow": "runtime",
+    "read_runtime_soak": "runtime_soak",
     "read_free": "full_context",
 }
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import os
 from pathlib import Path
 
 from odin_assistant.assistant_router import AssistantRouter
@@ -25,11 +26,30 @@ COMMAND_MAP = {
     "mt5-healthcheck": "MT5_HEALTHCHECK",
     "mt5-positions": "MT5_LIST_POSITIONS",
     "mt5-symbols": "MT5_LIST_SYMBOLS",
+    "runtime-status": "RUNTIME_STATUS",
+    "runtime-run-once": "RUNTIME_RUN_ONCE",
+    "runtime-pause": "RUNTIME_PAUSE",
+    "runtime-resume": "RUNTIME_RESUME",
+    "runtime-stop": "RUNTIME_STOP",
+    "runtime-snapshot": "RUNTIME_SNAPSHOT",
 }
 
 
 def _print(payload: dict[str, object]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def _runtime_events(limit: int = 20) -> dict[str, object]:
+    events_path = Path(os.getenv("ODIN_EVENTS_FILE", "data/runtime/odin_events.jsonl"))
+    if not events_path.exists():
+        return {"status": "missing", "events": []}
+    events: list[dict[str, object]] = []
+    for line in events_path.read_text(encoding="utf-8", errors="ignore").splitlines()[-max(1, limit) :]:
+        try:
+            events.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return {"status": "ok", "events": events, "count": len(events)}
 
 
 def main() -> None:
@@ -44,7 +64,15 @@ def main() -> None:
     sub.add_parser("healthcheck")
     sub.add_parser("smoke-test")
     sub.add_parser("assistant-smoke-test")
+    sub.add_parser("runtime-smoke-test")
     sub.add_parser("llm-status")
+    sub.add_parser("runtime-status")
+    sub.add_parser("runtime-run-once")
+    sub.add_parser("runtime-pause")
+    sub.add_parser("runtime-resume")
+    sub.add_parser("runtime-stop")
+    sub.add_parser("runtime-snapshot")
+    sub.add_parser("runtime-events")
     sub.add_parser("mt5-sync")
     sub.add_parser("mt5-status")
     sub.add_parser("mt5-healthcheck")
@@ -85,7 +113,11 @@ def main() -> None:
         _print(assistant.llm_status())
         return
 
-    if args.cmd in {"smoke-test", "assistant-smoke-test"}:
+    if args.cmd == "runtime-events":
+        _print(_runtime_events())
+        return
+
+    if args.cmd in {"smoke-test", "assistant-smoke-test", "runtime-smoke-test"}:
         modules = [
             "odin_control",
             "odin_health",
@@ -93,6 +125,7 @@ def main() -> None:
             "odin_atlas",
             "odin_brokers",
             "apps.dashboard_html.app",
+            "odin_core.runtime",
         ]
         for module_name in modules:
             importlib.import_module(module_name)
@@ -100,19 +133,28 @@ def main() -> None:
         command_result = controller.execute("RELOAD_CONFIG", actor="terminal-smoke", role="operator")
         assistant_result = assistant.ask("Qual é o estado do ODIN?", channel="cli")
         blocked_result = assistant.ask("Activa trading real", channel="cli")
-        atlas_result = AtlasCoordinator(log_root="logs").analyze({"symbol": "EURUSD"})
+        runtime_once = controller.execute("RUNTIME_RUN_ONCE", actor="terminal-smoke", role="operator")
+        atlas_result = AtlasCoordinator(log_root="logs").run_shadow_cycle(
+            {"symbol": "EURUSD", "timeframe": "M15"}
+        )
         _print(
             {
                 "smoke_test": "ok",
                 "command_bus": command_result,
                 "llm_status": assistant.llm_status(),
+                "runtime_status": controller.execute("RUNTIME_STATUS", actor="terminal-smoke", role="operator"),
+                "runtime_once": runtime_once,
+                "runtime_snapshot": controller.execute(
+                    "RUNTIME_SNAPSHOT", actor="terminal-smoke", role="operator"
+                ),
+                "runtime_events": _runtime_events(10),
                 "mt5_status": controller.execute("MT5_STATUS", actor="terminal-smoke", role="operator"),
                 "assistant": assistant_result,
                 "assistant_blocked": blocked_result,
                 "atlas": {
-                    "accepted": atlas_result["accepted"],
-                    "execution_permission": atlas_result["decision_packet"]["execution_permission"],
-                    "atlas_executes_orders": atlas_result["atlas_executes_orders"],
+                    "accepted": atlas_result.get("accepted", False),
+                    "execution_permission": atlas_result.get("execution_permission", "SHADOW_ONLY"),
+                    "atlas_executes_orders": atlas_result.get("atlas_executes_orders", False),
                 },
             }
         )
@@ -162,6 +204,7 @@ def main() -> None:
             Path("logs/system/errors.log"),
             Path("logs/control/commands.log"),
             Path("logs/assistant/blocked_requests.log"),
+            Path("logs/system/events.log"),
         ]
         output: dict[str, list[str]] = {}
         for path in candidates:

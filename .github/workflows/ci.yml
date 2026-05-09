@@ -43,3 +43,9 @@ jobs:
 
       - name: Run mypy
         run: mypy .
+
+      - name: Runtime smoke-test
+        run: ./run_odin.sh --runtime-smoke-test
+
+      - name: Runtime run-once
+        run: ./run_odin.sh --run-once

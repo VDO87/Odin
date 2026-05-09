@@ -59,3 +59,23 @@ class AtlasCoordinator:
             "critic_explanation": critic_result,
             "memory_note": memory_note,
         }
+
+    def run_shadow_cycle(self, context: dict[str, Any]) -> dict[str, Any]:
+        has_market_data = bool(context.get("mt5")) or bool(context.get("symbol"))
+        if not has_market_data:
+            return {
+                "status": "WARNING",
+                "reason": "insufficient_market_context",
+                "atlas_executes_orders": False,
+                "execution_permission": "SHADOW_ONLY",
+            }
+
+        result = self.analyze(context)
+        packet = result.get("decision_packet", {})
+        if isinstance(packet, dict):
+            packet["execution_permission"] = "SHADOW_ONLY"
+        return {
+            "status": "OK" if result.get("accepted") else "WARNING",
+            **result,
+            "execution_permission": "SHADOW_ONLY",
+        }

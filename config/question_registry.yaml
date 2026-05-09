@@ -16,6 +16,15 @@ allowed_questions:
   - Qual é o estado FIRE?
   - Mostra os últimos erros.
   - Mostra os últimos sinais bloqueados.
+  - Qual é o estado runtime do ODIN?
+  - O ODIN está vivo?
+  - Quando foi o último heartbeat?
+  - O runtime está bloqueado?
+  - Porque o runtime está em BLOCKED?
+  - Mostra o snapshot actual.
+  - Mostra os últimos eventos.
+  - O ODIN pode continuar em sombra?
+  - O sistema está pronto para soak test?
   - Executa healthcheck.
   - Sincroniza posições MT5.
   - Pausa o ODIN.

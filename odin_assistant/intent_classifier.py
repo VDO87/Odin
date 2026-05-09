@@ -21,6 +21,15 @@ READ_INTENTS = {
     "Qual é o estado FIRE?": "read_fire",
     "Mostra os últimos erros.": "read_errors",
     "Mostra os últimos sinais bloqueados.": "read_blocked_signals",
+    "Qual é o estado runtime do ODIN?": "read_runtime_status",
+    "O ODIN está vivo?": "read_runtime_alive",
+    "Quando foi o último heartbeat?": "read_runtime_heartbeat",
+    "O runtime está bloqueado?": "read_runtime_blocked",
+    "Porque o runtime está em BLOCKED?": "read_runtime_blocked_reason",
+    "Mostra o snapshot actual.": "read_runtime_snapshot",
+    "Mostra os últimos eventos.": "read_runtime_events",
+    "O ODIN pode continuar em sombra?": "read_runtime_shadow",
+    "O sistema está pronto para soak test?": "read_runtime_soak",
 }
 
 COMMAND_INTENTS = {
@@ -59,6 +68,12 @@ SCOPE_HINTS = (
     "logs",
     "telegram",
     "dashboard",
+    "runtime",
+    "heartbeat",
+    "snapshot",
+    "evento",
+    "event",
+    "soak",
 )
 
 

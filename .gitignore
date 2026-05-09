@@ -46,3 +46,7 @@ Odin_Teste_BACKUP_*/
 # Logs should remain local
 logs/**/*.log
 logs/runtime_test/
+
+# Runtime snapshots/events are local observability artifacts
+data/runtime/*.json
+data/runtime/*.jsonl

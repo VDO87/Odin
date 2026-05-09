@@ -29,6 +29,10 @@ COMMAND_TO_QUESTION = {
     "/mt5_positions": "Que posições estão abertas no MT5?",
     "/mt5_sync": "Sincroniza posições MT5.",
     "/mt5_healthcheck": "Executa healthcheck.",
+    "/runtime": "Qual é o estado runtime do ODIN?",
+    "/runtime_status": "Qual é o estado runtime do ODIN?",
+    "/runtime_snapshot": "Mostra o snapshot actual.",
+    "/runtime_events": "Mostra os últimos eventos.",
 }
 
 
@@ -49,12 +53,16 @@ class TelegramBot:
         self.allowed_ids = {x.strip() for x in allowed_raw.split(",") if x.strip()}
         self.token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 
-    def _run_mt5_command(self, text: str) -> dict[str, object] | None:
+    def _run_direct_command(self, text: str) -> dict[str, object] | None:
         command_map = {
             "/mt5_status": "MT5_STATUS",
             "/mt5_positions": "MT5_LIST_POSITIONS",
             "/mt5_sync": "MT5_SYNC_POSITIONS",
             "/mt5_healthcheck": "MT5_HEALTHCHECK",
+            "/runtime_status": "RUNTIME_STATUS",
+            "/runtime_snapshot": "RUNTIME_SNAPSHOT",
+            "/runtime_pause": "RUNTIME_PAUSE",
+            "/runtime_resume": "RUNTIME_RESUME",
         }
         command = command_map.get(text)
         if not command:
@@ -74,7 +82,10 @@ class TelegramBot:
         text = message.text.strip()
 
         if text == "/help":
-            command_list = sorted(list(COMMAND_TO_QUESTION.keys()) + ["/ask", "/llm", "/llm_status", "/help"])
+            command_list = sorted(
+                list(COMMAND_TO_QUESTION.keys())
+                + ["/ask", "/llm", "/llm_status", "/runtime_pause", "/runtime_resume", "/help"]
+            )
             return {"ok": True, "answer": "Comandos: " + ", ".join(command_list)}
 
         if text in {"/llm", "/llm_status"}:
@@ -86,13 +97,13 @@ class TelegramBot:
                 return {"ok": False, "answer": "Pergunta vazia."}
             return self.assistant.ask(question, channel="telegram", confirmed=message.confirmed)
 
+        direct = self._run_direct_command(text)
+        if direct is not None:
+            return direct
+
         question = COMMAND_TO_QUESTION.get(text)
         if not question:
             return {"ok": False, "answer": "Comando não suportado."}
-
-        mt5_result = self._run_mt5_command(text)
-        if mt5_result is not None:
-            return mt5_result
 
         if message.confirmed:
             self.log_approvals.write(
@@ -107,8 +118,11 @@ def build_dry_run_report(bot: TelegramBot) -> dict[str, object]:
         "dry_run": True,
         "token_present": bool(bot.token),
         "allowed_user_ids_count": len(bot.allowed_ids),
-        "commands_count": len(COMMAND_TO_QUESTION) + 3,
-        "commands": sorted(list(COMMAND_TO_QUESTION.keys()) + ["/ask", "/llm", "/llm_status"]),
+        "commands_count": len(COMMAND_TO_QUESTION) + 5,
+        "commands": sorted(
+            list(COMMAND_TO_QUESTION.keys())
+            + ["/ask", "/llm", "/llm_status", "/runtime_pause", "/runtime_resume"]
+        ),
         "network_calls": "not_performed",
         "safe_mode": True,
         "llm_status": bot.assistant.llm_status(),
