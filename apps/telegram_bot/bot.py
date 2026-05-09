@@ -11,6 +11,7 @@ from odin_logs.logger import JsonlLogger
 
 COMMAND_TO_QUESTION = {
     "/status": "Qual é o estado do ODIN?",
+    "/odin": "Qual é o estado do ODIN?",
     "/can_trade": "O ODIN pode operar agora?",
     "/signals": "Quais são os sinais activos?",
     "/risk": "Qual é o estado do risco?",
@@ -59,7 +60,7 @@ class TelegramBot:
         if not command:
             return None
         result = self.controller.execute(command, actor="assistant:telegram", role="assistant")
-        return {"ok": bool(result.get("accepted", False)), "answer": str(result)}
+        return {"ok": bool(result.get("accepted", False)), "answer": str(result), "source": "command_bus"}
 
     def is_allowed(self, user_id: str) -> bool:
         return user_id in self.allowed_ids if self.allowed_ids else False
@@ -70,19 +71,33 @@ class TelegramBot:
         if not self.is_allowed(message.user_id):
             return {"ok": False, "answer": "Utilizador não autorizado."}
 
-        if message.text == "/help":
-            return {"ok": True, "answer": "Comandos: " + ", ".join(sorted(list(COMMAND_TO_QUESTION.keys()) + ["/help"]))}
+        text = message.text.strip()
 
-        question = COMMAND_TO_QUESTION.get(message.text)
+        if text == "/help":
+            command_list = sorted(list(COMMAND_TO_QUESTION.keys()) + ["/ask", "/llm", "/llm_status", "/help"])
+            return {"ok": True, "answer": "Comandos: " + ", ".join(command_list)}
+
+        if text in {"/llm", "/llm_status"}:
+            return {"ok": True, "source": "local_llm", "answer": str(self.assistant.llm_status())}
+
+        if text.startswith("/ask "):
+            question = text[5:].strip()
+            if not question:
+                return {"ok": False, "answer": "Pergunta vazia."}
+            return self.assistant.ask(question, channel="telegram", confirmed=message.confirmed)
+
+        question = COMMAND_TO_QUESTION.get(text)
         if not question:
             return {"ok": False, "answer": "Comando não suportado."}
 
-        mt5_result = self._run_mt5_command(message.text)
+        mt5_result = self._run_mt5_command(text)
         if mt5_result is not None:
             return mt5_result
 
         if message.confirmed:
-            self.log_approvals.write("telegram_command_confirmed", {"user_id": message.user_id, "text": message.text})
+            self.log_approvals.write(
+                "telegram_command_confirmed", {"user_id": message.user_id, "text": message.text}
+            )
 
         return self.assistant.ask(question, channel="telegram", confirmed=message.confirmed)
 
@@ -92,16 +107,21 @@ def build_dry_run_report(bot: TelegramBot) -> dict[str, object]:
         "dry_run": True,
         "token_present": bool(bot.token),
         "allowed_user_ids_count": len(bot.allowed_ids),
-        "commands_count": len(COMMAND_TO_QUESTION),
-        "commands": sorted(COMMAND_TO_QUESTION.keys()),
+        "commands_count": len(COMMAND_TO_QUESTION) + 3,
+        "commands": sorted(list(COMMAND_TO_QUESTION.keys()) + ["/ask", "/llm", "/llm_status"]),
         "network_calls": "not_performed",
         "safe_mode": True,
+        "llm_status": bot.assistant.llm_status(),
     }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="ODIN Telegram bot")
-    parser.add_argument("--dry-run", action="store_true", help="Validate config and command mapping without contacting Telegram")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate config and command mapping without contacting Telegram",
+    )
     return parser.parse_args()
 
 

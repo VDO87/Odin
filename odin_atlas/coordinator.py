@@ -34,6 +34,7 @@ class AtlasCoordinator:
 
         critic_result = str(outputs["critic"].get("result", "NO_REVIEW"))
         self.critic_log.write("atlas_critic", {"result": critic_result})
+        memory_note = str(outputs["memory"].get("result", "NO_MEMORY_NOTE"))
 
         packet = DecisionPacket.empty(symbol=str(context.get("symbol", "UNKNOWN")))
         packet.market_agent_score = scores["market"]
@@ -55,4 +56,6 @@ class AtlasCoordinator:
             "reason": consensus["reason"],
             "decision_packet": packet_payload,
             "atlas_executes_orders": False,
+            "critic_explanation": critic_result,
+            "memory_note": memory_note,
         }

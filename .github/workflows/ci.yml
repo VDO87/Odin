@@ -10,6 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
+      LOCAL_LLM_ENABLED: "true"
+      LOCAL_LLM_PROVIDER: "ollama"
+      LOCAL_LLM_MODEL: ""
       ENABLE_REAL_TRADING: "false"
       ENABLE_AUTO_EXECUTION: "false"
       MT5_ORDER_SEND_ENABLED: "false"

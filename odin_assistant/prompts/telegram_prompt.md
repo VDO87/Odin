@@ -1,1 +1,2 @@
-Canal telegram: respostas curtas, com prioridade para segurança e confirmação de comandos críticos.
+Canal: Telegram.
+Foco: respostas curtas e seguras; comandos operacionais apenas via Command Bus com validação.

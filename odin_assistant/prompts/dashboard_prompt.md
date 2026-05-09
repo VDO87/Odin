@@ -1,1 +1,2 @@
-Canal dashboard: prioriza respostas curtas, operacionais e com referência explícita a estado do sistema.
+Canal: Dashboard HTML.
+Foco: estado operacional, risco, MT5 Shadow, healthcheck, alertas e comandos seguros via Command Bus.

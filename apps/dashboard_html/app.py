@@ -38,12 +38,16 @@ INDEX_HTML = """<!doctype html>
 <input id=\"q\" size=\"80\" placeholder=\"Qual é o estado do ODIN?\" />
 <button onclick=\"ask()\">Perguntar</button>
 <pre id=\"out\"></pre>
-<p><a href=\"/atlas\">/atlas</a> | <a href=\"/mt5\">/mt5</a> | <a href=\"/logs\">/logs</a></p>
+<h3>Local LLM</h3>
+<pre id=\"llm\">loading...</pre>
+<p><a href=\"/assistant\">/assistant</a> | <a href=\"/llm/status\">/llm/status</a> | <a href=\"/atlas\">/atlas</a> | <a href=\"/mt5\">/mt5</a> | <a href=\"/logs\">/logs</a></p>
 <script>
 async function refresh(){
  const r = await fetch('/api/state');
  const d = await r.json();
  document.getElementById('state').innerText = d.state;
+ const l = await fetch('/llm/status');
+ document.getElementById('llm').innerText = JSON.stringify(await l.json(), null, 2);
 }
 async function cmd(name){
  const r = await fetch('/api/command?name='+encodeURIComponent(name), {method:'POST'});
@@ -52,7 +56,7 @@ async function cmd(name){
 }
 async function ask(){
  const q = document.getElementById('q').value;
- const r = await fetch('/api/ask?q='+encodeURIComponent(q));
+ const r = await fetch('/assistant/ask?q='+encodeURIComponent(q));
  document.getElementById('out').innerText = JSON.stringify(await r.json(), null, 2);
 }
 refresh();
@@ -72,24 +76,7 @@ class DashboardApp:
     def __init__(self) -> None:
         self.controller = SystemController(log_root="logs")
         self.atlas = AtlasCoordinator(log_root="logs")
-        self.assistant = AssistantRouter(self.controller, context_builder=None)
-        self.assistant.context_builder.providers = {
-            "status": lambda: {"state": self.controller.machine.state.value},
-            "can_operate": lambda: {
-                "can_operate": self.controller.machine.state.value in {"READY", "RUNNING"}
-            },
-            "signals": lambda: {"active_signals": []},
-            "risk": lambda: {"risk_engine_required": True, "risk_engine_active": True},
-            "mt5": lambda: {"shadow_mode": True},
-            "mt5_positions": lambda: {"positions": []},
-            "mt5_reconciliation": lambda: {"status": "not_run"},
-            "atlas": lambda: {"status": "enabled_consensus_only"},
-            "atlas_last_signal": lambda: {"status": "no_signals"},
-            "news": lambda: {"status": "not_configured"},
-            "fire": lambda: {"status": "monitoring"},
-            "errors": lambda: {"last_errors": []},
-            "blocked_signals": lambda: {"last_blocked": []},
-        }
+        self.assistant = AssistantRouter(self.controller)
 
     def _json(self, payload: dict[str, object], code: int = 200) -> DashboardResponse:
         return DashboardResponse(
@@ -105,23 +92,59 @@ class DashboardApp:
             body=payload.encode("utf-8"),
         )
 
+    def _assistant_payload(self, question: str) -> dict[str, object]:
+        result = self.assistant.ask(question, channel="dashboard")
+        return result
+
     def handle(self, method: str, raw_path: str) -> DashboardResponse:
         parsed = urlparse(raw_path)
         qs = parse_qs(parsed.query)
 
         if method == "GET" and parsed.path == "/":
             return self._html(INDEX_HTML)
+
+        if method == "GET" and parsed.path == "/assistant":
+            return self._json(
+                {
+                    "status": "ready",
+                    "channels": ["dashboard", "telegram", "cli"],
+                    "llm": self.assistant.llm_status(),
+                    "examples": [
+                        "Qual é o estado do ODIN?",
+                        "O ODIN pode operar agora?",
+                        "O MT5 está ligado?",
+                    ],
+                }
+            )
+
+        if method == "GET" and parsed.path in {"/assistant/ask", "/api/ask"}:
+            question = qs.get("q", [""])[0]
+            return self._json(self._assistant_payload(question))
+
+        if method == "POST" and parsed.path == "/assistant/ask":
+            question = qs.get("q", [""])[0]
+            return self._json(self._assistant_payload(question))
+
+        if method == "GET" and parsed.path == "/llm/status":
+            return self._json(self.assistant.llm_status())
+
         if method == "GET" and parsed.path == "/atlas":
-            return self._json(self.atlas.analyze({"symbol": "EURUSD"}))
+            return self._json(self.atlas.analyze({"symbol": "EURUSD", "timeframe": "M15"}))
+
         if method == "GET" and parsed.path == "/mt5":
             status = self.controller.execute("MT5_STATUS", actor="dashboard", role="operator")
             symbols = self.controller.execute("MT5_LIST_SYMBOLS", actor="dashboard", role="operator")
-            positions = self.controller.execute(
-                "MT5_LIST_POSITIONS", actor="dashboard", role="operator"
+            positions = self.controller.execute("MT5_LIST_POSITIONS", actor="dashboard", role="operator")
+            reconciliation = self.controller.execute("MT5_SYNC_POSITIONS", actor="dashboard", role="operator")
+
+            tick_symbol = os.getenv("MT5_SYMBOLS", "EURUSD").split(",")[0].strip() or "EURUSD"
+            tick = self.controller.execute(
+                "MT5_GET_TICK",
+                actor="dashboard",
+                role="operator",
+                payload={"symbol": tick_symbol},
             )
-            reconciliation = self.controller.execute(
-                "MT5_SYNC_POSITIONS", actor="dashboard", role="operator"
-            )
+
             alerts: list[str] = []
             rec_data = reconciliation.get("data", {}).get("reconciliation", {})
             if rec_data.get("external_positions", 0) > 0:
@@ -135,24 +158,27 @@ class DashboardApp:
                 alerts.append("MT5 indisponível/degradado")
             if mt5_payload.get("data", {}).get("order_send_blocked", True) is not True:
                 alerts.append("order_send não bloqueado")
+
             return self._json(
                 {
                     "mt5_status": status,
                     "symbols": symbols,
+                    "last_tick": tick,
                     "positions": positions,
                     "reconciliation": reconciliation,
                     "alerts": alerts,
                 }
             )
+
         if method == "GET" and parsed.path == "/logs":
             return self._json({"hint": "Ver pasta logs/ para eventos detalhados."})
+
         if method == "GET" and parsed.path == "/api/state":
             return self._json({"state": self.controller.machine.state.value})
-        if method == "GET" and parsed.path == "/api/ask":
-            question = qs.get("q", [""])[0]
-            return self._json(self.assistant.ask(question, channel="dashboard"))
+
         if method == "GET" and parsed.path == "/api/healthcheck":
             return self._json(OdinHealthcheck(log_root="logs").run())
+
         if method == "POST" and parsed.path == "/api/command":
             name = qs.get("name", [""])[0]
             return self._json(self.controller.execute(name, actor="dashboard", role="operator"))
@@ -182,14 +208,17 @@ def create_app() -> DashboardApp:
 
 
 def run_smoke_test() -> int:
+    previous = os.getenv("LOCAL_LLM_ENABLED")
+    os.environ["LOCAL_LLM_ENABLED"] = "false"
     app = create_app()
     required_paths = [
         ("GET", "/"),
+        ("GET", "/assistant"),
+        ("GET", "/assistant/ask?q=Qual%20%C3%A9%20o%20estado%20do%20ODIN%3F"),
+        ("GET", "/llm/status"),
         ("GET", "/atlas"),
         ("GET", "/mt5"),
         ("GET", "/logs"),
-        ("GET", "/api/ask?q=Qual%20%C3%A9%20o%20estado%20do%20ODIN%3F"),
-        ("GET", "/api/healthcheck"),
     ]
     failures: list[str] = []
     for method, path in required_paths:
@@ -201,9 +230,17 @@ def run_smoke_test() -> int:
         print("Dashboard smoke-test failed")
         for failure in failures:
             print(failure)
+        if previous is None:
+            os.environ.pop("LOCAL_LLM_ENABLED", None)
+        else:
+            os.environ["LOCAL_LLM_ENABLED"] = previous
         return 1
 
     print("Dashboard smoke-test OK")
+    if previous is None:
+        os.environ.pop("LOCAL_LLM_ENABLED", None)
+    else:
+        os.environ["LOCAL_LLM_ENABLED"] = previous
     return 0
 
 

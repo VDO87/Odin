@@ -20,6 +20,7 @@ class OdinHealthcheck:
         root = Path(log_root)
         self.logger = JsonlLogger(root / "health" / "healthcheck.log")
         self.mt5_logger = JsonlLogger(root / "health" / "mt5_healthcheck.log")
+        self.llm_logger = JsonlLogger(root / "assistant" / "llm_healthcheck.log")
 
     def run(self) -> dict[str, Any]:
         checks = {
@@ -31,6 +32,7 @@ class OdinHealthcheck:
             "market_apis": check_market_apis(),
         }
         self.mt5_logger.write("mt5_healthcheck", checks["mt5"])
+        self.llm_logger.write("llm_healthcheck", checks["local_llm"])
 
         worst = "OK"
         for payload in checks.values():

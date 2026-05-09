@@ -11,16 +11,16 @@ READ_INTENTS = {
     "O MT5 está ligado?": "read_mt5",
     "Que posições estão abertas no MT5?": "read_mt5_positions",
     "O ODIN reconhece todas as posições?": "read_mt5_reconciliation",
+    "Há posições sem stop loss?": "read_mt5_unprotected",
+    "Há posições externas ao ODIN?": "read_mt5_external",
+    "O MT5 está seguro para operar em sombra?": "read_mt5_safety",
+    "Qual foi a última reconciliação MT5?": "read_mt5_reconciliation_last",
     "Qual é o estado do ATLAS?": "read_atlas",
     "O que diz o ATLAS sobre o último sinal?": "read_atlas_last_signal",
     "Há notícias financeiras relevantes?": "read_news",
     "Qual é o estado FIRE?": "read_fire",
     "Mostra os últimos erros.": "read_errors",
     "Mostra os últimos sinais bloqueados.": "read_blocked_signals",
-    "Há posições sem stop loss?": "read_mt5_unprotected",
-    "Há posições externas ao ODIN?": "read_mt5_external",
-    "O MT5 está seguro para operar em sombra?": "read_mt5_safety",
-    "Qual foi a última reconciliação MT5?": "read_mt5_reconciliation_last",
 }
 
 COMMAND_INTENTS = {
@@ -29,6 +29,37 @@ COMMAND_INTENTS = {
     "Pausa o ODIN.": "PAUSE_ODIN",
     "Retoma o ODIN.": "RESUME_ODIN",
 }
+
+DANGEROUS_PATTERNS = (
+    "activa trading real",
+    "ativa trading real",
+    "enable real trading",
+    "order_send",
+    "enviar ordem",
+    "fecha posição",
+    "fechar posição",
+    "desliga risk engine",
+    "disable risk engine",
+    "apaga logs",
+    "delete logs",
+)
+
+SCOPE_HINTS = (
+    "odin",
+    "mt5",
+    "atlas",
+    "risco",
+    "risk",
+    "broker",
+    "fire",
+    "healthcheck",
+    "notícias",
+    "news",
+    "sinal",
+    "logs",
+    "telegram",
+    "dashboard",
+)
 
 
 @dataclass(slots=True)
@@ -40,8 +71,19 @@ class IntentResult:
 class IntentClassifier:
     def classify(self, question: str) -> IntentResult:
         text = question.strip()
+        low = text.lower()
+
         if text in COMMAND_INTENTS:
             return IntentResult("command", COMMAND_INTENTS[text])
         if text in READ_INTENTS:
             return IntentResult("read", READ_INTENTS[text])
-        return IntentResult("unknown", "unknown")
+
+        if any(pattern in low for pattern in DANGEROUS_PATTERNS):
+            return IntentResult("dangerous", "dangerous_command_blocked")
+
+        if any(hint in low for hint in SCOPE_HINTS):
+            if "healthcheck" in low:
+                return IntentResult("command", "RUN_HEALTHCHECK")
+            return IntentResult("read", "read_free")
+
+        return IntentResult("out_of_scope", "out_of_scope")
