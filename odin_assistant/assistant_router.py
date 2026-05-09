@@ -26,7 +26,39 @@ READ_MAP = {
     "read_fire": "fire",
     "read_errors": "errors",
     "read_blocked_signals": "blocked_signals",
+    "read_mt5_unprotected": "mt5_unprotected",
+    "read_mt5_external": "mt5_external",
+    "read_mt5_safety": "mt5_safety",
+    "read_mt5_reconciliation_last": "mt5_reconciliation_last",
 }
+
+MT5_UNAVAILABLE_MSG = (
+    "MT5 indisponível neste ambiente. O ODIN está bloqueado para trading e continua disponível para diagnóstico."
+)
+
+
+def _default_context_builder(controller: SystemController) -> ContextBuilder:
+    return ContextBuilder(
+        {
+            "status": lambda: {"state": controller.machine.state.value},
+            "can_operate": lambda: {"can_operate": controller.machine.state.value in {"READY", "RUNNING"}},
+            "signals": lambda: {"active_signals": []},
+            "risk": lambda: {"risk_engine_required": True, "risk_engine_active": True},
+            "mt5": lambda: controller.execute("MT5_STATUS", actor="assistant", role="assistant"),
+            "mt5_positions": lambda: controller.execute("MT5_LIST_POSITIONS", actor="assistant", role="assistant"),
+            "mt5_reconciliation": lambda: controller.execute("MT5_SYNC_POSITIONS", actor="assistant", role="assistant"),
+            "mt5_safety": lambda: controller.execute("MT5_HEALTHCHECK", actor="assistant", role="assistant"),
+            "mt5_reconciliation_last": lambda: controller.execute("MT5_SYNC_POSITIONS", actor="assistant", role="assistant"),
+            "mt5_unprotected": lambda: controller.execute("MT5_SYNC_POSITIONS", actor="assistant", role="assistant"),
+            "mt5_external": lambda: controller.execute("MT5_SYNC_POSITIONS", actor="assistant", role="assistant"),
+            "atlas": lambda: {"status": "enabled_consensus_only"},
+            "atlas_last_signal": lambda: {"status": "no_signals"},
+            "news": lambda: {"status": "not_configured"},
+            "fire": lambda: {"status": "monitoring"},
+            "errors": lambda: {"last_errors": []},
+            "blocked_signals": lambda: {"last_blocked": []},
+        }
+    )
 
 
 class AssistantRouter:
@@ -44,7 +76,7 @@ class AssistantRouter:
         self.classifier = IntentClassifier()
         self.permissions = AssistantPermissionGuard()
         self.formatter = ResponseFormatter()
-        self.context_builder = context_builder or ContextBuilder()
+        self.context_builder = context_builder or _default_context_builder(controller)
 
         self.dashboard_log = JsonlLogger(root / "assistant" / "dashboard_questions.log")
         self.telegram_log = JsonlLogger(root / "assistant" / "telegram_questions.log")
@@ -75,6 +107,16 @@ class AssistantRouter:
             answer_payload = ctx.get(key)
             if answer_payload is None:
                 return {"ok": False, "answer": SAFE_FALLBACK}
+            if key.startswith("mt5"):
+                payload_text = str(answer_payload).lower()
+                if "indisponível" in payload_text or "unavailable" in payload_text:
+                    return {"ok": False, "answer": MT5_UNAVAILABLE_MSG}
+                if isinstance(answer_payload, dict):
+                    mt5_data = answer_payload.get("data", {}).get("mt5")
+                    if isinstance(mt5_data, dict) and mt5_data.get("status") in {"WARNING", "BLOCKED"}:
+                        message = str(mt5_data.get("message", "")).lower()
+                        if "indisponível" in message or "unavailable" in message:
+                            return {"ok": False, "answer": MT5_UNAVAILABLE_MSG}
             return {"ok": True, "answer": self.formatter.format_read(answer_payload)}
 
         permission = self.permissions.check(intent.intent_name)

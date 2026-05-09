@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from odin_brokers.base import BrokerAdapterBase
@@ -13,27 +14,35 @@ class MT5Adapter(BrokerAdapterBase):
         self.shadow = MT5ShadowAdapter(order_send_enabled=False)
 
     def connect(self) -> dict[str, Any]:
-        return {"ok": self.shadow.available, "broker": self.name, "shadow_mode": True}
+        return self.shadow.initialize()
 
     def disconnect(self) -> dict[str, Any]:
-        return {"ok": True, "broker": self.name}
+        return self.shadow.shutdown()
 
     def healthcheck(self) -> dict[str, Any]:
         payload = self.shadow.healthcheck()
-        payload["broker"] = self.name
+        payload["data"]["broker"] = self.name
         return payload
 
     def get_account_status(self) -> dict[str, Any]:
-        return {"broker": self.name, "shadow_mode": True, "available": self.shadow.available}
+        return self.shadow.get_account_info()
 
     def get_positions(self) -> list[dict[str, Any]]:
-        return self.shadow.get_positions()
+        result = self.shadow.get_positions()
+        return list(result.get("data", {}).get("positions", []))
 
     def get_orders(self) -> list[dict[str, Any]]:
-        return []
+        result = self.shadow.get_orders()
+        return list(result.get("data", {}).get("orders", []))
 
     def place_order(self, order: dict[str, Any]) -> dict[str, Any]:
-        return self.shadow.send_order(order)
+        return self.shadow.place_order(order)
 
     def close_order(self, order_id: str) -> dict[str, Any]:
-        return {"accepted": False, "reason": "mt5_shadow_close_blocked", "order_id": order_id}
+        return {
+            "status": "BLOCKED",
+            "message": "Fecho de posições MT5 bloqueado em RC1.2 Shadow Mode.",
+            "data": {"order_id": order_id},
+            "safe_to_trade": False,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }

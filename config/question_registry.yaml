@@ -6,6 +6,10 @@ allowed_questions:
   - O MT5 está ligado?
   - Que posições estão abertas no MT5?
   - O ODIN reconhece todas as posições?
+  - Há posições sem stop loss?
+  - Há posições externas ao ODIN?
+  - O MT5 está seguro para operar em sombra?
+  - Qual foi a última reconciliação MT5?
   - Qual é o estado do ATLAS?
   - O que diz o ATLAS sobre o último sinal?
   - Há notícias financeiras relevantes?

@@ -17,6 +17,10 @@ READ_INTENTS = {
     "Qual é o estado FIRE?": "read_fire",
     "Mostra os últimos erros.": "read_errors",
     "Mostra os últimos sinais bloqueados.": "read_blocked_signals",
+    "Há posições sem stop loss?": "read_mt5_unprotected",
+    "Há posições externas ao ODIN?": "read_mt5_external",
+    "O MT5 está seguro para operar em sombra?": "read_mt5_safety",
+    "Qual foi a última reconciliação MT5?": "read_mt5_reconciliation_last",
 }
 
 COMMAND_INTENTS = {

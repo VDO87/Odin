@@ -24,6 +24,10 @@ COMMAND_TO_QUESTION = {
     "/pause": "Pausa o ODIN.",
     "/resume": "Retoma o ODIN.",
     "/sync_mt5": "Sincroniza posições MT5.",
+    "/mt5_status": "O MT5 está ligado?",
+    "/mt5_positions": "Que posições estão abertas no MT5?",
+    "/mt5_sync": "Sincroniza posições MT5.",
+    "/mt5_healthcheck": "Executa healthcheck.",
 }
 
 
@@ -44,6 +48,19 @@ class TelegramBot:
         self.allowed_ids = {x.strip() for x in allowed_raw.split(",") if x.strip()}
         self.token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 
+    def _run_mt5_command(self, text: str) -> dict[str, object] | None:
+        command_map = {
+            "/mt5_status": "MT5_STATUS",
+            "/mt5_positions": "MT5_LIST_POSITIONS",
+            "/mt5_sync": "MT5_SYNC_POSITIONS",
+            "/mt5_healthcheck": "MT5_HEALTHCHECK",
+        }
+        command = command_map.get(text)
+        if not command:
+            return None
+        result = self.controller.execute(command, actor="assistant:telegram", role="assistant")
+        return {"ok": bool(result.get("accepted", False)), "answer": str(result)}
+
     def is_allowed(self, user_id: str) -> bool:
         return user_id in self.allowed_ids if self.allowed_ids else False
 
@@ -59,6 +76,10 @@ class TelegramBot:
         question = COMMAND_TO_QUESTION.get(message.text)
         if not question:
             return {"ok": False, "answer": "Comando não suportado."}
+
+        mt5_result = self._run_mt5_command(message.text)
+        if mt5_result is not None:
+            return mt5_result
 
         if message.confirmed:
             self.log_approvals.write("telegram_command_confirmed", {"user_id": message.user_id, "text": message.text})

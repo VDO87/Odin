@@ -28,11 +28,17 @@ INDEX_HTML = """<!doctype html>
   <button onclick=\"cmd('SYNC_MT5_POSITIONS')\">Sync MT5</button>
   <button onclick=\"cmd('KILL_SWITCH')\">Kill Switch</button>
 </div>
+<div>
+  <button onclick=\"cmd('MT5_STATUS')\">MT5 Status</button>
+  <button onclick=\"cmd('MT5_SYNC_POSITIONS')\">Sync Positions</button>
+  <button onclick=\"cmd('MT5_LIST_POSITIONS')\">List Positions</button>
+  <button onclick=\"cmd('MT5_HEALTHCHECK')\">Healthcheck MT5</button>
+</div>
 <h2>Perguntar ao ODIN</h2>
 <input id=\"q\" size=\"80\" placeholder=\"Qual é o estado do ODIN?\" />
 <button onclick=\"ask()\">Perguntar</button>
 <pre id=\"out\"></pre>
-<p><a href=\"/atlas\">/atlas</a> | <a href=\"/logs\">/logs</a></p>
+<p><a href=\"/atlas\">/atlas</a> | <a href=\"/mt5\">/mt5</a> | <a href=\"/logs\">/logs</a></p>
 <script>
 async function refresh(){
  const r = await fetch('/api/state');
@@ -107,6 +113,37 @@ class DashboardApp:
             return self._html(INDEX_HTML)
         if method == "GET" and parsed.path == "/atlas":
             return self._json(self.atlas.analyze({"symbol": "EURUSD"}))
+        if method == "GET" and parsed.path == "/mt5":
+            status = self.controller.execute("MT5_STATUS", actor="dashboard", role="operator")
+            symbols = self.controller.execute("MT5_LIST_SYMBOLS", actor="dashboard", role="operator")
+            positions = self.controller.execute(
+                "MT5_LIST_POSITIONS", actor="dashboard", role="operator"
+            )
+            reconciliation = self.controller.execute(
+                "MT5_SYNC_POSITIONS", actor="dashboard", role="operator"
+            )
+            alerts: list[str] = []
+            rec_data = reconciliation.get("data", {}).get("reconciliation", {})
+            if rec_data.get("external_positions", 0) > 0:
+                alerts.append("posição externa detectada")
+            if rec_data.get("unprotected_positions", 0) > 0:
+                alerts.append("posição sem SL/TP detectada")
+            if rec_data.get("unknown_magic", 0) > 0:
+                alerts.append("magic number desconhecido detectado")
+            mt5_payload = status.get("data", {}).get("mt5", {})
+            if mt5_payload.get("status") not in {"OK"}:
+                alerts.append("MT5 indisponível/degradado")
+            if mt5_payload.get("data", {}).get("order_send_blocked", True) is not True:
+                alerts.append("order_send não bloqueado")
+            return self._json(
+                {
+                    "mt5_status": status,
+                    "symbols": symbols,
+                    "positions": positions,
+                    "reconciliation": reconciliation,
+                    "alerts": alerts,
+                }
+            )
         if method == "GET" and parsed.path == "/logs":
             return self._json({"hint": "Ver pasta logs/ para eventos detalhados."})
         if method == "GET" and parsed.path == "/api/state":
@@ -149,6 +186,7 @@ def run_smoke_test() -> int:
     required_paths = [
         ("GET", "/"),
         ("GET", "/atlas"),
+        ("GET", "/mt5"),
         ("GET", "/logs"),
         ("GET", "/api/ask?q=Qual%20%C3%A9%20o%20estado%20do%20ODIN%3F"),
         ("GET", "/api/healthcheck"),

@@ -17,7 +17,9 @@ STATUS_ORDER = {"OK": 0, "WARNING": 1, "CRITICAL": 2, "BLOCKED": 3}
 
 class OdinHealthcheck:
     def __init__(self, log_root: str | Path = "logs") -> None:
-        self.logger = JsonlLogger(Path(log_root) / "health" / "healthcheck.log")
+        root = Path(log_root)
+        self.logger = JsonlLogger(root / "health" / "healthcheck.log")
+        self.mt5_logger = JsonlLogger(root / "health" / "mt5_healthcheck.log")
 
     def run(self) -> dict[str, Any]:
         checks = {
@@ -28,6 +30,7 @@ class OdinHealthcheck:
             "local_llm": check_local_llm(),
             "market_apis": check_market_apis(),
         }
+        self.mt5_logger.write("mt5_healthcheck", checks["mt5"])
 
         worst = "OK"
         for payload in checks.values():
@@ -35,7 +38,9 @@ class OdinHealthcheck:
             if STATUS_ORDER[status] > STATUS_ORDER[worst]:
                 worst = status
 
-        if worst == "CRITICAL":
+        if worst == "BLOCKED":
+            overall = "BLOCKED"
+        elif worst == "CRITICAL":
             overall = "BLOCKED"
         else:
             overall = worst

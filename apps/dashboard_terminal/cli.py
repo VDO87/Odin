@@ -21,6 +21,10 @@ COMMAND_MAP = {
     "stop": "STOP_ODIN",
     "kill": "KILL_SWITCH",
     "mt5-sync": "SYNC_MT5_POSITIONS",
+    "mt5-status": "MT5_STATUS",
+    "mt5-healthcheck": "MT5_HEALTHCHECK",
+    "mt5-positions": "MT5_LIST_POSITIONS",
+    "mt5-symbols": "MT5_LIST_SYMBOLS",
 }
 
 
@@ -36,6 +40,10 @@ def main() -> None:
     sub.add_parser("healthcheck")
     sub.add_parser("smoke-test")
     sub.add_parser("mt5-sync")
+    sub.add_parser("mt5-status")
+    sub.add_parser("mt5-healthcheck")
+    sub.add_parser("mt5-positions")
+    sub.add_parser("mt5-symbols")
     sub.add_parser("atlas-status")
 
     ask_parser = sub.add_parser("ask")
@@ -43,6 +51,14 @@ def main() -> None:
 
     logs_parser = sub.add_parser("logs")
     logs_parser.add_argument("--tail", type=int, default=20)
+
+    tick_parser = sub.add_parser("mt5-tick")
+    tick_parser.add_argument("symbol")
+
+    candles_parser = sub.add_parser("mt5-candles")
+    candles_parser.add_argument("symbol")
+    candles_parser.add_argument("timeframe")
+    candles_parser.add_argument("count", type=int)
 
     args = parser.parse_args()
 
@@ -80,6 +96,10 @@ def main() -> None:
                 {
                     "smoke_test": "ok",
                     "command_bus": command_result,
+                    "mt5_status": controller.execute("MT5_STATUS", actor="terminal-smoke", role="operator"),
+                    "mt5_symbols": controller.execute(
+                        "MT5_LIST_SYMBOLS", actor="terminal-smoke", role="operator"
+                    ),
                     "assistant": assistant_result,
                     "atlas": {
                         "accepted": atlas_result["accepted"],
@@ -87,6 +107,40 @@ def main() -> None:
                         "atlas_executes_orders": atlas_result["atlas_executes_orders"],
                     },
                 },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return
+
+    if args.cmd == "mt5-tick":
+        print(
+            json.dumps(
+                controller.execute(
+                    "MT5_GET_TICK",
+                    actor="terminal",
+                    role="operator",
+                    payload={"symbol": args.symbol},
+                ),
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return
+
+    if args.cmd == "mt5-candles":
+        print(
+            json.dumps(
+                controller.execute(
+                    "MT5_GET_CANDLES",
+                    actor="terminal",
+                    role="operator",
+                    payload={
+                        "symbol": args.symbol,
+                        "timeframe": args.timeframe,
+                        "count": args.count,
+                    },
+                ),
                 indent=2,
                 sort_keys=True,
             )
