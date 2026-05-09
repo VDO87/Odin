@@ -20,3 +20,15 @@ Inclui todos os agentes definidos no `odin_atlas/agents/`.
 ## 5) Segurança
 - Ambos os perfis permanecem `SHADOW_ONLY`.
 - Nenhum perfil executa ordens.
+
+## 6) Validação rápida
+```bash
+./scripts/check_atlas_profile.sh
+```
+Valida:
+- `ATLAS_ENABLED`
+- `ATLAS_PROFILE`
+- `ATLAS_LITE_ENABLED`
+- `ATLAS_FULL_ENABLED`
+- lista de agentes do perfil
+- `execution_permission=SHADOW_ONLY`

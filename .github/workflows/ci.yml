@@ -23,6 +23,7 @@ jobs:
       ODIN_ENV: "TEST"
       ODIN_SOAK_TEST_MINI_DURATION_SECONDS: "3"
       ODIN_SOAK_TEST_CYCLE_SLEEP_SECONDS: "0.1"
+      ODIN_HOME: "/tmp/ODIN_RUNTIME_CI"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,3 +70,15 @@ jobs:
 
       - name: TUI smoke via runner
         run: ./run_odin.sh --tui-smoke-test
+
+      - name: Install runtime dry-run (default path)
+        run: ./scripts/install_odin_runtime.sh --dry-run
+
+      - name: Install runtime dry-run (custom path)
+        run: ./scripts/install_odin_runtime.sh --odin-home /tmp/ODIN_RUNTIME_TEST --dry-run
+
+      - name: Validate runtime dry-run
+        run: ./scripts/validate_odin_runtime.sh --odin-home /tmp/ODIN_RUNTIME_TEST --dry-run
+
+      - name: Build deployment package
+        run: ./scripts/build_release_package.sh

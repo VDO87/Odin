@@ -1,0 +1,18 @@
+[Unit]
+Description=ODIN Telegram Bot (RC1 Safe Shadow)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=${ODIN_HOME}/app
+Environment=ODIN_HOME=${ODIN_HOME}
+Environment=ENABLE_REAL_TRADING=false
+Environment=MT5_ORDER_SEND_ENABLED=false
+Environment=BROKER_ALLOW_REAL_EXECUTION=false
+ExecStart=${ODIN_HOME}/.venv/bin/python -m apps.telegram_bot.bot
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -4,7 +4,44 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
+if [[ -z "${ODIN_HOME:-}" ]]; then
+  if [[ "$(basename "$ROOT_DIR")" == "app" ]]; then
+    ODIN_HOME="$(cd "$ROOT_DIR/.." && pwd)"
+  else
+    ODIN_HOME="${ODIN_HOME:-$ROOT_DIR}"
+  fi
+fi
+export ODIN_HOME
+if [[ "$(basename "$ROOT_DIR")" == "app" ]]; then
+  export ODIN_APP_DIR="${ODIN_APP_DIR:-$ROOT_DIR}"
+else
+  export ODIN_APP_DIR="${ODIN_APP_DIR:-$ROOT_DIR}"
+fi
+export ODIN_CONFIG_DIR="${ODIN_CONFIG_DIR:-$ODIN_HOME/config}"
+export ODIN_DATA_DIR="${ODIN_DATA_DIR:-$ODIN_HOME/data}"
+export ODIN_LOG_DIR="${ODIN_LOG_DIR:-$ODIN_HOME/logs}"
+export ODIN_MODELS_DIR="${ODIN_MODELS_DIR:-$ODIN_HOME/models}"
+export ODIN_VENDOR_DIR="${ODIN_VENDOR_DIR:-$ODIN_HOME/vendor}"
+export ODIN_BACKUP_DIR="${ODIN_BACKUP_DIR:-$ODIN_HOME/backups}"
+export ODIN_TMP_DIR="${ODIN_TMP_DIR:-$ODIN_HOME/tmp}"
+export ODIN_DASHBOARD_PREVIEW_DIR="${ODIN_DASHBOARD_PREVIEW_DIR:-$ODIN_HOME/dashboard_preview}"
+export ODIN_STATE_SNAPSHOT_FILE="${ODIN_STATE_SNAPSHOT_FILE:-$ODIN_DATA_DIR/runtime/odin_state_snapshot.json}"
+export ODIN_HEARTBEAT_FILE="${ODIN_HEARTBEAT_FILE:-$ODIN_DATA_DIR/runtime/odin_heartbeat.json}"
+export ODIN_EVENTS_FILE="${ODIN_EVENTS_FILE:-$ODIN_DATA_DIR/runtime/odin_events.jsonl}"
+export ODIN_SOAK_TEST_OUTPUT_DIR="${ODIN_SOAK_TEST_OUTPUT_DIR:-$ODIN_DATA_DIR/soak_tests}"
+
+mkdir -p "$ODIN_CONFIG_DIR" "$ODIN_DATA_DIR/runtime" "$ODIN_DATA_DIR/soak_tests" "$ODIN_LOG_DIR/system" "$ODIN_DASHBOARD_PREVIEW_DIR" "$ODIN_TMP_DIR"
+
+if [[ -f "$ODIN_CONFIG_DIR/.env" ]]; then
+  # shellcheck disable=SC1090
+  set -a; source "$ODIN_CONFIG_DIR/.env"; set +a
+fi
+
 find_python_bin() {
+  if [[ -x "$ODIN_HOME/.venv/bin/python" ]]; then
+    echo "$ODIN_HOME/.venv/bin/python"
+    return 0
+  fi
   if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
     echo "$ROOT_DIR/.venv/bin/python"
     return 0

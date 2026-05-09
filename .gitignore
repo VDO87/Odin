@@ -52,6 +52,8 @@ data/runtime/*.json
 data/runtime/*.jsonl
 data/runtime/soak_tests/*.json
 data/runtime/soak_tests/*.jsonl
+data/soak_tests/*.json
+data/soak_tests/*.jsonl
 
 # Dashboard static preview export
 dashboard_preview/

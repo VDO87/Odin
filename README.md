@@ -170,3 +170,6 @@ python -m apps.telegram_bot.bot --dry-run
 
 ## Aviso
 ODIN RC1 **não executa dinheiro real**.
+
+## Instalação RC1.7
+- Guia completo: [README-INSTALL.md](README-INSTALL.md)
