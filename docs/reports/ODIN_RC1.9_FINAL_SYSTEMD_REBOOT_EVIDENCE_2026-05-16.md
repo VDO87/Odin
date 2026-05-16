@@ -310,3 +310,90 @@ Distinção técnica mantida:
 4. Logs não acessíveis via `journalctl`.
 5. Trading real permitido antes da validação completa.
 6. Erro crítico sem motivo explícito.
+
+## 16) Dashboard Operational Usability Review
+
+O dashboard é avaliado aqui como componente operacional, não apenas como endpoint web.
+
+### 16.1 Clareza dos estados principais
+
+Estado atual da evidência (dashboard QA anterior + TUI/estado):
+
+- Runtime state: **visível** (`RUNTIME STATE` / `Runtime`).
+- System health: **visível** (`HEALTH STATE` / `Health`).
+- Safe to trade: **visível** (`SAFE_TO_TRADE False`).
+- Trading real bloqueado/permitido: **visível e explícito** (`TRADING REAL: BLOCKED`, `MT5 ORDER_SEND: BLOCKED`, `BROKER REAL: BLOCKED`).
+- Estado MT5: **visível** (`MT5 status`, incluindo indisponibilidade).
+- Estado ATLAS: **visível** (`ATLAS: SHADOW_ONLY`).
+- Estado LLM/Ollama: **visível** (`LLM status`, provider e warnings).
+- Últimos logs/eventos: **visível** (`EVENTS`, secção logs).
+- Motivo de bloqueio: **parcialmente visível** (há bloqueios e sinais de `healthcheck_blocked`/`invalid_state_for_sync`, mas pode ser mais direto num painel dedicado).
+
+### 16.2 Segurança operacional
+
+Confirmações:
+
+- O modo seguro está evidente.
+- O bloqueio de trading real está evidente.
+- O dashboard não expõe ação real antes de validação completa.
+- MT5 indisponível/reconciliação bloqueada aparece com razão explícita quando consultado (`invalid_state_for_sync`, indisponibilidade da biblioteca MT5).
+
+Risco residual de usabilidade:
+
+- A razão dominante de bloqueio poderia estar mais destacada numa área única e persistente.
+
+### 16.3 Intuitividade para operador
+
+Avaliação operacional:
+
+- Operador consegue perceber rapidamente se o sistema está bloqueado e sem permissão de trading real.
+- Operador consegue identificar sinais de falha de MT5 e de runtime.
+- Ainda falta orientação mais explícita de “próxima ação recomendada” para reduzir ambiguidade operacional em incidentes.
+
+### 16.4 Diagnóstico de falhas
+
+Capacidade atual de resposta rápida:
+
+- “ODIN está ligado?”: parcialmente (via páginas e estado runtime).
+- “Runtime está vivo?”: sim (estado/runtime/eventos/heartbeat quando disponível).
+- “Dashboard está atualizado?”: sim, via rotas e conteúdo dinâmico.
+- “MT5 está ligado?”: sim, com status explícito.
+- “Reconciliação passou/falhou?”: há evidência, mas poderia ter resumo dedicado de última reconciliação.
+- “Trading real está bloqueado?”: sim, de forma explícita.
+- “Qual razão do bloqueio?”: existe, mas não centralizada num painel único.
+- “Erro recente nos logs?”: sim, via secção de eventos/logs.
+- “Falha silenciosa?”: não houve evidência de maquilhagem; quando falha, falha explicitamente.
+
+### 16.5 Pontos de melhoria (não implementar nesta fase)
+
+1. Painel “Estado Geral” sempre visível com semáforo operacional.
+2. Indicador visual forte e persistente para `SAFE_TO_TRADE`.
+3. Secção dedicada “Motivo atual de bloqueio”.
+4. Secção “Última validação” (`runtime-validate`) com timestamp/resultado.
+5. Secção “Última reconciliação MT5” com estado e motivo.
+6. Secção “Ação recomendada agora” orientada ao operador.
+7. Logs com filtro por severidade/módulo.
+8. Atalho para healthcheck operacional.
+9. Atalho para exportar diagnóstico operacional.
+10. Separação visual clara entre modo observação e modo controlo.
+
+### 16.6 Critério mínimo para aceitar o dashboard nesta fase
+
+O dashboard só é aceitável se:
+
+1. Mostrar claramente trading real bloqueado.
+2. Não esconder falhas.
+3. Não apresentar estados ambíguos.
+4. Permitir perceber motivo de bloqueio.
+5. Permitir distinguir erro de sistema, MT5, LLM e configuração.
+6. Responder HTTP 200 nas rotas principais.
+7. Não depender de dados falsos para parecer saudável.
+
+Avaliação para RC1.9 atual:
+
+- Critério operacional de clareza/segurança: **parcialmente atendido** com boa base, pendente de refinamentos de usabilidade.
+- Estado global RC1.9: mantém-se **FAIL** por bloqueadores de ambiente (systemd/reboot/write access), não por relaxamento de segurança no dashboard.
+
+### 16.7 Nota de governança operacional
+
+O dashboard é considerado componente operacional crítico do ODIN. A validação futura não deve limitar-se a HTTP 200; deve incluir avaliação de clareza, segurança, diagnóstico e usabilidade para operador.

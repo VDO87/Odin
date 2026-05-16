@@ -84,3 +84,18 @@ pytest -q
     - `sudo reboot`
     - pós-boot: `systemctl/journalctl -b` + `dashboard-qa` + `tui-once` + `runtime-validate`
   - Não avançar para Ollama em produção nem MT5 Shadow real antes de concluir RC1.9-RETRY com evidência completa.
+
+## 9. Dashboard Operational Usability Review
+- O dashboard é componente operacional crítico do ODIN.
+- Estado atual (base operacional):
+  - Mostra `Runtime`, `Health`, `SAFE_TO_TRADE`, bloqueios de trading real, estado MT5, estado ATLAS, estado LLM e eventos/logs.
+  - Mantém visível o modo seguro e não sugere execução real antes de validação.
+- Limitações de usabilidade observadas:
+  - Motivo dominante de bloqueio ainda pode ficar disperso.
+  - Falta secção explícita de “próxima ação recomendada”.
+  - Falta resumo dedicado de “última validação” e “última reconciliação MT5”.
+- Regra operacional para próximas validações:
+  - Não aceitar dashboard apenas por HTTP 200.
+  - Exigir clareza, segurança, diagnóstico e usabilidade para operador.
+- Gate de continuidade:
+  - Não avançar para Ollama em produção nem MT5 Shadow real antes de concluir RC1.9-RETRY com evidência completa de recuperação pós-reboot e segurança operacional.
