@@ -180,3 +180,15 @@ O Smoke Pack A12 valida localmente os modulos principais do Odin num unico coman
 Endpoint:
 
 - `GET /runtime/smoke`
+
+## A14 - MT5 Bridge Mock Adapter
+
+```bash
+python3 -m odin.cli mt5-bridge
+```
+
+A bridge MT5 A14 e apenas mock: devolve `bridge_mode=MOCK_ONLY`, `provider=mt5_mock`, `connected=false`, `terminal_detected=false`, `account_connected=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /mt5/bridge`

@@ -33,6 +33,7 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /decision/intent`: intencao de decisao bloqueada.
 - `GET /risk/gate`: gate de risco bloqueante.
 - `GET /shadow/proposal`: proposta shadow bloqueada.
+- `GET /mt5/bridge`: estado mock-only da futura bridge MT5.
 - `GET /runtime/smoke`: validacao local agregada do runtime seguro.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.
@@ -40,3 +41,7 @@ O dashboard e read-only e nao disponibiliza accoes de trading.
 ## A13 - Runtime Smoke Confirmado
 
 O endpoint `GET /runtime/smoke` faz parte do runtime seguro atual e deve continuar a devolver o estado agregado do smoke local, sem executar subprocessos, ordens ou integracoes reais.
+
+## A14 - MT5 Bridge Mock Endpoint
+
+O endpoint `GET /mt5/bridge` devolve apenas estado mock-only: `bridge_mode=MOCK_ONLY`, `provider=mt5_mock`, `connected=false`, `terminal_detected=false`, `account_connected=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.

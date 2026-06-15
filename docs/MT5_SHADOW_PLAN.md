@@ -18,6 +18,8 @@ Permitido:
 - A12 valida localmente a cadeia segura sem ligar ao MT5 real.
 - A13 fecha a base `LOCAL_SAFE_RUNTIME` e prepara a release `v0.1.0-local-safe-runtime`.
 - A14 so pode criar uma MT5 mock bridge: contrato/adaptador mock e endpoint/status mock, sem MetaTrader5 real.
+- Comando A14 permitido: `python3 -m odin.cli mt5-bridge`.
+- Endpoint A14 permitido: `GET /mt5/bridge`.
 
 Proibido:
 
@@ -28,3 +30,5 @@ Proibido:
 - Fazer login MT5.
 - Usar pacote MetaTrader5 real.
 - Transformar shadow proposal em ordem executavel.
+- Guardar credenciais.
+- Detectar ou ligar a terminal real.

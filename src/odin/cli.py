@@ -11,6 +11,7 @@ from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.quality import data_quality_status
 from odin.adapters.market_data.mock_market import market_status
+from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.dashboard.server import run_dashboard
 from odin.decision.intent import decision_intent
 from odin.decision.shadow_proposal import shadow_proposal
@@ -34,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
     subparsers.add_parser("shadow-proposal", help="Run A11 blocked shadow proposal skeleton.")
     subparsers.add_parser("smoke", help="Run A12 local safe runtime smoke pack.")
+    subparsers.add_parser("mt5-bridge", help="Run A14 mock-only MT5 bridge status.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -95,6 +97,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "shadow-proposal":
         result = shadow_proposal()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "mt5-bridge":
+        result = mt5_bridge_status()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
 

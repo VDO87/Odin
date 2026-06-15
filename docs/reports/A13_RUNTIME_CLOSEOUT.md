@@ -51,3 +51,7 @@ A14 - MT5 Bridge Mock Adapter
 - apenas contrato/adaptador mock
 - endpoint/status mock
 - smoke continua PASS
+
+## A14 iniciado
+
+A14 deve implementar apenas `MT5 Bridge Mock Adapter`, com `bridge_mode=MOCK_ONLY`, `provider=mt5_mock`, `connected=false`, `terminal_detected=false`, `account_connected=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.

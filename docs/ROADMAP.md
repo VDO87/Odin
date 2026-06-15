@@ -18,6 +18,14 @@
 - A13 closeout: documentar `LOCAL_SAFE_RUNTIME` e preparar `v0.1.0-local-safe-runtime`, sem commit/tag automaticos.
 - A14 proxima fase: MT5 Bridge Mock Adapter.
 
+## A14 - MT5 Bridge Mock Adapter
+
+- Criar contrato e adaptador mock-only para futura ponte MT5.
+- Expor comando `python3 -m odin.cli mt5-bridge`.
+- Expor endpoint `GET /mt5/bridge`.
+- Integrar o estado mock no smoke local, com `modules_count=11`.
+- Manter sem MT5 real, sem login, sem credenciais, sem ordens e sem execucao.
+
 ## A0 - Bootstrap
 
 - Fundacao de pastas.

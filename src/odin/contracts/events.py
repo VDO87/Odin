@@ -74,6 +74,11 @@ RUNTIME_SMOKE_MODULE_CHECKED = "runtime.smoke.module.checked"
 RUNTIME_SMOKE_PASS = "runtime.smoke.pass"
 RUNTIME_SMOKE_FAIL = "runtime.smoke.fail"
 RUNTIME_SMOKE_SAFE_STATE_CONFIRMED = "runtime.smoke.safe_state.confirmed"
+MT5_BRIDGE_REQUESTED = "mt5.bridge.requested"
+MT5_BRIDGE_MOCK_LOADED = "mt5.bridge.mock.loaded"
+MT5_BRIDGE_REAL_IMPORT_BLOCKED = "mt5.bridge.real_import.blocked"
+MT5_BRIDGE_EXECUTION_BLOCKED = "mt5.bridge.execution.blocked"
+MT5_BRIDGE_STATUS_REPORTED = "mt5.bridge.status.reported"
 
 
 @dataclass(frozen=True)

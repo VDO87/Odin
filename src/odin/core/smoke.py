@@ -6,6 +6,7 @@ from collections.abc import Callable
 from uuid import uuid4
 
 from odin.adapters.market_data.mock_market import market_status
+from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.contracts.events import (
     RUNTIME_SMOKE_FAIL,
     RUNTIME_SMOKE_MODULE_CHECKED,
@@ -108,6 +109,7 @@ def _check_modules(*, log_path: str, sqlite_path: str) -> list[SmokeModuleResult
         ("decision-intent", lambda: decision_intent(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("risk-gate", lambda: risk_gate(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("shadow-proposal", lambda: shadow_proposal(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
+        ("mt5-bridge", lambda: mt5_bridge_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
     ]
     return [
         _module_result(name, call(), expected_status, expected_blocking)
@@ -152,6 +154,7 @@ def _observed_state(payload: dict[str, object]) -> str:
     for key in (
         "shadow_proposal_status",
         "risk_status",
+        "bridge_mode",
         "decision_intent_status",
         "strategy_status",
         "safe_to_use_for_decision",

@@ -57,3 +57,9 @@ Runtime Smoke e apenas validacao local agregada. Deve chamar modulos internos, c
 `v0.1.0-local-safe-runtime` fecha a primeira base local segura. Esta release candidate nao contem execucao real, nao contem integracao real MT5, nao contem XTB API, nao contem sinais BUY/SELL, nao contem parametros `entry`/`stop_loss`/`take_profit` e nao contem position sizing.
 
 Os bloqueios permanecem obrigatorios: `real_trading=false`, `safe_to_trade=false`, `execution_allowed=false`, Hermes `READ_ONLY`, Treasury `READ_ONLY`, Risk `READY_BLOCKING`, Risk Gate `BLOCKED` e Shadow Proposal `BLOCKED`.
+
+## A14 - MT5 Bridge Mock Adapter
+
+A14 permite apenas contrato e adaptador mock para a futura ponte MT5. O estado deve permanecer `MOCK_ONLY`, sem terminal real, sem conta ligada, sem login, sem credenciais, sem broker real e sem ordens.
+
+Os flags criticos continuam imutaveis: `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.

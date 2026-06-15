@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - A14 MT5 Bridge Mock Adapter
+
+- Adicionado contrato `MT5BridgeStatus` para estado mock-only da futura bridge MT5.
+- Adicionado comando `python3 -m odin.cli mt5-bridge`.
+- Adicionado endpoint read-only `GET /mt5/bridge`.
+- Integrado `mt5-bridge` no smoke local, mantendo runtime bloqueado e sem integracao real.
+
 ## Unreleased - A13 Runtime Closeout
 
 - Adicionado closeout documental da base `LOCAL_SAFE_RUNTIME`.
