@@ -33,5 +33,6 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /decision/intent`: intencao de decisao bloqueada.
 - `GET /risk/gate`: gate de risco bloqueante.
 - `GET /shadow/proposal`: proposta shadow bloqueada.
+- `GET /runtime/smoke`: validacao local agregada do runtime seguro.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.

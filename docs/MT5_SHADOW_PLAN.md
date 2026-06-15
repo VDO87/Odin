@@ -15,6 +15,7 @@ Permitido:
 - A9 adiciona intencao de decisao bloqueada, sem parametros de ordem ou execucao.
 - A10 adiciona Risk Gate bloqueante, sem aprovacao de risco ou execucao.
 - A11 adiciona Shadow Proposal bloqueada, sem ordem shadow executavel.
+- A12 valida localmente a cadeia segura sem ligar ao MT5 real.
 
 Proibido:
 

@@ -152,3 +152,15 @@ A Shadow Proposal A11 le o Risk Gate e permanece bloqueada: devolve `shadow_prop
 Endpoint:
 
 - `GET /shadow/proposal`
+
+## A12 - Local Runtime Smoke Pack
+
+```bash
+python3 -m odin.cli smoke
+```
+
+O Smoke Pack A12 valida localmente os modulos principais do Odin num unico comando, chamando funcoes Python internas. O resultado esperado e `status=PASS`, `smoke_mode=LOCAL_SAFE_SMOKE`, `all_modules_ok=true`, `safe_state_confirmed=true`, `blocking_state_confirmed=true`, `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /runtime/smoke`

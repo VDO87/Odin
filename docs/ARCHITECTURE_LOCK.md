@@ -47,3 +47,7 @@ Risk Gate e bloqueante por desenho. Pode ler Decision Intent, mas deve devolver 
 ## A11 - Shadow Proposal
 
 Shadow Proposal e apenas uma estrutura bloqueada em modo sombra. Pode ler Risk Gate, mas nao deve criar direccao de mercado, parametros de ordem, aprovacao de risco ou execucao.
+
+## A12 - Runtime Smoke
+
+Runtime Smoke e apenas validacao local agregada. Deve chamar modulos internos, confirmar estado seguro e bloqueante, e nunca executar comandos externos ou activar trading.

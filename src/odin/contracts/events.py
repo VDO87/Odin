@@ -69,6 +69,11 @@ SHADOW_PROPOSAL_SKELETON_CREATED = "shadow.proposal.skeleton.created"
 SHADOW_PROPOSAL_BLOCKED = "shadow.proposal.blocked"
 SHADOW_PROPOSAL_EXECUTION_BLOCKED = "shadow.proposal.execution.blocked"
 SHADOW_PROPOSAL_RISK_BLOCKED = "shadow.proposal.risk.blocked"
+RUNTIME_SMOKE_REQUESTED = "runtime.smoke.requested"
+RUNTIME_SMOKE_MODULE_CHECKED = "runtime.smoke.module.checked"
+RUNTIME_SMOKE_PASS = "runtime.smoke.pass"
+RUNTIME_SMOKE_FAIL = "runtime.smoke.fail"
+RUNTIME_SMOKE_SAFE_STATE_CONFIRMED = "runtime.smoke.safe_state.confirmed"
 
 
 @dataclass(frozen=True)

@@ -84,3 +84,10 @@
 - Adicionado comando `python3 -m odin.cli shadow-proposal`.
 - Adicionado endpoint `/shadow/proposal` no dashboard.
 - A proposta shadow le Risk Gate, mas nao cria direccao de mercado, parametros ou execucao.
+
+## A12 - Local Runtime Smoke Pack
+
+- Adicionado Smoke Pack local para validar os modulos principais num unico comando.
+- Adicionado comando `python3 -m odin.cli smoke`.
+- Adicionado endpoint `/runtime/smoke` no dashboard.
+- O smoke chama funcoes Python internas e confirma estado seguro, bloqueante e sem execucao.

@@ -9,6 +9,7 @@ from uuid import uuid4
 from odin.contracts.events import OdinEvent
 from odin.adapters.market_data.mock_market import market_status
 from odin.core.market_watch import run_market_watch
+from odin.core.smoke import run_runtime_smoke
 from odin.data.quality import data_quality_status
 from odin.decision.intent import decision_intent
 from odin.decision.shadow_proposal import shadow_proposal
@@ -31,6 +32,7 @@ from odin.dashboard.schemas import (
     market_watch_payload,
     risk_status_payload,
     risk_gate_payload,
+    runtime_smoke_payload,
     shadow_proposal_payload,
     strategy_status_payload,
     treasury_status_payload,
@@ -143,6 +145,13 @@ class DashboardRoutes:
         if path == "/shadow/proposal":
             payload = shadow_proposal_payload(
                 shadow_proposal(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/runtime/smoke":
+            payload = runtime_smoke_payload(
+                run_runtime_smoke(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

@@ -106,3 +106,10 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Le Risk Gate e permanece `BLOCKED`.
 - Sem direccao de mercado, parametros de ordem, aprovacao de risco ou execucao.
 - Endpoint de dashboard para a proposta shadow bloqueada.
+
+## A12 - Local Runtime Smoke Pack
+
+- Validacao local agregada dos modulos principais.
+- Comando unico para confirmar estado seguro e bloqueante.
+- Sem comandos shell internos, sem execucao e sem novas integracoes.
+- Endpoint de dashboard para resultado do smoke.
