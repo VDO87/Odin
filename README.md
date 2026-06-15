@@ -116,3 +116,15 @@ A estrategia baseline e apenas observacional: le qualidade de dados mock e devol
 Endpoint:
 
 - `GET /strategy/status`
+
+## A9 - Decision Intent Skeleton
+
+```bash
+python3 -m odin.cli decision-intent
+```
+
+A intencao de decisao A9 e apenas uma estrutura bloqueada: le a estrategia baseline e devolve `NO_DECISION`, `INTENT_SKELETON`, `risk_approved=false`, `decision_generated=false`, `trade_proposal_generated=false`, `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /decision/intent`

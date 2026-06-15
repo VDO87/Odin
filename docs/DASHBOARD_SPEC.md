@@ -30,5 +30,6 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /market/watch`: modo MARKET_WATCH observacional.
 - `GET /data/quality`: gates de qualidade de dados.
 - `GET /strategy/status`: estado da estrategia baseline observe-only.
+- `GET /decision/intent`: intencao de decisao bloqueada.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.

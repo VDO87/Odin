@@ -54,6 +54,11 @@ STRATEGY_BASELINE_LOADED = "strategy.baseline.loaded"
 STRATEGY_OBSERVATION_COMPLETED = "strategy.observation.completed"
 STRATEGY_DECISION_BLOCKED = "strategy.decision.blocked"
 STRATEGY_EXECUTION_BLOCKED = "strategy.execution.blocked"
+DECISION_INTENT_REQUESTED = "decision.intent.requested"
+DECISION_INTENT_SKELETON_CREATED = "decision.intent.skeleton.created"
+DECISION_INTENT_BLOCKED = "decision.intent.blocked"
+DECISION_RISK_APPROVAL_BLOCKED = "decision.risk_approval.blocked"
+DECISION_EXECUTION_BLOCKED = "decision.execution.blocked"
 
 
 @dataclass(frozen=True)

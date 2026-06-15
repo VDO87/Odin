@@ -35,3 +35,7 @@ Gates de qualidade sao bloqueantes e informativos. Um resultado `OK` nao autoriz
 ## A8 - Strategy Baseline
 
 Estrategias existem apenas como observacao tecnica. A baseline pode ler qualidade de dados, mas nao pode gerar sinais, propostas, tamanho de posicao ou execucao.
+
+## A9 - Decision Intent
+
+Decision Intent existe apenas como estrutura bloqueada. Pode ler o estado da estrategia, mas deve devolver `NO_DECISION`, nao aprovar risco, nao criar parametros de ordem e nao desbloquear execucao.

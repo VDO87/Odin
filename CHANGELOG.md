@@ -63,3 +63,10 @@
 - Adicionado comando `python3 -m odin.cli strategy-status`.
 - Adicionado endpoint `/strategy/status` no dashboard.
 - A estrategia baseline le qualidade de dados, mas nao gera sinais, propostas ou execucao.
+
+## A9 - Decision Intent Skeleton
+
+- Adicionado esqueleto de intencao de decisao sempre bloqueado.
+- Adicionado comando `python3 -m odin.cli decision-intent`.
+- Adicionado endpoint `/decision/intent` no dashboard.
+- A intencao le o estado da estrategia, mas nao aprova risco, nao gera propostas e nao executa.

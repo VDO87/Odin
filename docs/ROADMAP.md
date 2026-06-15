@@ -85,3 +85,10 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Baseline le estado de qualidade de dados.
 - Sem sinais, propostas, dimensionamento ou execucao.
 - Endpoint de dashboard para estado da estrategia.
+
+## A9 - Decision Intent Skeleton
+
+- Estrutura futura de intencao de decisao.
+- Estado sempre `NO_DECISION` e modo `INTENT_SKELETON`.
+- Sem aprovacao de risco, precos operacionais, dimensionamento, propostas ou execucao.
+- Endpoint de dashboard para intencao bloqueada.

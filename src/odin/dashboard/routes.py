@@ -10,6 +10,7 @@ from odin.contracts.events import OdinEvent
 from odin.adapters.market_data.mock_market import market_status
 from odin.core.market_watch import run_market_watch
 from odin.data.quality import data_quality_status
+from odin.decision.intent import decision_intent
 from odin.decision.strategy_status import strategy_status
 from odin.contracts.events import (
     DASHBOARD_LOGS_TAIL_SERVED,
@@ -20,6 +21,7 @@ from odin.core.bootstrap import validate_runtime
 from odin.dashboard.schemas import (
     dashboard_state_payload,
     data_quality_payload,
+    decision_intent_payload,
     health_payload,
     hermes_summary_payload,
     hermes_status_payload,
@@ -116,6 +118,13 @@ class DashboardRoutes:
         if path == "/strategy/status":
             payload = strategy_status_payload(
                 strategy_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/decision/intent":
+            payload = decision_intent_payload(
+                decision_intent(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
