@@ -10,6 +10,7 @@ from odin.contracts.events import OdinEvent
 from odin.adapters.market_data.mock_market import market_status
 from odin.core.market_watch import run_market_watch
 from odin.data.quality import data_quality_status
+from odin.decision.strategy_status import strategy_status
 from odin.contracts.events import (
     DASHBOARD_LOGS_TAIL_SERVED,
     DASHBOARD_REQUEST_RECEIVED,
@@ -26,6 +27,7 @@ from odin.dashboard.schemas import (
     market_status_payload,
     market_watch_payload,
     risk_status_payload,
+    strategy_status_payload,
     treasury_status_payload,
 )
 from odin.hermes.service import generate_hermes_summary
@@ -107,6 +109,13 @@ class DashboardRoutes:
         if path == "/data/quality":
             payload = data_quality_payload(
                 data_quality_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/strategy/status":
+            payload = strategy_status_payload(
+                strategy_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

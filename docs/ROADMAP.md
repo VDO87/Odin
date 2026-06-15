@@ -78,3 +78,10 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Relatorio de qualidade com razoes de bloqueio e avisos.
 - Integracao informativa com `MARKET_WATCH`.
 - Sem decisoes de trading ou execucao.
+
+## A8 - Strategy Baseline Skeleton
+
+- Estrutura base de estrategias observe-only.
+- Baseline le estado de qualidade de dados.
+- Sem sinais, propostas, dimensionamento ou execucao.
+- Endpoint de dashboard para estado da estrategia.

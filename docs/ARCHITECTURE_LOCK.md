@@ -31,3 +31,7 @@ O comando `python -m odin.cli validate` apenas valida e regista estado seguro em
 ## A7 - Data Quality Gates
 
 Gates de qualidade sao bloqueantes e informativos. Um resultado `OK` nao autoriza decisoes, trading real ou execucao.
+
+## A8 - Strategy Baseline
+
+Estrategias existem apenas como observacao tecnica. A baseline pode ler qualidade de dados, mas nao pode gerar sinais, propostas, tamanho de posicao ou execucao.

@@ -11,6 +11,7 @@ Permitido:
 - Dados mock A5 para validar contratos e dashboard sem ligacao real.
 - Modo A6 `MARKET_WATCH` apenas observacional com dados mock.
 - Gates A7 validam qualidade de dados mock antes de qualquer fase futura.
+- A8 adiciona baseline de estrategia apenas observacional, sem sinais ou propostas.
 
 Proibido:
 

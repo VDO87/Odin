@@ -49,6 +49,11 @@ DATA_QUALITY_GATE_CHECKED = "data_quality.gate.checked"
 DATA_QUALITY_COMPLETED = "data_quality.completed"
 DATA_QUALITY_BLOCKED = "data_quality.blocked"
 DATA_QUALITY_DECISION_BLOCKED = "data_quality.decision.blocked"
+STRATEGY_STATUS_REQUESTED = "strategy.status.requested"
+STRATEGY_BASELINE_LOADED = "strategy.baseline.loaded"
+STRATEGY_OBSERVATION_COMPLETED = "strategy.observation.completed"
+STRATEGY_DECISION_BLOCKED = "strategy.decision.blocked"
+STRATEGY_EXECUTION_BLOCKED = "strategy.execution.blocked"
 
 
 @dataclass(frozen=True)

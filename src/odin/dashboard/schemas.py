@@ -55,6 +55,10 @@ def data_quality_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 
 
+def strategy_status_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
 def dashboard_state_payload(state: dict[str, object]) -> dict[str, object]:
     return {
         "status": state["status"],

@@ -56,3 +56,10 @@
 - Adicionado comando `python3 -m odin.cli data-quality`.
 - Adicionado endpoint `/data/quality` no dashboard.
 - Market Watch passa a expor estado de qualidade sem permitir decisoes ou execucao.
+
+## A8 - Strategy Baseline Skeleton
+
+- Adicionada estrutura base de estrategias observe-only.
+- Adicionado comando `python3 -m odin.cli strategy-status`.
+- Adicionado endpoint `/strategy/status` no dashboard.
+- A estrategia baseline le qualidade de dados, mas nao gera sinais, propostas ou execucao.

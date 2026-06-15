@@ -104,3 +104,15 @@ Os gates validam snapshots mock antes de qualquer fase futura de decisao. Mesmo 
 Endpoint:
 
 - `GET /data/quality`
+
+## A8 - Strategy Baseline Skeleton
+
+```bash
+python3 -m odin.cli strategy-status
+```
+
+A estrategia baseline e apenas observacional: le qualidade de dados mock e devolve `READY_NO_DECISION`, mantendo `decision_generated=false`, `trade_proposal_generated=false`, `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /strategy/status`
