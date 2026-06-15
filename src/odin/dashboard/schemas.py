@@ -35,6 +35,10 @@ def hermes_status_payload() -> dict[str, object]:
     }
 
 
+def hermes_summary_payload(summary: dict[str, object]) -> dict[str, object]:
+    return summary
+
+
 def dashboard_state_payload(state: dict[str, object]) -> dict[str, object]:
     return {
         "status": state["status"],
@@ -55,4 +59,3 @@ def not_found_payload(path: str) -> dict[str, Any]:
         "status": "NOT_FOUND",
         "path": path,
     }
-

@@ -23,6 +23,10 @@ DASHBOARD_SERVER_STARTED = "dashboard.server.started"
 DASHBOARD_REQUEST_RECEIVED = "dashboard.request.received"
 DASHBOARD_STATE_SERVED = "dashboard.state.served"
 DASHBOARD_LOGS_TAIL_SERVED = "dashboard.logs_tail.served"
+HERMES_SUMMARY_STARTED = "hermes.summary.started"
+HERMES_SUMMARY_COMPLETED = "hermes.summary.completed"
+HERMES_RECOMMENDATION_GENERATED = "hermes.recommendation.generated"
+HERMES_READ_ONLY_GUARD_CONFIRMED = "hermes.read_only.guard_confirmed"
 
 
 @dataclass(frozen=True)

@@ -16,10 +16,12 @@ from odin.core.bootstrap import validate_runtime
 from odin.dashboard.schemas import (
     dashboard_state_payload,
     health_payload,
+    hermes_summary_payload,
     hermes_status_payload,
     not_found_payload,
     risk_status_payload,
 )
+from odin.hermes.service import generate_hermes_summary
 from odin.logging.jsonl_logger import JsonlLogger
 from odin.storage.sqlite_store import SQLiteStore
 
@@ -63,6 +65,13 @@ class DashboardRoutes:
 
         if path == "/hermes/status":
             payload = hermes_status_payload()
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/hermes/summary":
+            payload = hermes_summary_payload(
+                generate_hermes_summary(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 

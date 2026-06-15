@@ -44,3 +44,15 @@ Endpoints:
 - `GET /logs/tail`
 
 O dashboard nao executa ordens, nao desbloqueia trading e apenas mostra estado seguro.
+
+## A3 - Hermes Read-Only Summary
+
+```bash
+python3 -m odin.cli hermes-summary
+```
+
+O resumo Hermes le o estado seguro e os logs JSONL, devolve `read_only=true` e apenas gera recomendacoes sujeitas a revisao humana.
+
+Endpoint:
+
+- `GET /hermes/summary`

@@ -38,6 +38,13 @@
 - Memoria read-only.
 - Relatorios explicaveis.
 
+## A3 - Hermes Read-Only Summary
+
+- Hermes le estado e logs JSONL.
+- Hermes gera resumo e recomendacoes read-only.
+- Sem RAG, OpenAI, LLM local ou integracoes externas.
+- Sem capacidade de alterar risco, tesouraria, configuracao critica ou execucao.
+
 ## Futuro Controlado
 
 Qualquer demo, limited real ou integracao operacional exige revisao formal, testes e aprovacao humana explicita.

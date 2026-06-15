@@ -24,5 +24,6 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /risk/status`: Risk em `READY_BLOCKING`.
 - `GET /hermes/status`: Hermes em `READ_ONLY`.
 - `GET /logs/tail`: ultimos eventos JSONL.
+- `GET /hermes/summary`: resumo Hermes read-only.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.

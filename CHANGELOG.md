@@ -21,3 +21,10 @@
 - Adicionados endpoints `/health`, `/state`, `/risk/status`, `/hermes/status` e `/logs/tail`.
 - O dashboard obtem estado atraves do runtime A1 e preserva `OFF_SAFE`.
 - Adicionados testes A2 para endpoints, estado seguro e ausencia de referencias de execucao real.
+
+## A3 - Hermes Read-Only Summary
+
+- Adicionado Hermes como leitor/relator read-only.
+- Adicionado comando `python3 -m odin.cli hermes-summary`.
+- Adicionado endpoint `/hermes/summary` no dashboard.
+- Adicionadas recomendacoes read-only sem capacidade de execucao.
