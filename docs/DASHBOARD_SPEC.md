@@ -36,3 +36,7 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /runtime/smoke`: validacao local agregada do runtime seguro.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.
+
+## A13 - Runtime Smoke Confirmado
+
+O endpoint `GET /runtime/smoke` faz parte do runtime seguro atual e deve continuar a devolver o estado agregado do smoke local, sem executar subprocessos, ordens ou integracoes reais.

@@ -16,6 +16,8 @@ Permitido:
 - A10 adiciona Risk Gate bloqueante, sem aprovacao de risco ou execucao.
 - A11 adiciona Shadow Proposal bloqueada, sem ordem shadow executavel.
 - A12 valida localmente a cadeia segura sem ligar ao MT5 real.
+- A13 fecha a base `LOCAL_SAFE_RUNTIME` e prepara a release `v0.1.0-local-safe-runtime`.
+- A14 so pode criar uma MT5 mock bridge: contrato/adaptador mock e endpoint/status mock, sem MetaTrader5 real.
 
 Proibido:
 
@@ -23,3 +25,6 @@ Proibido:
 - Chamar `mt5.order_send`.
 - Simular autorizacao real no Dashboard.
 - Ignorar bloqueios do Risk Engine.
+- Fazer login MT5.
+- Usar pacote MetaTrader5 real.
+- Transformar shadow proposal em ordem executavel.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - A13 Runtime Closeout
+
+- Adicionado closeout documental da base `LOCAL_SAFE_RUNTIME`.
+- Preparada a release candidate documental `v0.1.0-local-safe-runtime`.
+- Adicionado runbook de handoff do runtime local seguro.
+- Confirmada a cadeia segura A0-A12 sem novas capacidades operacionais.
+
 ## 0.0.0 - A0 Bootstrap
 
 - Criada a fundacao documental do projecto.

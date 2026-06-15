@@ -1,5 +1,23 @@
 # Roadmap
 
+## Estado A13 - Runtime Closeout
+
+- A0 concluida: bootstrap ODIN Hermes Alive architecture.
+- A1 concluida: safe core logging bootstrap.
+- A2 concluida: dashboard read-only status endpoints.
+- A3 concluida: Hermes read-only summary.
+- A4 concluida: Treasury PT read-only skeleton.
+- A5 concluida: mock market data watchlist.
+- A6 concluida: mock market watch mode.
+- A7 concluida: data quality gates.
+- A8 concluida: baseline strategy observer.
+- A9 concluida: decision intent skeleton.
+- A10 concluida: risk gate skeleton.
+- A11 concluida: shadow proposal skeleton.
+- A12 concluida: local runtime smoke pack.
+- A13 closeout: documentar `LOCAL_SAFE_RUNTIME` e preparar `v0.1.0-local-safe-runtime`, sem commit/tag automaticos.
+- A14 proxima fase: MT5 Bridge Mock Adapter.
+
 ## A0 - Bootstrap
 
 - Fundacao de pastas.

@@ -51,3 +51,9 @@ Shadow Proposal e apenas uma estrutura bloqueada em modo sombra. Pode ler Risk G
 ## A12 - Runtime Smoke
 
 Runtime Smoke e apenas validacao local agregada. Deve chamar modulos internos, confirmar estado seguro e bloqueante, e nunca executar comandos externos ou activar trading.
+
+## A13 - v0.1.0-local-safe-runtime
+
+`v0.1.0-local-safe-runtime` fecha a primeira base local segura. Esta release candidate nao contem execucao real, nao contem integracao real MT5, nao contem XTB API, nao contem sinais BUY/SELL, nao contem parametros `entry`/`stop_loss`/`take_profit` e nao contem position sizing.
+
+Os bloqueios permanecem obrigatorios: `real_trading=false`, `safe_to_trade=false`, `execution_allowed=false`, Hermes `READ_ONLY`, Treasury `READ_ONLY`, Risk `READY_BLOCKING`, Risk Gate `BLOCKED` e Shadow Proposal `BLOCKED`.

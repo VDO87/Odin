@@ -14,6 +14,22 @@ Estado inicial:
 
 Este projecto ainda nao implementa logica funcional de trading.
 
+## Current Safe Runtime
+
+Estado atual: `LOCAL_SAFE_RUNTIME`, preparado para a release `v0.1.0-local-safe-runtime`.
+
+Comando principal de validacao:
+
+```bash
+python3 -m odin.cli smoke
+```
+
+Dashboard smoke:
+
+- `GET /runtime/smoke`
+
+Garantias principais: `safe_to_trade=false`, `real_trading=false`, `execution_allowed=false`, Hermes `READ_ONLY`, Treasury `READ_ONLY`, Risk Gate `BLOCKED` e Shadow Proposal `BLOCKED`.
+
 ## Validacao rapida
 
 ```bash
