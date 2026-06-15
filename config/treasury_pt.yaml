@@ -1,0 +1,10 @@
+treasury:
+  jurisdiction: PT
+  default_state: conservative
+  overrides_hermes: true
+  cash_controls:
+    require_manual_review: true
+    block_unapproved_capital_allocation: true
+  tax_awareness:
+    portugal_context_required: true
+    no_tax_advice_without_review: true

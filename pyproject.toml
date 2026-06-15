@@ -1,0 +1,18 @@
+[project]
+name = "odin-hermes-alive"
+version = "0.0.0"
+description = "Fundacao A0 para ODIN, Hermes e Dashboard com trading real bloqueado por desenho."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "ODIN_HERMES_ALIVE" }
+]
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

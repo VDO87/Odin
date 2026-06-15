@@ -1,0 +1,21 @@
+providers:
+  llm:
+    enabled: false
+    secrets_source: external_manual_only
+    allow_real_secrets_in_repo: false
+  mt5:
+    enabled: false
+    allowed_modes:
+      - market_watch
+      - shadow_decision
+      - demo_future
+    blocked_calls:
+      - mt5.order_send
+  xtb:
+    enabled: false
+    allowed_modes:
+      - manual
+      - assisted_reporting
+    blocked_actions:
+      - click_automation
+      - order_robot

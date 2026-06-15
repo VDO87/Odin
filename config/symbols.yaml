@@ -1,0 +1,9 @@
+symbols:
+  mt5_watchlist: []
+  xtb_manual_watchlist: []
+  fire_assets: []
+  etfs: []
+  equities: []
+policy:
+  symbols_are_configuration_only: true
+  no_trade_signal_implied: true

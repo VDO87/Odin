@@ -1,0 +1,13 @@
+project: ODIN_HERMES_ALIVE
+phase: A0_BOOTSTRAP
+default_mode: shadow
+real_trading_enabled: false
+execution:
+  real_orders_allowed: false
+  mt5_order_send_allowed: false
+  xtb_click_automation_allowed: false
+  xtb_order_robot_allowed: false
+governance:
+  risk_overrides_hermes: true
+  treasury_overrides_hermes: true
+  codex_operator_role: false

@@ -1,0 +1,12 @@
+modes:
+  shadow:
+    description: Observacao, simulacao e decisao sombra.
+    real_trading_enabled: false
+  demo:
+    description: Execucao apenas em ambiente demo aprovado.
+    real_trading_enabled: false
+  limited_real:
+    description: Reservado para fase futura, bloqueado por defeito.
+    real_trading_enabled: false
+    requires_manual_approval: true
+default_mode: shadow

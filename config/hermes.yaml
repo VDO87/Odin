@@ -1,0 +1,15 @@
+hermes:
+  mode: readonly
+  can_write_orders: false
+  can_modify_risk: false
+  can_modify_treasury: false
+  allowed_outputs:
+    - summaries
+    - reports
+    - recommendations
+    - audit_notes
+  blocked_actions:
+    - place_order
+    - approve_real_trading
+    - bypass_risk
+    - bypass_treasury

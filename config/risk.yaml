@@ -1,0 +1,12 @@
+risk_engine:
+  enabled: true
+  default_state: blocked_for_real
+  overrides:
+    hermes: true
+    dashboard_ready_state: true
+  hard_blocks:
+    real_trading_without_approval: true
+    missing_audit_log: true
+    missing_risk_limits: true
+    mt5_order_send: true
+    xtb_order_automation: true
