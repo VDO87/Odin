@@ -31,6 +31,7 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /data/quality`: gates de qualidade de dados.
 - `GET /feed/source`: selecao mock de fonte observacional.
 - `GET /observation/frame`: frame observacional agregado.
+- `GET /observation/frame/quality`: gates de qualidade do frame observacional.
 - `GET /strategy/status`: estado da estrategia baseline observe-only.
 - `GET /decision/intent`: intencao de decisao bloqueada.
 - `GET /risk/gate`: gate de risco bloqueante.
@@ -70,3 +71,7 @@ O endpoint `GET /feed/source` devolve apenas selecao mock de fonte observacional
 ## A19 - Observation Frame Mock Endpoint
 
 O endpoint `GET /observation/frame` devolve apenas frame agregado `OBSERVATION_ONLY`: fonte selecionada, simbolo primario, qualidade, estrategia, intencao, risco e shadow proposal, sempre com decisao, proposta, risco aprovado e execucao bloqueados.
+
+## A20 - Observation Frame Quality Endpoint
+
+O endpoint `GET /observation/frame/quality` devolve apenas gates de qualidade para o frame A19: `quality_mode=OBSERVATION_FRAME_GATES`, `frame_quality_status=OK`, `all_gates_passed=true`, com decisao, proposta, risco aprovado e execucao bloqueados.

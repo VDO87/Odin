@@ -140,3 +140,11 @@
 - Adicionado comando `python3 -m odin.cli smoke`.
 - Adicionado endpoint `/runtime/smoke` no dashboard.
 - O smoke chama funcoes Python internas e confirma estado seguro, bloqueante e sem execucao.
+
+## A20 - Observation Frame Quality Gate
+
+- Adicionados gates de qualidade para validar o Observation Frame A19.
+- Adicionado comando `python3 -m odin.cli observation-frame-quality`.
+- Adicionado endpoint `/observation/frame/quality` no dashboard.
+- Smoke Pack passa a incluir `observation-frame-quality`, com `modules_count=17`.
+- Gates OK mantem decisao, proposta, risco aprovado e execucao bloqueados.

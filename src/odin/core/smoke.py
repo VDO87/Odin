@@ -25,6 +25,7 @@ from odin.data.feed_source_selector import feed_source_status
 from odin.data.quality import data_quality_status
 from odin.decision.intent import decision_intent
 from odin.decision.observation_frame import observation_frame_status
+from odin.decision.observation_frame_quality import observation_frame_quality_status
 from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
 from odin.hermes.service import generate_hermes_summary
@@ -120,6 +121,7 @@ def _check_modules(*, log_path: str, sqlite_path: str) -> list[SmokeModuleResult
         ("mt5-feed-quality", lambda: mt5_feed_quality_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("feed-source", lambda: feed_source_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("observation-frame", lambda: observation_frame_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
+        ("observation-frame-quality", lambda: observation_frame_quality_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
     ]
     return [
         _module_result(name, call(), expected_status, expected_blocking)

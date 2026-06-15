@@ -104,6 +104,12 @@ OBSERVATION_FRAME_BUILT = "observation.frame.built"
 OBSERVATION_FRAME_DECISION_BLOCKED = "observation.frame.decision.blocked"
 OBSERVATION_FRAME_EXECUTION_BLOCKED = "observation.frame.execution.blocked"
 OBSERVATION_FRAME_STATUS_REPORTED = "observation.frame.status.reported"
+OBSERVATION_FRAME_QUALITY_REQUESTED = "observation.frame_quality.requested"
+OBSERVATION_FRAME_QUALITY_GATE_CHECKED = "observation.frame_quality.gate.checked"
+OBSERVATION_FRAME_QUALITY_PASS = "observation.frame_quality.pass"
+OBSERVATION_FRAME_QUALITY_FAIL = "observation.frame_quality.fail"
+OBSERVATION_FRAME_QUALITY_DECISION_BLOCKED = "observation.frame_quality.decision.blocked"
+OBSERVATION_FRAME_QUALITY_EXECUTION_BLOCKED = "observation.frame_quality.execution.blocked"
 
 
 @dataclass(frozen=True)

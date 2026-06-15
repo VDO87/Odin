@@ -93,3 +93,9 @@ Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `real_tradin
 A19 permite apenas agregar estado observacional num frame unico. O frame pode reunir fonte, feed, qualidade, estrategia, intencao, risco e shadow proposal, mas nao pode criar decisao, proposta, aprovacao de risco ou execucao.
 
 Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `decision_generated=false`, `trade_proposal_generated=false`, `risk_approved=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.
+
+## A20 - Observation Frame Quality Gate
+
+A20 permite apenas validar a completude e coerencia do frame observacional A19. Um resultado `OK` confirma que o frame esta completo, coerente e bloqueado, mas nao autoriza analise decisoria, proposta, aprovacao de risco ou execucao.
+
+Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `decision_generated=false`, `trade_proposal_generated=false`, `risk_approved=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.

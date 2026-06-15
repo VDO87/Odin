@@ -76,6 +76,14 @@
 - Integrar o frame no smoke local, com `modules_count=16`.
 - Manter `safe_to_use_for_decision=false`, sem decisao, sem proposta, sem risco aprovado e sem execucao.
 
+## A20 - Observation Frame Quality Gate
+
+- Validar o frame A19 com gates de qualidade observacionais.
+- Expor comando `python3 -m odin.cli observation-frame-quality`.
+- Expor endpoint `GET /observation/frame/quality`.
+- Integrar os gates no smoke local, com `modules_count=17`.
+- Manter `safe_to_use_for_decision=false`, sem decisao, sem proposta, sem risco aprovado e sem execucao.
+
 ## A0 - Bootstrap
 
 - Fundacao de pastas.

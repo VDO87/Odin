@@ -252,3 +252,15 @@ O frame A19 agrega estado observacional de fonte, feed MT5 mock, qualidade, estr
 Endpoint:
 
 - `GET /observation/frame`
+
+## A20 - Observation Frame Quality Gate
+
+```bash
+python3 -m odin.cli observation-frame-quality
+```
+
+Os gates A20 validam o frame observacional A19 antes de qualquer uso futuro em analise estrategica. O resultado esperado e `quality_mode=OBSERVATION_FRAME_GATES`, `frame_quality_status=OK`, `all_gates_passed=true`, `safe_to_use_for_decision=false`, `decision_generated=false`, `trade_proposal_generated=false`, `risk_approved=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /observation/frame/quality`

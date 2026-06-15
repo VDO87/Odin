@@ -36,6 +36,9 @@ Permitido:
 - A19 so pode criar um frame observacional agregado, sem decisao ou execucao.
 - Comando A19 permitido: `python3 -m odin.cli observation-frame`.
 - Endpoint A19 permitido: `GET /observation/frame`.
+- A20 so pode criar gates de qualidade para o frame observacional, sem decisao ou execucao.
+- Comando A20 permitido: `python3 -m odin.cli observation-frame-quality`.
+- Endpoint A20 permitido: `GET /observation/frame/quality`.
 
 Proibido:
 
@@ -53,3 +56,4 @@ Proibido:
 - Transformar gates de qualidade em permissao de decisao ou execucao.
 - Transformar selecao de fonte em permissao de decisao ou execucao.
 - Transformar frame observacional em decisao, proposta, risco aprovado ou execucao.
+- Transformar gates do frame observacional em permissao de decisao, risco aprovado ou execucao.

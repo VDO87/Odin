@@ -108,13 +108,13 @@ class A17MT5FeedQualityTests(unittest.TestCase):
         self.assertIn("mt5-feed-quality", names)
         self.assertEqual(report["status"], "PASS")
 
-    def test_smoke_modules_count_16(self):
+    def test_smoke_modules_count_17(self):
         report = run_runtime_smoke(
             log_path=str(self.root / "logs" / "events.jsonl"),
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 16)
+        self.assertEqual(report["modules_count"], 17)
 
 
 def _gate_symbols(report: dict[str, object]) -> set[str]:

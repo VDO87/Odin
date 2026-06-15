@@ -18,6 +18,7 @@ from odin.data.feed_source_selector import feed_source_status
 from odin.data.quality import data_quality_status
 from odin.decision.intent import decision_intent
 from odin.decision.observation_frame import observation_frame_status
+from odin.decision.observation_frame_quality import observation_frame_quality_status
 from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
 from odin.contracts.events import (
@@ -42,6 +43,7 @@ from odin.dashboard.schemas import (
     mt5_feed_payload,
     mt5_symbols_payload,
     observation_frame_payload,
+    observation_frame_quality_payload,
     risk_status_payload,
     risk_gate_payload,
     runtime_smoke_payload,
@@ -143,6 +145,13 @@ class DashboardRoutes:
         if path == "/observation/frame":
             payload = observation_frame_payload(
                 observation_frame_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/observation/frame/quality":
+            payload = observation_frame_quality_payload(
+                observation_frame_quality_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
