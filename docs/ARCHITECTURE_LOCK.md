@@ -17,3 +17,9 @@ Bloqueios estruturais:
 - Hermes nao aprova nem executa operacoes.
 - Risk vence sempre Hermes.
 - Treasury vence sempre Hermes em materia de dinheiro.
+
+## A1 - Core Vivo + Logging Base
+
+O runtime minimo arranca em `OFF_SAFE`, com `safe_to_trade=false`, `real_trading=false`, Risk em `READY_BLOCKING` e Hermes em `READ_ONLY`.
+
+O comando `python -m odin.cli validate` apenas valida e regista estado seguro em JSONL e SQLite. Nao existe integracao operacional de broker nesta fase.

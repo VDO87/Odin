@@ -20,3 +20,11 @@ Este projecto ainda nao implementa logica funcional de trading.
 find ODIN_HERMES_ALIVE -maxdepth 4 -type f | sort
 python3 -m tomllib ODIN_HERMES_ALIVE/pyproject.toml
 ```
+
+## A1 - Validacao Segura
+
+```bash
+python -m odin.cli validate
+```
+
+Resultado esperado: `status=PASS`, `mode=OFF_SAFE`, `safe_to_trade=false`, `real_trading=false`, Risk em `READY_BLOCKING` e Hermes em `READ_ONLY`.

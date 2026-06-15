@@ -14,6 +14,9 @@
 - Esquema JSONL.
 - SQLite local.
 - Testes de bloqueios.
+- CLI `validate` em OFF_SAFE.
+- Risk placeholder `READY_BLOCKING`.
+- Hermes `READ_ONLY`.
 
 ## A2 - Core Shadow
 
