@@ -49,3 +49,10 @@
 - Adicionado comando `python3 -m odin.cli market-watch`.
 - Adicionado endpoint `/market/watch` no dashboard.
 - O modo nao gera decisoes, propostas ou execucao.
+
+## A7 - Data Quality Gates
+
+- Adicionados gates bloqueantes de qualidade de dados para snapshots mock.
+- Adicionado comando `python3 -m odin.cli data-quality`.
+- Adicionado endpoint `/data/quality` no dashboard.
+- Market Watch passa a expor estado de qualidade sem permitir decisoes ou execucao.

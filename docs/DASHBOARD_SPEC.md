@@ -28,5 +28,6 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /treasury/status`: estado Treasury PT read-only.
 - `GET /market/status`: estado de dados de mercado mock.
 - `GET /market/watch`: modo MARKET_WATCH observacional.
+- `GET /data/quality`: gates de qualidade de dados.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.

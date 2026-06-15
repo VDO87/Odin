@@ -71,3 +71,10 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Observacao e qualidade de dados sem decisao operacional.
 - Endpoint de dashboard para o estado de observacao.
 - Sem sinais, propostas ou execucao.
+
+## A7 - Data Quality Gates
+
+- Gates bloqueantes para snapshots de mercado mock.
+- Relatorio de qualidade com razoes de bloqueio e avisos.
+- Integracao informativa com `MARKET_WATCH`.
+- Sem decisoes de trading ou execucao.

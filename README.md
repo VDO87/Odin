@@ -92,3 +92,15 @@ O modo `MARKET_WATCH` observa dados mock, valida qualidade e mantem `safe_to_tra
 Endpoint:
 
 - `GET /market/watch`
+
+## A7 - Data Quality Gates
+
+```bash
+python3 -m odin.cli data-quality
+```
+
+Os gates validam snapshots mock antes de qualquer fase futura de decisao. Mesmo quando o estado e `OK`, `safe_to_use_for_decision=false`, `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /data/quality`

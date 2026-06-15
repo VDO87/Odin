@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlparse
 
-from odin.contracts.events import DASHBOARD_SERVER_STARTED, OdinEvent
+from odin.contracts.events import DASHBOARD_SERVER_STARTED, DASHBOARD_SERVER_STOPPED, OdinEvent
 from odin.dashboard.routes import DashboardRoutes
 from odin.logging.jsonl_logger import JsonlLogger
 from odin.storage.sqlite_store import SQLiteStore
@@ -72,5 +72,15 @@ def run_dashboard(
     print(f"ODIN dashboard listening on http://{host}:{port}", flush=True)
     try:
         server.serve_forever()
+    except KeyboardInterrupt:
+        stopped = OdinEvent.create(
+            run_id=f"dashboard-{host}-{port}",
+            component="odin.dashboard",
+            event=DASHBOARD_SERVER_STOPPED,
+            payload={"host": host, "port": port},
+        )
+        logger.write(stopped)
+        store.record_event(stopped)
+        print("ODIN dashboard stopped", flush=True)
     finally:
         server.server_close()

@@ -10,6 +10,7 @@ Permitido:
 - Futuro modo demo, apos aprovacao.
 - Dados mock A5 para validar contratos e dashboard sem ligacao real.
 - Modo A6 `MARKET_WATCH` apenas observacional com dados mock.
+- Gates A7 validam qualidade de dados mock antes de qualquer fase futura.
 
 Proibido:
 

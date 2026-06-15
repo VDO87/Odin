@@ -51,6 +51,10 @@ def market_watch_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 
 
+def data_quality_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
 def dashboard_state_payload(state: dict[str, object]) -> dict[str, object]:
     return {
         "status": state["status"],

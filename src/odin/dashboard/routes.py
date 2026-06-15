@@ -9,6 +9,7 @@ from uuid import uuid4
 from odin.contracts.events import OdinEvent
 from odin.adapters.market_data.mock_market import market_status
 from odin.core.market_watch import run_market_watch
+from odin.data.quality import data_quality_status
 from odin.contracts.events import (
     DASHBOARD_LOGS_TAIL_SERVED,
     DASHBOARD_REQUEST_RECEIVED,
@@ -17,6 +18,7 @@ from odin.contracts.events import (
 from odin.core.bootstrap import validate_runtime
 from odin.dashboard.schemas import (
     dashboard_state_payload,
+    data_quality_payload,
     health_payload,
     hermes_summary_payload,
     hermes_status_payload,
@@ -98,6 +100,13 @@ class DashboardRoutes:
         if path == "/market/watch":
             payload = market_watch_payload(
                 run_market_watch(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/data/quality":
+            payload = data_quality_payload(
+                data_quality_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

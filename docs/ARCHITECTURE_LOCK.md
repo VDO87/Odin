@@ -27,3 +27,7 @@ O comando `python -m odin.cli validate` apenas valida e regista estado seguro em
 ## A6 - Market Watch
 
 `MARKET_WATCH` e um modo de observacao com dados mock. Pode alterar o campo `mode` da resposta, mas nao pode desbloquear trading, gerar decisoes operacionais ou criar execucao.
+
+## A7 - Data Quality Gates
+
+Gates de qualidade sao bloqueantes e informativos. Um resultado `OK` nao autoriza decisoes, trading real ou execucao.

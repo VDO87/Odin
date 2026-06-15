@@ -8,6 +8,7 @@ import sys
 
 from odin.core.bootstrap import validate_runtime
 from odin.core.market_watch import run_market_watch
+from odin.data.quality import data_quality_status
 from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.server import run_dashboard
 from odin.hermes.service import generate_hermes_summary
@@ -22,6 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("treasury-status", help="Generate the A4 Treasury PT read-only status.")
     subparsers.add_parser("market-status", help="Generate the A5 mock market data status.")
     subparsers.add_parser("market-watch", help="Run A6 mock MARKET_WATCH observation mode.")
+    subparsers.add_parser("data-quality", help="Run A7 data quality gates over the mock snapshot.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -60,6 +62,11 @@ def main(argv: list[str] | None = None) -> int:
         result = run_market_watch()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "data-quality":
+        result = data_quality_status()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] in {"OK", "WARNING", "INVALID"} else 1
 
     parser.error("unknown command")
     return 2
