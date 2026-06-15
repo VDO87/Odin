@@ -30,6 +30,7 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /market/watch`: modo MARKET_WATCH observacional.
 - `GET /data/quality`: gates de qualidade de dados.
 - `GET /feed/source`: selecao mock de fonte observacional.
+- `GET /observation/frame`: frame observacional agregado.
 - `GET /strategy/status`: estado da estrategia baseline observe-only.
 - `GET /decision/intent`: intencao de decisao bloqueada.
 - `GET /risk/gate`: gate de risco bloqueante.
@@ -65,3 +66,7 @@ O endpoint `GET /mt5/feed/quality` devolve apenas gates de qualidade do feed moc
 ## A18 - Feed Source Selector Mock Endpoint
 
 O endpoint `GET /feed/source` devolve apenas selecao mock de fonte observacional: `selector_mode=MOCK_ONLY`, `selected_source=mt5_feed_mock`, `fallback_source=market_data_mock`, `safe_to_use_for_decision=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+## A19 - Observation Frame Mock Endpoint
+
+O endpoint `GET /observation/frame` devolve apenas frame agregado `OBSERVATION_ONLY`: fonte selecionada, simbolo primario, qualidade, estrategia, intencao, risco e shadow proposal, sempre com decisao, proposta, risco aprovado e execucao bloqueados.

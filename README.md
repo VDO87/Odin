@@ -240,3 +240,15 @@ O seletor A18 escolhe apenas a fonte observacional mock preferida: `selected_sou
 Endpoint:
 
 - `GET /feed/source`
+
+## A19 - Observation Frame Builder Mock
+
+```bash
+python3 -m odin.cli observation-frame
+```
+
+O frame A19 agrega estado observacional de fonte, feed MT5 mock, qualidade, estrategia, intencao, risco e shadow proposal. O frame e `OBSERVATION_ONLY` e mantem `safe_to_use_for_decision=false`, `decision_generated=false`, `trade_proposal_generated=false`, `risk_approved=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /observation/frame`

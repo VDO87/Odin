@@ -18,6 +18,7 @@ from odin.adapters.mt5.symbol_mapping import mt5_symbol_mapping_status
 from odin.data.feed_source_selector import feed_source_status
 from odin.dashboard.server import run_dashboard
 from odin.decision.intent import decision_intent
+from odin.decision.observation_frame import observation_frame_status
 from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
 from odin.hermes.service import generate_hermes_summary
@@ -44,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("mt5-feed", help="Run A16 mock-only MT5 market feed.")
     subparsers.add_parser("mt5-feed-quality", help="Run A17 mock-only MT5 feed quality gates.")
     subparsers.add_parser("feed-source", help="Run A18 mock-only feed source selector.")
+    subparsers.add_parser("observation-frame", help="Run A19 observation-only frame builder.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -130,6 +132,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "feed-source":
         result = feed_source_status()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "observation-frame":
+        result = observation_frame_status()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
 

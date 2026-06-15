@@ -21,6 +21,7 @@
 - A16 concluida: MT5 Market Feed Mock Adapter.
 - A17 concluida: MT5 Feed Quality Gate Mock.
 - A18 concluida: MT5 Feed Source Selector Mock.
+- A19 concluida: Observation Frame Builder Mock.
 
 ## A14 - MT5 Bridge Mock Adapter
 
@@ -66,6 +67,14 @@
 - Preferir `mt5_feed_mock` quando a qualidade A17 esta `OK`.
 - Integrar a selecao no smoke local, com `modules_count=15`.
 - Manter `safe_to_use_for_decision=false`, sem decisao, sem sinais, sem ordens e sem execucao.
+
+## A19 - Observation Frame Builder Mock
+
+- Criar frame observacional agregado usando feed-source, feed MT5 mock, qualidade, estrategia, intencao, risco e shadow proposal.
+- Expor comando `python3 -m odin.cli observation-frame`.
+- Expor endpoint `GET /observation/frame`.
+- Integrar o frame no smoke local, com `modules_count=16`.
+- Manter `safe_to_use_for_decision=false`, sem decisao, sem proposta, sem risco aprovado e sem execucao.
 
 ## A0 - Bootstrap
 

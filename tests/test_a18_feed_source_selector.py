@@ -70,13 +70,13 @@ class A18FeedSourceSelectorTests(unittest.TestCase):
         self.assertIn("feed-source", names)
         self.assertEqual(report["status"], "PASS")
 
-    def test_smoke_modules_count_15(self):
+    def test_smoke_modules_count_16(self):
         report = run_runtime_smoke(
             log_path=str(self.root / "logs" / "events.jsonl"),
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 15)
+        self.assertEqual(report["modules_count"], 16)
 
 
 if __name__ == "__main__":

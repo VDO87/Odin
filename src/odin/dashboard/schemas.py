@@ -59,6 +59,10 @@ def feed_source_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 
 
+def observation_frame_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
 def strategy_status_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 

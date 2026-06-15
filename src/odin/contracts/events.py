@@ -99,6 +99,11 @@ FEED_SOURCE_MT5_MOCK_SELECTED = "feed.source.mt5_mock.selected"
 FEED_SOURCE_MARKET_DATA_MOCK_AVAILABLE = "feed.source.market_data_mock.available"
 FEED_SOURCE_DECISION_BLOCKED = "feed.source.decision.blocked"
 FEED_SOURCE_STATUS_REPORTED = "feed.source.status.reported"
+OBSERVATION_FRAME_REQUESTED = "observation.frame.requested"
+OBSERVATION_FRAME_BUILT = "observation.frame.built"
+OBSERVATION_FRAME_DECISION_BLOCKED = "observation.frame.decision.blocked"
+OBSERVATION_FRAME_EXECUTION_BLOCKED = "observation.frame.execution.blocked"
+OBSERVATION_FRAME_STATUS_REPORTED = "observation.frame.status.reported"
 
 
 @dataclass(frozen=True)

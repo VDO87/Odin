@@ -87,3 +87,9 @@ Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `real_tradin
 A18 permite apenas selecionar uma fonte observacional mock entre `market_data_mock` e `mt5_feed_mock`. A preferencia por `mt5_feed_mock` nao cria autorizacao para decisao, risco ou execucao.
 
 Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.
+
+## A19 - Observation Frame Builder
+
+A19 permite apenas agregar estado observacional num frame unico. O frame pode reunir fonte, feed, qualidade, estrategia, intencao, risco e shadow proposal, mas nao pode criar decisao, proposta, aprovacao de risco ou execucao.
+
+Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `decision_generated=false`, `trade_proposal_generated=false`, `risk_approved=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - A19 Observation Frame Builder Mock
+
+- Adicionado contrato de frame observacional agregado.
+- Adicionado comando `python3 -m odin.cli observation-frame`.
+- Adicionado endpoint read-only `GET /observation/frame`.
+- Integrado `observation-frame` no smoke local, elevando o total para 16 modulos seguros.
+
 ## Unreleased - A18 Feed Source Selector Mock
 
 - Adicionado contrato de selecao mock de fonte observacional.
