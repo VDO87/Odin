@@ -63,3 +63,9 @@ Os bloqueios permanecem obrigatorios: `real_trading=false`, `safe_to_trade=false
 A14 permite apenas contrato e adaptador mock para a futura ponte MT5. O estado deve permanecer `MOCK_ONLY`, sem terminal real, sem conta ligada, sem login, sem credenciais, sem broker real e sem ordens.
 
 Os flags criticos continuam imutaveis: `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.
+
+## A15 - MT5 Symbol Mapping Mock
+
+A15 permite apenas mapeamento mock de simbolos entre Odin e uma futura bridge MT5. O mapeamento nao autoriza risco, nao cria sinais, nao cria ordens, nao calcula tamanho de posicao e nao liga a terminal real.
+
+Forex pode ser marcado como tradable em mock; ativos FIRE devem permanecer classificados como `non_mt5_fire_asset`. Os flags criticos continuam `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.

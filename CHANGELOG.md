@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - A15 MT5 Symbol Mapping Mock
+
+- Adicionado contrato de mapeamento mock de simbolos Odin para futura bridge MT5.
+- Adicionado comando `python3 -m odin.cli mt5-symbols`.
+- Adicionado endpoint read-only `GET /mt5/symbols`.
+- Integrado `mt5-symbols` no smoke local, elevando o total para 12 modulos seguros.
+
 ## Unreleased - A14 MT5 Bridge Mock Adapter
 
 - Adicionado contrato `MT5BridgeStatus` para estado mock-only da futura bridge MT5.

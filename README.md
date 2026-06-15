@@ -192,3 +192,15 @@ A bridge MT5 A14 e apenas mock: devolve `bridge_mode=MOCK_ONLY`, `provider=mt5_m
 Endpoint:
 
 - `GET /mt5/bridge`
+
+## A15 - MT5 Symbol Mapping Mock
+
+```bash
+python3 -m odin.cli mt5-symbols
+```
+
+O mapeamento A15 e apenas mock: mapeia Forex para simbolos mock equivalentes e marca ativos FIRE como `non_mt5_fire_asset`, mantendo `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /mt5/symbols`

@@ -34,6 +34,7 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /risk/gate`: gate de risco bloqueante.
 - `GET /shadow/proposal`: proposta shadow bloqueada.
 - `GET /mt5/bridge`: estado mock-only da futura bridge MT5.
+- `GET /mt5/symbols`: mapeamento mock Odin para futura bridge MT5.
 - `GET /runtime/smoke`: validacao local agregada do runtime seguro.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.
@@ -45,3 +46,7 @@ O endpoint `GET /runtime/smoke` faz parte do runtime seguro atual e deve continu
 ## A14 - MT5 Bridge Mock Endpoint
 
 O endpoint `GET /mt5/bridge` devolve apenas estado mock-only: `bridge_mode=MOCK_ONLY`, `provider=mt5_mock`, `connected=false`, `terminal_detected=false`, `account_connected=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+## A15 - MT5 Symbol Mapping Mock Endpoint
+
+O endpoint `GET /mt5/symbols` devolve apenas mapeamento mock: 3 simbolos Forex mapeados para equivalentes mock e 6 ativos FIRE mapeados para `non_mt5_fire_asset`, sempre com `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.

@@ -33,6 +33,7 @@ python3 -m odin.cli dashboard --host 127.0.0.1 --port 8765
 - `/risk/gate`
 - `/shadow/proposal`
 - `/mt5/bridge`
+- `/mt5/symbols`
 - `/runtime/smoke`
 - `/logs/tail`
 
@@ -51,6 +52,7 @@ ODIN dashboard stopped
 - Criar contrato/adaptador mock para uma futura bridge MT5.
 - Expor endpoint/status mock da bridge.
 - Validar `python3 -m odin.cli mt5-bridge`.
+- Validar `python3 -m odin.cli mt5-symbols`.
 - Manter o smoke local em `PASS`.
 - Reforcar documentacao, testes e bloqueios de seguranca.
 - Continuar sem integracao real de broker.

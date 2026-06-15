@@ -67,7 +67,7 @@ class A14MT5MockBridgeTests(unittest.TestCase):
         )
         module_names = {str(module["name"]) for module in report["modules"]}
 
-        self.assertEqual(report["modules_count"], 11)
+        self.assertGreaterEqual(report["modules_count"], 11)
         self.assertIn("mt5-bridge", module_names)
         self.assertEqual(report["status"], "PASS")
 

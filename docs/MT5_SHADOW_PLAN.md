@@ -20,6 +20,9 @@ Permitido:
 - A14 so pode criar uma MT5 mock bridge: contrato/adaptador mock e endpoint/status mock, sem MetaTrader5 real.
 - Comando A14 permitido: `python3 -m odin.cli mt5-bridge`.
 - Endpoint A14 permitido: `GET /mt5/bridge`.
+- A15 so pode criar mapeamento mock de simbolos, sem terminal real e sem execucao.
+- Comando A15 permitido: `python3 -m odin.cli mt5-symbols`.
+- Endpoint A15 permitido: `GET /mt5/symbols`.
 
 Proibido:
 
@@ -32,3 +35,4 @@ Proibido:
 - Transformar shadow proposal em ordem executavel.
 - Guardar credenciais.
 - Detectar ou ligar a terminal real.
+- Transformar mapeamento de simbolos em autorizacao para trading.

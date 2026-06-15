@@ -26,6 +26,15 @@
 - Integrar o estado mock no smoke local, com `modules_count=11`.
 - Manter sem MT5 real, sem login, sem credenciais, sem ordens e sem execucao.
 
+## A15 - MT5 Symbol Mapping Mock
+
+- Criar mapeamento mock Odin -> futura bridge MT5.
+- Expor comando `python3 -m odin.cli mt5-symbols`.
+- Expor endpoint `GET /mt5/symbols`.
+- Mapear 3 simbolos Forex como tradable mock e 6 ativos FIRE como `non_mt5_fire_asset`.
+- Integrar o mapeamento no smoke local, com `modules_count=12`.
+- Manter sem MT5 real, sem sinais, sem ordens e sem execucao.
+
 ## A0 - Bootstrap
 
 - Fundacao de pastas.

@@ -79,6 +79,11 @@ MT5_BRIDGE_MOCK_LOADED = "mt5.bridge.mock.loaded"
 MT5_BRIDGE_REAL_IMPORT_BLOCKED = "mt5.bridge.real_import.blocked"
 MT5_BRIDGE_EXECUTION_BLOCKED = "mt5.bridge.execution.blocked"
 MT5_BRIDGE_STATUS_REPORTED = "mt5.bridge.status.reported"
+MT5_SYMBOLS_REQUESTED = "mt5.symbols.requested"
+MT5_SYMBOLS_MOCK_LOADED = "mt5.symbols.mock.loaded"
+MT5_SYMBOLS_MAPPING_REPORTED = "mt5.symbols.mapping.reported"
+MT5_SYMBOLS_EXECUTION_BLOCKED = "mt5.symbols.execution.blocked"
+MT5_SYMBOLS_NON_ASSET_DETECTED = "mt5.symbols.non_mt5_asset.detected"
 
 
 @dataclass(frozen=True)
