@@ -50,6 +50,22 @@ class A5MockMarketTests(unittest.TestCase):
 
         self.assertIs(status["execution_allowed"], False)
 
+    def test_symbols_count_matches_total_watchlist(self):
+        status = self._market().status()
+
+        self.assertEqual(status["symbols_count"], len(status["watchlist"]))
+        self.assertEqual(status["symbols_count"], 9)
+
+    def test_forex_symbols_count_is_3(self):
+        status = self._market().status()
+
+        self.assertEqual(status["forex_symbols_count"], 3)
+
+    def test_fire_symbols_count_is_6(self):
+        status = self._market().status()
+
+        self.assertEqual(status["fire_symbols_count"], 6)
+
     def test_market_status_keeps_safe_to_trade_false(self):
         status = self._market().status()
 
@@ -92,6 +108,9 @@ class A5MockMarketTests(unittest.TestCase):
         status = json.loads(completed.stdout)
         self.assertEqual(status["status"], "OK")
         self.assertEqual(status["source"], "mock")
+        self.assertEqual(status["symbols_count"], 9)
+        self.assertEqual(status["forex_symbols_count"], 3)
+        self.assertEqual(status["fire_symbols_count"], 6)
         self.assertIs(status["execution_allowed"], False)
 
     def test_dashboard_market_status_endpoint(self):
@@ -106,9 +125,11 @@ class A5MockMarketTests(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(payload["status"], "OK")
         self.assertEqual(payload["component"], "market_data")
+        self.assertEqual(payload["symbols_count"], 9)
+        self.assertEqual(payload["forex_symbols_count"], 3)
+        self.assertEqual(payload["fire_symbols_count"], 6)
         self.assertIs(payload["execution_allowed"], False)
 
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -75,6 +75,8 @@ class MockMarketData:
 
     def status(self) -> dict[str, object]:
         symbols = enabled_watchlist()
+        forex_symbols_count = len([symbol for symbol in symbols if symbol.asset_class == "forex"])
+        fire_symbols_count = len([symbol for symbol in symbols if symbol.asset_class == "etf"])
         snapshot = self.snapshot("EURUSD")
         self.candles("EURUSD", "M15")
         status = {
@@ -83,7 +85,9 @@ class MockMarketData:
             "source": self.source,
             "read_only": self.read_only,
             "execution_allowed": self.execution_allowed,
-            "symbols_count": 6,
+            "symbols_count": len(symbols),
+            "forex_symbols_count": forex_symbols_count,
+            "fire_symbols_count": fire_symbols_count,
             "primary_symbol": "EURUSD",
             "snapshot": snapshot.to_dict(),
             "safe_to_trade": self.safe_to_trade,
@@ -111,4 +115,3 @@ def market_status(
     sqlite_path: str = "runtime/odin.sqlite",
 ) -> dict[str, object]:
     return MockMarketData(log_path=log_path, sqlite_path=sqlite_path).status()
-
