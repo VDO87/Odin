@@ -32,5 +32,6 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /strategy/status`: estado da estrategia baseline observe-only.
 - `GET /decision/intent`: intencao de decisao bloqueada.
 - `GET /risk/gate`: gate de risco bloqueante.
+- `GET /shadow/proposal`: proposta shadow bloqueada.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.

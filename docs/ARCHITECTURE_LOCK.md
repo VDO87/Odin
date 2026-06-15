@@ -43,3 +43,7 @@ Decision Intent existe apenas como estrutura bloqueada. Pode ler o estado da est
 ## A10 - Risk Gate
 
 Risk Gate e bloqueante por desenho. Pode ler Decision Intent, mas deve devolver `BLOCKED`, manter `risk_approved=false` e nunca criar aprovacao operacional.
+
+## A11 - Shadow Proposal
+
+Shadow Proposal e apenas uma estrutura bloqueada em modo sombra. Pode ler Risk Gate, mas nao deve criar direccao de mercado, parametros de ordem, aprovacao de risco ou execucao.

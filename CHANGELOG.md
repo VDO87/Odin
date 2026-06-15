@@ -77,3 +77,10 @@
 - Adicionado comando `python3 -m odin.cli risk-gate`.
 - Adicionado endpoint `/risk/gate` no dashboard.
 - O gate le Decision Intent, mas mantem `risk_status=BLOCKED` e `risk_approved=false`.
+
+## A11 - Shadow Proposal Skeleton
+
+- Adicionada Shadow Proposal sempre bloqueada.
+- Adicionado comando `python3 -m odin.cli shadow-proposal`.
+- Adicionado endpoint `/shadow/proposal` no dashboard.
+- A proposta shadow le Risk Gate, mas nao cria direccao de mercado, parametros ou execucao.

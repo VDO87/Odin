@@ -14,6 +14,7 @@ Permitido:
 - A8 adiciona baseline de estrategia apenas observacional, sem sinais ou propostas.
 - A9 adiciona intencao de decisao bloqueada, sem parametros de ordem ou execucao.
 - A10 adiciona Risk Gate bloqueante, sem aprovacao de risco ou execucao.
+- A11 adiciona Shadow Proposal bloqueada, sem ordem shadow executavel.
 
 Proibido:
 

@@ -64,6 +64,11 @@ RISK_GATE_LOADED = "risk.gate.loaded"
 RISK_GATE_BLOCKED = "risk.gate.blocked"
 RISK_GATE_RISK_APPROVAL_BLOCKED = "risk.gate.risk_approval.blocked"
 RISK_GATE_EXECUTION_BLOCKED = "risk.gate.execution.blocked"
+SHADOW_PROPOSAL_REQUESTED = "shadow.proposal.requested"
+SHADOW_PROPOSAL_SKELETON_CREATED = "shadow.proposal.skeleton.created"
+SHADOW_PROPOSAL_BLOCKED = "shadow.proposal.blocked"
+SHADOW_PROPOSAL_EXECUTION_BLOCKED = "shadow.proposal.execution.blocked"
+SHADOW_PROPOSAL_RISK_BLOCKED = "shadow.proposal.risk.blocked"
 
 
 @dataclass(frozen=True)

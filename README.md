@@ -140,3 +140,15 @@ O Risk Gate A10 le a intencao de decisao e bloqueia tudo por defeito: devolve `r
 Endpoint:
 
 - `GET /risk/gate`
+
+## A11 - Shadow Proposal Skeleton
+
+```bash
+python3 -m odin.cli shadow-proposal
+```
+
+A Shadow Proposal A11 le o Risk Gate e permanece bloqueada: devolve `shadow_proposal_status=BLOCKED`, `shadow_mode=SHADOW_SKELETON`, `shadow_only=true`, `risk_status=BLOCKED`, `risk_approved=false`, `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /shadow/proposal`

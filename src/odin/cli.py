@@ -12,6 +12,7 @@ from odin.data.quality import data_quality_status
 from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.server import run_dashboard
 from odin.decision.intent import decision_intent
+from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
 from odin.hermes.service import generate_hermes_summary
 from odin.risk.gate import risk_gate
@@ -30,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("strategy-status", help="Run A8 baseline observe-only strategy status.")
     subparsers.add_parser("decision-intent", help="Run A9 blocked decision intent skeleton.")
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
+    subparsers.add_parser("shadow-proposal", help="Run A11 blocked shadow proposal skeleton.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -88,6 +90,11 @@ def main(argv: list[str] | None = None) -> int:
         result = risk_gate()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["risk_approved"] is False else 1
+
+    if args.command == "shadow-proposal":
+        result = shadow_proposal()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
 
     parser.error("unknown command")
     return 2

@@ -99,3 +99,10 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Le Decision Intent e devolve `BLOCKED`.
 - Sem aprovacao de risco, parametros operacionais ou execucao.
 - Endpoint de dashboard para o estado do gate.
+
+## A11 - Shadow Proposal Skeleton
+
+- Estrutura futura de proposta em modo sombra.
+- Le Risk Gate e permanece `BLOCKED`.
+- Sem direccao de mercado, parametros de ordem, aprovacao de risco ou execucao.
+- Endpoint de dashboard para a proposta shadow bloqueada.
