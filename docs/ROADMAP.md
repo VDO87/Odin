@@ -48,3 +48,11 @@
 ## Futuro Controlado
 
 Qualquer demo, limited real ou integracao operacional exige revisao formal, testes e aprovacao humana explicita.
+
+## A4 - Treasury PT Skeleton
+
+- Treasury compute-only para Portugal.
+- Valores financeiros a zero por defeito.
+- Reserva fiscal minima documentada.
+- Transferencias bloqueadas por desenho.
+- Sem ligacoes a bancos, brokers ou ficheiros fiscais reais.

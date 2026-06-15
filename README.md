@@ -56,3 +56,15 @@ O resumo Hermes le o estado seguro e os logs JSONL, devolve `read_only=true` e a
 Endpoint:
 
 - `GET /hermes/summary`
+
+## A4 - Treasury PT Skeleton
+
+```bash
+python3 -m odin.cli treasury-status
+```
+
+O Treasury A4 e read-only/compute-only, usa valores zero por defeito, nao liga a bancos ou brokers e devolve `safe_to_transfer=false`.
+
+Endpoint:
+
+- `GET /treasury/status`

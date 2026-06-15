@@ -20,10 +20,12 @@ from odin.dashboard.schemas import (
     hermes_status_payload,
     not_found_payload,
     risk_status_payload,
+    treasury_status_payload,
 )
 from odin.hermes.service import generate_hermes_summary
 from odin.logging.jsonl_logger import JsonlLogger
 from odin.storage.sqlite_store import SQLiteStore
+from odin.treasury.engine import treasury_status
 
 class DashboardRoutes:
     def __init__(
@@ -71,6 +73,13 @@ class DashboardRoutes:
         if path == "/hermes/summary":
             payload = hermes_summary_payload(
                 generate_hermes_summary(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/treasury/status":
+            payload = treasury_status_payload(
+                treasury_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

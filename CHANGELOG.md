@@ -28,3 +28,10 @@
 - Adicionado comando `python3 -m odin.cli hermes-summary`.
 - Adicionado endpoint `/hermes/summary` no dashboard.
 - Adicionadas recomendacoes read-only sem capacidade de execucao.
+
+## A4 - Treasury PT skeleton
+
+- Adicionado Treasury Engine compute-only para Portugal.
+- Adicionado comando `python3 -m odin.cli treasury-status`.
+- Adicionado endpoint `/treasury/status` no dashboard.
+- Todas as transferencias ficam bloqueadas por desenho e os valores financeiros arrancam a zero.

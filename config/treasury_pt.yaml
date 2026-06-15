@@ -2,9 +2,22 @@ treasury:
   jurisdiction: PT
   default_state: conservative
   overrides_hermes: true
+  read_only: true
+  safe_to_transfer: false
   cash_controls:
     require_manual_review: true
     block_unapproved_capital_allocation: true
   tax_awareness:
     portugal_context_required: true
     no_tax_advice_without_review: true
+  portugal_tax_policy:
+    capital_gains_reserve_rate: 0.30
+    capital_income_reserve_rate: 0.30
+    short_holding_high_income_reserve_rate: 0.53
+    only_realized_profit_counts: true
+    release_excess_only_after_irs_closed: true
+  transfer_blocks:
+    - treasury_skeleton_read_only
+    - no_real_broker_data
+    - tax_reserve_not_validated
+    - protected_capital_policy_not_funded

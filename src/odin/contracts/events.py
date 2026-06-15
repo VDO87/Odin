@@ -27,6 +27,11 @@ HERMES_SUMMARY_STARTED = "hermes.summary.started"
 HERMES_SUMMARY_COMPLETED = "hermes.summary.completed"
 HERMES_RECOMMENDATION_GENERATED = "hermes.recommendation.generated"
 HERMES_READ_ONLY_GUARD_CONFIRMED = "hermes.read_only.guard_confirmed"
+TREASURY_STATUS_REQUESTED = "treasury.status.requested"
+TREASURY_STATUS_GENERATED = "treasury.status.generated"
+TREASURY_TRANSFER_BLOCKED = "treasury.transfer.blocked"
+TREASURY_TAX_RESERVE_CALCULATED = "treasury.tax.reserve.calculated"
+TREASURY_READ_ONLY_GUARD_CONFIRMED = "treasury.read_only.guard_confirmed"
 
 
 @dataclass(frozen=True)

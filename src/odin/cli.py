@@ -9,6 +9,7 @@ import sys
 from odin.core.bootstrap import validate_runtime
 from odin.dashboard.server import run_dashboard
 from odin.hermes.service import generate_hermes_summary
+from odin.treasury.engine import treasury_status
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,6 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate", help="Validate the A1 fail-closed runtime state.")
     subparsers.add_parser("hermes-summary", help="Generate the A3 Hermes read-only summary.")
+    subparsers.add_parser("treasury-status", help="Generate the A4 Treasury PT read-only status.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -37,6 +39,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "hermes-summary":
         result = generate_hermes_summary()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["read_only"] is True else 1
+
+    if args.command == "treasury-status":
+        result = treasury_status()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["read_only"] is True else 1
 
