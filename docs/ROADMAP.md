@@ -92,3 +92,10 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Estado sempre `NO_DECISION` e modo `INTENT_SKELETON`.
 - Sem aprovacao de risco, precos operacionais, dimensionamento, propostas ou execucao.
 - Endpoint de dashboard para intencao bloqueada.
+
+## A10 - Risk Gate Skeleton
+
+- Gate formal de risco bloqueante.
+- Le Decision Intent e devolve `BLOCKED`.
+- Sem aprovacao de risco, parametros operacionais ou execucao.
+- Endpoint de dashboard para o estado do gate.

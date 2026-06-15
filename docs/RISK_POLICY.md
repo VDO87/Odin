@@ -11,3 +11,4 @@ Politicas:
 - Hermes nao pode reduzir, contornar ou aprovar risco.
 - Dashboard deve reflectir bloqueios de risco sem suavizar linguagem.
 - A9 Decision Intent nao aprova risco: `risk_approved=false` por desenho.
+- A10 Risk Gate bloqueia tudo por defeito: `risk_status=BLOCKED`.

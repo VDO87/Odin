@@ -59,6 +59,11 @@ DECISION_INTENT_SKELETON_CREATED = "decision.intent.skeleton.created"
 DECISION_INTENT_BLOCKED = "decision.intent.blocked"
 DECISION_RISK_APPROVAL_BLOCKED = "decision.risk_approval.blocked"
 DECISION_EXECUTION_BLOCKED = "decision.execution.blocked"
+RISK_GATE_REQUESTED = "risk.gate.requested"
+RISK_GATE_LOADED = "risk.gate.loaded"
+RISK_GATE_BLOCKED = "risk.gate.blocked"
+RISK_GATE_RISK_APPROVAL_BLOCKED = "risk.gate.risk_approval.blocked"
+RISK_GATE_EXECUTION_BLOCKED = "risk.gate.execution.blocked"
 
 
 @dataclass(frozen=True)

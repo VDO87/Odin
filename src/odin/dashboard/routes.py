@@ -29,11 +29,13 @@ from odin.dashboard.schemas import (
     market_status_payload,
     market_watch_payload,
     risk_status_payload,
+    risk_gate_payload,
     strategy_status_payload,
     treasury_status_payload,
 )
 from odin.hermes.service import generate_hermes_summary
 from odin.logging.jsonl_logger import JsonlLogger
+from odin.risk.gate import risk_gate
 from odin.storage.sqlite_store import SQLiteStore
 from odin.treasury.engine import treasury_status
 
@@ -125,6 +127,13 @@ class DashboardRoutes:
         if path == "/decision/intent":
             payload = decision_intent_payload(
                 decision_intent(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/risk/gate":
+            payload = risk_gate_payload(
+                risk_gate(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

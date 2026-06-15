@@ -70,3 +70,10 @@
 - Adicionado comando `python3 -m odin.cli decision-intent`.
 - Adicionado endpoint `/decision/intent` no dashboard.
 - A intencao le o estado da estrategia, mas nao aprova risco, nao gera propostas e nao executa.
+
+## A10 - Risk Gate Skeleton
+
+- Adicionado Risk Gate formal sempre bloqueante.
+- Adicionado comando `python3 -m odin.cli risk-gate`.
+- Adicionado endpoint `/risk/gate` no dashboard.
+- O gate le Decision Intent, mas mantem `risk_status=BLOCKED` e `risk_approved=false`.

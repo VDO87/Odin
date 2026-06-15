@@ -128,3 +128,15 @@ A intencao de decisao A9 e apenas uma estrutura bloqueada: le a estrategia basel
 Endpoint:
 
 - `GET /decision/intent`
+
+## A10 - Risk Gate Skeleton
+
+```bash
+python3 -m odin.cli risk-gate
+```
+
+O Risk Gate A10 le a intencao de decisao e bloqueia tudo por defeito: devolve `risk_status=BLOCKED`, `risk_gate_mode=BLOCKING_SKELETON`, `risk_approved=false`, `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /risk/gate`

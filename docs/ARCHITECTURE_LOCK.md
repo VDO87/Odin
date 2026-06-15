@@ -39,3 +39,7 @@ Estrategias existem apenas como observacao tecnica. A baseline pode ler qualidad
 ## A9 - Decision Intent
 
 Decision Intent existe apenas como estrutura bloqueada. Pode ler o estado da estrategia, mas deve devolver `NO_DECISION`, nao aprovar risco, nao criar parametros de ordem e nao desbloquear execucao.
+
+## A10 - Risk Gate
+
+Risk Gate e bloqueante por desenho. Pode ler Decision Intent, mas deve devolver `BLOCKED`, manter `risk_approved=false` e nunca criar aprovacao operacional.
