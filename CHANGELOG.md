@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - A18 Feed Source Selector Mock
+
+- Adicionado contrato de selecao mock de fonte observacional.
+- Adicionado comando `python3 -m odin.cli feed-source`.
+- Adicionado endpoint read-only `GET /feed/source`.
+- Integrado `feed-source` no smoke local, elevando o total para 15 modulos seguros.
+
 ## Unreleased - A17 MT5 Feed Quality Gate Mock
 
 - Adicionado contrato de qualidade do feed mock MT5 com gates por tick.

@@ -55,6 +55,10 @@ def data_quality_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 
 
+def feed_source_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
 def strategy_status_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 

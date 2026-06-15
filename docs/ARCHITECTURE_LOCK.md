@@ -81,3 +81,9 @@ O feed permanece `MOCK_ONLY`, `connected=false` e nunca altera os flags criticos
 A17 permite apenas gates de qualidade sobre o feed MT5 mock. Um resultado `OK` confirma consistencia dos ticks mock, mas nao autoriza decisao, risco, trading real ou execucao.
 
 Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.
+
+## A18 - Feed Source Selector
+
+A18 permite apenas selecionar uma fonte observacional mock entre `market_data_mock` e `mt5_feed_mock`. A preferencia por `mt5_feed_mock` nao cria autorizacao para decisao, risco ou execucao.
+
+Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.

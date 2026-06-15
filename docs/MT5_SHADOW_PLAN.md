@@ -30,6 +30,9 @@ Permitido:
 - A17 so pode criar gates de qualidade sobre o feed MT5 mock.
 - Comando A17 permitido: `python3 -m odin.cli mt5-feed-quality`.
 - Endpoint A17 permitido: `GET /mt5/feed/quality`.
+- A18 so pode criar selecao mock de fonte observacional entre `market_data_mock` e `mt5_feed_mock`.
+- Comando A18 permitido: `python3 -m odin.cli feed-source`.
+- Endpoint A18 permitido: `GET /feed/source`.
 
 Proibido:
 
@@ -45,3 +48,4 @@ Proibido:
 - Transformar mapeamento de simbolos em autorizacao para trading.
 - Transformar ticks mock em decisao, risco aprovado ou execucao.
 - Transformar gates de qualidade em permissao de decisao ou execucao.
+- Transformar selecao de fonte em permissao de decisao ou execucao.

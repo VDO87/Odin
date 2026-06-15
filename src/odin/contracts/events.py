@@ -94,6 +94,11 @@ MT5_FEED_QUALITY_GATE_CHECKED = "mt5.feed_quality.gate.checked"
 MT5_FEED_QUALITY_PASS = "mt5.feed_quality.pass"
 MT5_FEED_QUALITY_FAIL = "mt5.feed_quality.fail"
 MT5_FEED_QUALITY_EXECUTION_BLOCKED = "mt5.feed_quality.execution.blocked"
+FEED_SOURCE_REQUESTED = "feed.source.requested"
+FEED_SOURCE_MT5_MOCK_SELECTED = "feed.source.mt5_mock.selected"
+FEED_SOURCE_MARKET_DATA_MOCK_AVAILABLE = "feed.source.market_data_mock.available"
+FEED_SOURCE_DECISION_BLOCKED = "feed.source.decision.blocked"
+FEED_SOURCE_STATUS_REPORTED = "feed.source.status.reported"
 
 
 @dataclass(frozen=True)

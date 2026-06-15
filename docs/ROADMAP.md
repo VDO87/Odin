@@ -20,6 +20,7 @@
 - A15 concluida: MT5 Symbol Mapping Mock.
 - A16 concluida: MT5 Market Feed Mock Adapter.
 - A17 concluida: MT5 Feed Quality Gate Mock.
+- A18 concluida: MT5 Feed Source Selector Mock.
 
 ## A14 - MT5 Bridge Mock Adapter
 
@@ -55,6 +56,15 @@
 - Expor endpoint `GET /mt5/feed/quality`.
 - Validar simbolo, bid, ask, spread, timestamp, fonte mock e bloqueio de execucao.
 - Integrar a qualidade do feed no smoke local, com `modules_count=14`.
+- Manter `safe_to_use_for_decision=false`, sem decisao, sem sinais, sem ordens e sem execucao.
+
+## A18 - Feed Source Selector Mock
+
+- Criar seletor mock entre `market_data_mock` e `mt5_feed_mock`.
+- Expor comando `python3 -m odin.cli feed-source`.
+- Expor endpoint `GET /feed/source`.
+- Preferir `mt5_feed_mock` quando a qualidade A17 esta `OK`.
+- Integrar a selecao no smoke local, com `modules_count=15`.
 - Manter `safe_to_use_for_decision=false`, sem decisao, sem sinais, sem ordens e sem execucao.
 
 ## A0 - Bootstrap

@@ -228,3 +228,15 @@ Os gates A17 validam os ticks mock do feed MT5 antes de qualquer uso futuro em d
 Endpoint:
 
 - `GET /mt5/feed/quality`
+
+## A18 - Feed Source Selector Mock
+
+```bash
+python3 -m odin.cli feed-source
+```
+
+O seletor A18 escolhe apenas a fonte observacional mock preferida: `selected_source=mt5_feed_mock`, com fallback `market_data_mock`. A selecao continua bloqueada para decisao e execucao: `safe_to_use_for_decision=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /feed/source`
