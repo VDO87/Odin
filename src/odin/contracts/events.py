@@ -32,6 +32,11 @@ TREASURY_STATUS_GENERATED = "treasury.status.generated"
 TREASURY_TRANSFER_BLOCKED = "treasury.transfer.blocked"
 TREASURY_TAX_RESERVE_CALCULATED = "treasury.tax.reserve.calculated"
 TREASURY_READ_ONLY_GUARD_CONFIRMED = "treasury.read_only.guard_confirmed"
+MARKET_MOCK_SNAPSHOT_GENERATED = "market.mock.snapshot.generated"
+MARKET_MOCK_CANDLES_GENERATED = "market.mock.candles.generated"
+MARKET_QUALITY_CHECKED = "market.quality.checked"
+MARKET_STATUS_GENERATED = "market.status.generated"
+MARKET_EXECUTION_BLOCKED = "market.execution.blocked"
 
 
 @dataclass(frozen=True)

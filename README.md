@@ -68,3 +68,15 @@ O Treasury A4 e read-only/compute-only, usa valores zero por defeito, nao liga a
 Endpoint:
 
 - `GET /treasury/status`
+
+## A5 - Market Data Mock
+
+```bash
+python3 -m odin.cli market-status
+```
+
+A camada A5 usa apenas dados determinísticos mock, e declara `read_only=true`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /market/status`

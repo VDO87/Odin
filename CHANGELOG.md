@@ -35,3 +35,10 @@
 - Adicionado comando `python3 -m odin.cli treasury-status`.
 - Adicionado endpoint `/treasury/status` no dashboard.
 - Todas as transferencias ficam bloqueadas por desenho e os valores financeiros arrancam a zero.
+
+## A5 - Market Data Mock + Watchlist
+
+- Adicionada camada de dados de mercado mock/read-only.
+- Adicionado comando `python3 -m odin.cli market-status`.
+- Adicionado endpoint `/market/status` no dashboard.
+- Adicionada watchlist mock com Forex e FIRE documental, sem dados reais ou execucao.

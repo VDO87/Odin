@@ -7,6 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from odin.contracts.events import OdinEvent
+from odin.adapters.market_data.mock_market import market_status
 from odin.contracts.events import (
     DASHBOARD_LOGS_TAIL_SERVED,
     DASHBOARD_REQUEST_RECEIVED,
@@ -19,6 +20,7 @@ from odin.dashboard.schemas import (
     hermes_summary_payload,
     hermes_status_payload,
     not_found_payload,
+    market_status_payload,
     risk_status_payload,
     treasury_status_payload,
 )
@@ -80,6 +82,13 @@ class DashboardRoutes:
         if path == "/treasury/status":
             payload = treasury_status_payload(
                 treasury_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/market/status":
+            payload = market_status_payload(
+                market_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

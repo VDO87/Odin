@@ -8,6 +8,7 @@ Permitido:
 - Recolha de dados aprovada.
 - Shadow Decision.
 - Futuro modo demo, apos aprovacao.
+- Dados mock A5 para validar contratos e dashboard sem ligacao real.
 
 Proibido:
 

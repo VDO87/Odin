@@ -56,3 +56,11 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Reserva fiscal minima documentada.
 - Transferencias bloqueadas por desenho.
 - Sem ligacoes a bancos, brokers ou ficheiros fiscais reais.
+
+## A5 - Market Data Mock + Watchlist
+
+- Watchlist mock inicial.
+- Snapshot e candles determinísticos para EURUSD.
+- Qualidade de dados básica.
+- Endpoint de dashboard para estado de mercado mock.
+- Sem ligação a MT5 real, APIs financeiras reais ou geração de decisões.

@@ -1,9 +1,20 @@
 symbols:
-  mt5_watchlist: []
-  xtb_manual_watchlist: []
+  mt5_watchlist:
+    - EURUSD
+    - USDJPY
+    - GBPUSD
+  xtb_manual_watchlist:
+    - VWCE
+    - IWDA
+    - EMIM
+    - CSPX
+    - AGGH
+    - XEON
   fire_assets: []
   etfs: []
   equities: []
 policy:
   symbols_are_configuration_only: true
   no_trade_signal_implied: true
+  source: mock
+  execution_allowed: false
