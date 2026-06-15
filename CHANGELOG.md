@@ -14,3 +14,10 @@
 - Adicionadas permissoes Hermes em `READ_ONLY`.
 - Adicionados logger JSONL, SQLite local e comando `python -m odin.cli validate`.
 - Adicionados testes A1 para estado seguro, logging, SQLite e ausencia de referencias de execucao real em `src/odin`.
+
+## A2 - Dashboard minimo / Estado real
+
+- Adicionado dashboard HTTP read-only com biblioteca standard.
+- Adicionados endpoints `/health`, `/state`, `/risk/status`, `/hermes/status` e `/logs/tail`.
+- O dashboard obtem estado atraves do runtime A1 e preserva `OFF_SAFE`.
+- Adicionados testes A2 para endpoints, estado seguro e ausencia de referencias de execucao real.

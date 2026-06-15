@@ -19,6 +19,10 @@ HERMES_PERMISSIONS_READ_ONLY = "hermes.permissions.read_only"
 STORAGE_SQLITE_INITIALIZED = "storage.sqlite.initialized"
 LOGGING_JSONL_READY = "logging.jsonl.ready"
 SECURITY_REAL_TRADING_BLOCKED = "security.real_trading.blocked"
+DASHBOARD_SERVER_STARTED = "dashboard.server.started"
+DASHBOARD_REQUEST_RECEIVED = "dashboard.request.received"
+DASHBOARD_STATE_SERVED = "dashboard.state.served"
+DASHBOARD_LOGS_TAIL_SERVED = "dashboard.logs_tail.served"
 
 
 @dataclass(frozen=True)
@@ -73,4 +77,3 @@ class OdinEvent:
             "reason": self.reason,
             "payload": self.payload,
         }
-

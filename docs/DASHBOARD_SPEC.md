@@ -16,3 +16,13 @@ Vistas iniciais previstas:
 Regra critica:
 
 O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloqueado.
+
+## A2 - Endpoints Minimos
+
+- `GET /health`: saude do dashboard e flags seguras.
+- `GET /state`: estado real validado pelo runtime A1.
+- `GET /risk/status`: Risk em `READY_BLOCKING`.
+- `GET /hermes/status`: Hermes em `READ_ONLY`.
+- `GET /logs/tail`: ultimos eventos JSONL.
+
+O dashboard e read-only e nao disponibiliza accoes de trading.

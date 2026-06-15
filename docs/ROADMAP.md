@@ -25,6 +25,13 @@
 - Shadow Decision.
 - Dashboard minimo.
 
+## A2 - Dashboard minimo / Estado real
+
+- Dashboard HTTP read-only.
+- Endpoints de saude, estado, risco, Hermes e logs.
+- Estado obtido atraves dos modulos A1.
+- Sem execucao real ou integracoes de broker.
+
 ## A3 - Hermes Read-Only
 
 - RAG com fontes auditaveis.

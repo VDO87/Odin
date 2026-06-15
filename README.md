@@ -28,3 +28,19 @@ python -m odin.cli validate
 ```
 
 Resultado esperado: `status=PASS`, `mode=OFF_SAFE`, `safe_to_trade=false`, `real_trading=false`, Risk em `READY_BLOCKING` e Hermes em `READ_ONLY`.
+
+## A2 - Dashboard Read-Only
+
+```bash
+python3 -m odin.cli dashboard --host 127.0.0.1 --port 8765
+```
+
+Endpoints:
+
+- `GET /health`
+- `GET /state`
+- `GET /risk/status`
+- `GET /hermes/status`
+- `GET /logs/tail`
+
+O dashboard nao executa ordens, nao desbloqueia trading e apenas mostra estado seguro.
