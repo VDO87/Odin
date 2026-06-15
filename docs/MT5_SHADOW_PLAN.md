@@ -27,6 +27,9 @@ Permitido:
 - Comando A16 permitido: `python3 -m odin.cli mt5-feed`.
 - Endpoint A16 permitido: `GET /mt5/feed`.
 - Simbolos A16 permitidos: `EURUSD`, `USDJPY` e `GBPUSD`; ativos FIRE ficam excluidos.
+- A17 so pode criar gates de qualidade sobre o feed MT5 mock.
+- Comando A17 permitido: `python3 -m odin.cli mt5-feed-quality`.
+- Endpoint A17 permitido: `GET /mt5/feed/quality`.
 
 Proibido:
 
@@ -41,3 +44,4 @@ Proibido:
 - Detectar ou ligar a terminal real.
 - Transformar mapeamento de simbolos em autorizacao para trading.
 - Transformar ticks mock em decisao, risco aprovado ou execucao.
+- Transformar gates de qualidade em permissao de decisao ou execucao.

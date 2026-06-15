@@ -89,6 +89,11 @@ MT5_FEED_MOCK_LOADED = "mt5.feed.mock.loaded"
 MT5_FEED_TICK_GENERATED = "mt5.feed.tick.generated"
 MT5_FEED_EXECUTION_BLOCKED = "mt5.feed.execution.blocked"
 MT5_FEED_STATUS_REPORTED = "mt5.feed.status.reported"
+MT5_FEED_QUALITY_REQUESTED = "mt5.feed_quality.requested"
+MT5_FEED_QUALITY_GATE_CHECKED = "mt5.feed_quality.gate.checked"
+MT5_FEED_QUALITY_PASS = "mt5.feed_quality.pass"
+MT5_FEED_QUALITY_FAIL = "mt5.feed_quality.fail"
+MT5_FEED_QUALITY_EXECUTION_BLOCKED = "mt5.feed_quality.execution.blocked"
 
 
 @dataclass(frozen=True)

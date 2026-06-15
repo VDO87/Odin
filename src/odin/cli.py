@@ -11,6 +11,7 @@ from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.quality import data_quality_status
 from odin.adapters.market_data.mock_market import market_status
+from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.adapters.mt5.symbol_mapping import mt5_symbol_mapping_status
@@ -40,6 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("mt5-bridge", help="Run A14 mock-only MT5 bridge status.")
     subparsers.add_parser("mt5-symbols", help="Run A15 mock-only MT5 symbol mapping.")
     subparsers.add_parser("mt5-feed", help="Run A16 mock-only MT5 market feed.")
+    subparsers.add_parser("mt5-feed-quality", help="Run A17 mock-only MT5 feed quality gates.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -116,6 +118,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "mt5-feed":
         result = mt5_market_feed_status()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "mt5-feed-quality":
+        result = mt5_feed_quality_status()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
 

@@ -35,6 +35,7 @@ python3 -m odin.cli dashboard --host 127.0.0.1 --port 8765
 - `/mt5/bridge`
 - `/mt5/symbols`
 - `/mt5/feed`
+- `/mt5/feed/quality`
 - `/runtime/smoke`
 - `/logs/tail`
 
@@ -55,6 +56,7 @@ ODIN dashboard stopped
 - Validar `python3 -m odin.cli mt5-bridge`.
 - Validar `python3 -m odin.cli mt5-symbols`.
 - Validar `python3 -m odin.cli mt5-feed`.
+- Validar `python3 -m odin.cli mt5-feed-quality`.
 - Manter o smoke local em `PASS`.
 - Reforcar documentacao, testes e bloqueios de seguranca.
 - Continuar sem integracao real de broker.

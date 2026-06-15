@@ -75,3 +75,9 @@ Forex pode ser marcado como tradable em mock; ativos FIRE devem permanecer class
 A16 permite apenas feed mock de mercado baseado no mapeamento A15. O feed pode publicar ticks determinísticos para `EURUSD`, `USDJPY` e `GBPUSD`, mas ativos FIRE nao entram no feed MT5 mock.
 
 O feed permanece `MOCK_ONLY`, `connected=false` e nunca altera os flags criticos: `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.
+
+## A17 - MT5 Feed Quality Gates
+
+A17 permite apenas gates de qualidade sobre o feed MT5 mock. Um resultado `OK` confirma consistencia dos ticks mock, mas nao autoriza decisao, risco, trading real ou execucao.
+
+Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.

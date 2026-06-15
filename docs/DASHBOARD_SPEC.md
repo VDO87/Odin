@@ -36,6 +36,7 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /mt5/bridge`: estado mock-only da futura bridge MT5.
 - `GET /mt5/symbols`: mapeamento mock Odin para futura bridge MT5.
 - `GET /mt5/feed`: feed mock MT5 com ticks determinísticos e sem ligacao real.
+- `GET /mt5/feed/quality`: gates de qualidade do feed MT5 mock.
 - `GET /runtime/smoke`: validacao local agregada do runtime seguro.
 
 O dashboard e read-only e nao disponibiliza accoes de trading.
@@ -55,3 +56,7 @@ O endpoint `GET /mt5/symbols` devolve apenas mapeamento mock: 3 simbolos Forex m
 ## A16 - MT5 Market Feed Mock Endpoint
 
 O endpoint `GET /mt5/feed` devolve apenas feed mock: `feed_mode=MOCK_ONLY`, `provider=mt5_mock`, `source=mt5_mock`, `connected=false`, 3 ticks Forex e flags sempre `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+## A17 - MT5 Feed Quality Mock Endpoint
+
+O endpoint `GET /mt5/feed/quality` devolve apenas gates de qualidade do feed mock: `quality_mode=MOCK_FEED_GATES`, `symbols_checked=3`, `all_ticks_valid=true`, `safe_to_use_for_decision=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.

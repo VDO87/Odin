@@ -216,3 +216,15 @@ O feed A16 e apenas mock: usa o mapeamento A15 para expor ticks determinísticos
 Endpoint:
 
 - `GET /mt5/feed`
+
+## A17 - MT5 Feed Quality Gate Mock
+
+```bash
+python3 -m odin.cli mt5-feed-quality
+```
+
+Os gates A17 validam os ticks mock do feed MT5 antes de qualquer uso futuro em decisao. O resultado esperado e `quality_mode=MOCK_FEED_GATES`, `all_ticks_valid=true`, `safe_to_use_for_decision=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /mt5/feed/quality`

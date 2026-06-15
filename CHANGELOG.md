@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - A17 MT5 Feed Quality Gate Mock
+
+- Adicionado contrato de qualidade do feed mock MT5 com gates por tick.
+- Adicionado comando `python3 -m odin.cli mt5-feed-quality`.
+- Adicionado endpoint read-only `GET /mt5/feed/quality`.
+- Integrado `mt5-feed-quality` no smoke local, elevando o total para 14 modulos seguros.
+
 ## Unreleased - A16 MT5 Market Feed Mock Adapter
 
 - Adicionado contrato de feed mock MT5 com ticks determinísticos para `EURUSD`, `USDJPY` e `GBPUSD`.
