@@ -37,6 +37,12 @@ MARKET_MOCK_CANDLES_GENERATED = "market.mock.candles.generated"
 MARKET_QUALITY_CHECKED = "market.quality.checked"
 MARKET_STATUS_GENERATED = "market.status.generated"
 MARKET_EXECUTION_BLOCKED = "market.execution.blocked"
+MARKET_WATCH_STARTED = "market_watch.started"
+MARKET_WATCH_SNAPSHOT_LOADED = "market_watch.snapshot_loaded"
+MARKET_WATCH_QUALITY_CHECKED = "market_watch.quality_checked"
+MARKET_WATCH_COMPLETED = "market_watch.completed"
+MARKET_WATCH_EXECUTION_BLOCKED = "market_watch.execution.blocked"
+MARKET_WATCH_DECISION_BLOCKED = "market_watch.decision.blocked"
 
 
 @dataclass(frozen=True)

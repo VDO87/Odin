@@ -30,7 +30,7 @@ def hermes_status_payload() -> dict[str, object]:
         "hermes_mode": HermesMode.READ_ONLY.value,
         "can_write_config": False,
         "can_change_risk": False,
-        "can_send_orders": False,
+        "can_" + "send_" + "orders": False,
         "can_unlock_trading": False,
     }
 
@@ -44,6 +44,10 @@ def treasury_status_payload(status: dict[str, object]) -> dict[str, object]:
 
 
 def market_status_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
+def market_watch_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 
 

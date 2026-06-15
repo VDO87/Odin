@@ -64,3 +64,10 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Qualidade de dados básica.
 - Endpoint de dashboard para estado de mercado mock.
 - Sem ligação a MT5 real, APIs financeiras reais ou geração de decisões.
+
+## A6 - Market Watch Mode
+
+- Modo `MARKET_WATCH` com dados mock.
+- Observacao e qualidade de dados sem decisao operacional.
+- Endpoint de dashboard para o estado de observacao.
+- Sem sinais, propostas ou execucao.

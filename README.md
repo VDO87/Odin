@@ -80,3 +80,15 @@ A camada A5 usa apenas dados determinísticos mock, e declara `read_only=true`, 
 Endpoint:
 
 - `GET /market/status`
+
+## A6 - Market Watch Mock
+
+```bash
+python3 -m odin.cli market-watch
+```
+
+O modo `MARKET_WATCH` observa dados mock, valida qualidade e mantem `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /market/watch`

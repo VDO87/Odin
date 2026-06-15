@@ -42,3 +42,10 @@
 - Adicionado comando `python3 -m odin.cli market-status`.
 - Adicionado endpoint `/market/status` no dashboard.
 - Adicionada watchlist mock com Forex e FIRE documental, sem dados reais ou execucao.
+
+## A6 - Market Watch Mode mock
+
+- Adicionado modo `MARKET_WATCH` observacional com dados mock.
+- Adicionado comando `python3 -m odin.cli market-watch`.
+- Adicionado endpoint `/market/watch` no dashboard.
+- O modo nao gera decisoes, propostas ou execucao.

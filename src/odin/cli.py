@@ -7,6 +7,7 @@ import json
 import sys
 
 from odin.core.bootstrap import validate_runtime
+from odin.core.market_watch import run_market_watch
 from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.server import run_dashboard
 from odin.hermes.service import generate_hermes_summary
@@ -20,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("hermes-summary", help="Generate the A3 Hermes read-only summary.")
     subparsers.add_parser("treasury-status", help="Generate the A4 Treasury PT read-only status.")
     subparsers.add_parser("market-status", help="Generate the A5 mock market data status.")
+    subparsers.add_parser("market-watch", help="Run A6 mock MARKET_WATCH observation mode.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -51,6 +53,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "market-status":
         result = market_status()
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "market-watch":
+        result = run_market_watch()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
 
