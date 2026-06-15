@@ -7,6 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
+from odin.adapters.mt5.market_feed import mt5_market_feed_status
 from odin.adapters.mt5.symbol_mapping import mt5_symbol_mapping_status
 from odin.contracts.events import OdinEvent
 from odin.adapters.market_data.mock_market import market_status
@@ -33,6 +34,7 @@ from odin.dashboard.schemas import (
     market_status_payload,
     market_watch_payload,
     mt5_bridge_payload,
+    mt5_feed_payload,
     mt5_symbols_payload,
     risk_status_payload,
     risk_gate_payload,
@@ -163,6 +165,13 @@ class DashboardRoutes:
         if path == "/mt5/symbols":
             payload = mt5_symbols_payload(
                 mt5_symbol_mapping_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/mt5/feed":
+            payload = mt5_feed_payload(
+                mt5_market_feed_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

@@ -204,3 +204,15 @@ O mapeamento A15 e apenas mock: mapeia Forex para simbolos mock equivalentes e m
 Endpoint:
 
 - `GET /mt5/symbols`
+
+## A16 - MT5 Market Feed Mock Adapter
+
+```bash
+python3 -m odin.cli mt5-feed
+```
+
+O feed A16 e apenas mock: usa o mapeamento A15 para expor ticks determinísticos de `EURUSD`, `USDJPY` e `GBPUSD`, exclui ativos FIRE e mantem `connected=false`, `execution_allowed=false`, `safe_to_trade=false` e `real_trading=false`.
+
+Endpoint:
+
+- `GET /mt5/feed`

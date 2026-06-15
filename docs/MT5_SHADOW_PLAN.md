@@ -23,6 +23,10 @@ Permitido:
 - A15 so pode criar mapeamento mock de simbolos, sem terminal real e sem execucao.
 - Comando A15 permitido: `python3 -m odin.cli mt5-symbols`.
 - Endpoint A15 permitido: `GET /mt5/symbols`.
+- A16 so pode criar feed de mercado mock baseado no mapeamento A15.
+- Comando A16 permitido: `python3 -m odin.cli mt5-feed`.
+- Endpoint A16 permitido: `GET /mt5/feed`.
+- Simbolos A16 permitidos: `EURUSD`, `USDJPY` e `GBPUSD`; ativos FIRE ficam excluidos.
 
 Proibido:
 
@@ -36,3 +40,4 @@ Proibido:
 - Guardar credenciais.
 - Detectar ou ligar a terminal real.
 - Transformar mapeamento de simbolos em autorizacao para trading.
+- Transformar ticks mock em decisao, risco aprovado ou execucao.

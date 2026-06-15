@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - A16 MT5 Market Feed Mock Adapter
+
+- Adicionado contrato de feed mock MT5 com ticks determinísticos para `EURUSD`, `USDJPY` e `GBPUSD`.
+- Adicionado comando `python3 -m odin.cli mt5-feed`.
+- Adicionado endpoint read-only `GET /mt5/feed`.
+- Integrado `mt5-feed` no smoke local, elevando o total para 13 modulos seguros.
+
 ## Unreleased - A15 MT5 Symbol Mapping Mock
 
 - Adicionado contrato de mapeamento mock de simbolos Odin para futura bridge MT5.

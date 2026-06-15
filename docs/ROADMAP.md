@@ -16,7 +16,9 @@
 - A11 concluida: shadow proposal skeleton.
 - A12 concluida: local runtime smoke pack.
 - A13 closeout: documentar `LOCAL_SAFE_RUNTIME` e preparar `v0.1.0-local-safe-runtime`, sem commit/tag automaticos.
-- A14 proxima fase: MT5 Bridge Mock Adapter.
+- A14 concluida: MT5 Bridge Mock Adapter.
+- A15 concluida: MT5 Symbol Mapping Mock.
+- A16 concluida: MT5 Market Feed Mock Adapter.
 
 ## A14 - MT5 Bridge Mock Adapter
 
@@ -33,6 +35,16 @@
 - Expor endpoint `GET /mt5/symbols`.
 - Mapear 3 simbolos Forex como tradable mock e 6 ativos FIRE como `non_mt5_fire_asset`.
 - Integrar o mapeamento no smoke local, com `modules_count=12`.
+- Manter sem MT5 real, sem sinais, sem ordens e sem execucao.
+
+## A16 - MT5 Market Feed Mock Adapter
+
+- Criar feed mock usando o mapeamento A15.
+- Expor comando `python3 -m odin.cli mt5-feed`.
+- Expor endpoint `GET /mt5/feed`.
+- Gerar ticks determinísticos apenas para `EURUSD`, `USDJPY` e `GBPUSD`.
+- Excluir ativos FIRE do feed MT5 mock.
+- Integrar o feed no smoke local, com `modules_count=13`.
 - Manter sem MT5 real, sem sinais, sem ordens e sem execucao.
 
 ## A0 - Bootstrap

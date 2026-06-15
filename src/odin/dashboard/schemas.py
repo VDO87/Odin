@@ -79,6 +79,10 @@ def mt5_symbols_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 
 
+def mt5_feed_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
 def runtime_smoke_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 

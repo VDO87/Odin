@@ -84,6 +84,11 @@ MT5_SYMBOLS_MOCK_LOADED = "mt5.symbols.mock.loaded"
 MT5_SYMBOLS_MAPPING_REPORTED = "mt5.symbols.mapping.reported"
 MT5_SYMBOLS_EXECUTION_BLOCKED = "mt5.symbols.execution.blocked"
 MT5_SYMBOLS_NON_ASSET_DETECTED = "mt5.symbols.non_mt5_asset.detected"
+MT5_FEED_REQUESTED = "mt5.feed.requested"
+MT5_FEED_MOCK_LOADED = "mt5.feed.mock.loaded"
+MT5_FEED_TICK_GENERATED = "mt5.feed.tick.generated"
+MT5_FEED_EXECUTION_BLOCKED = "mt5.feed.execution.blocked"
+MT5_FEED_STATUS_REPORTED = "mt5.feed.status.reported"
 
 
 @dataclass(frozen=True)
