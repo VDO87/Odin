@@ -27,6 +27,11 @@ DEFAULT_BLOCKERS = [
 ]
 
 
+def _text_field(data: dict[str, object], key: str, default: str) -> str:
+    value = data.get(key, default)
+    return value if isinstance(value, str) else str(value)
+
+
 def shadow_proposal(
     *,
     log_path: str = "logs/odin_events.jsonl",
@@ -55,13 +60,13 @@ def build_blocked_shadow_proposal(gate: dict[str, object]) -> dict[str, object]:
         shadow_proposal_status="BLOCKED",
         shadow_mode="SHADOW_SKELETON",
         shadow_only=True,
-        symbol=gate.get("symbol", "EURUSD"),
-        source=gate.get("source", "mock"),
-        decision_intent_status=gate.get("decision_intent_status", "NO_DECISION"),
-        risk_status=gate.get("risk_status", "BLOCKED"),
+        symbol=_text_field(gate, "symbol", "EURUSD"),
+        source=_text_field(gate, "source", "mock"),
+        decision_intent_status=_text_field(gate, "decision_intent_status", "NO_DECISION"),
+        risk_status=_text_field(gate, "risk_status", "BLOCKED"),
         risk_approved=False,
-        strategy_status=gate.get("strategy_status", "READY_NO_DECISION"),
-        data_quality_status=gate.get("data_quality_status", "OK"),
+        strategy_status=_text_field(gate, "strategy_status", "READY_NO_DECISION"),
+        data_quality_status=_text_field(gate, "data_quality_status", "OK"),
         read_only=True,
         safe_to_trade=False,
         real_trading=False,

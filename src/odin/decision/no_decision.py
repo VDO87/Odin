@@ -13,17 +13,22 @@ DEFAULT_BLOCKERS = [
 ]
 
 
+def _text_field(data: dict[str, object], key: str, default: str) -> str:
+    value = data.get(key, default)
+    return value if isinstance(value, str) else str(value)
+
+
 def build_no_decision_intent(strategy: dict[str, object]) -> dict[str, object]:
     intent = DecisionIntent(
         component="decision_intent",
         status="OK",
         decision_intent_status="NO_DECISION",
         decision_intent_mode="INTENT_SKELETON",
-        symbol=strategy.get("symbol", "EURUSD"),
-        source=strategy.get("source", "mock"),
-        strategy_name=strategy.get("strategy_name", "baseline_observer"),
-        strategy_status=strategy.get("strategy_status", "READY_NO_DECISION"),
-        data_quality_status=strategy.get("data_quality_status", "OK"),
+        symbol=_text_field(strategy, "symbol", "EURUSD"),
+        source=_text_field(strategy, "source", "mock"),
+        strategy_name=_text_field(strategy, "strategy_name", "baseline_observer"),
+        strategy_status=_text_field(strategy, "strategy_status", "READY_NO_DECISION"),
+        data_quality_status=_text_field(strategy, "data_quality_status", "OK"),
         read_only=True,
         safe_to_trade=False,
         real_trading=False,

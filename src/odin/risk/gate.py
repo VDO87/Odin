@@ -27,6 +27,11 @@ DEFAULT_BLOCKERS = [
 ]
 
 
+def _text_field(data: dict[str, object], key: str, default: str) -> str:
+    value = data.get(key, default)
+    return value if isinstance(value, str) else str(value)
+
+
 def risk_gate(
     *,
     log_path: str = "logs/odin_events.jsonl",
@@ -54,12 +59,12 @@ def build_blocking_risk_gate(intent: dict[str, object]) -> dict[str, object]:
         status="OK",
         risk_status="BLOCKED",
         risk_gate_mode="BLOCKING_SKELETON",
-        symbol=intent.get("symbol", "EURUSD"),
-        source=intent.get("source", "mock"),
-        decision_intent_status=intent.get("decision_intent_status", "NO_DECISION"),
-        decision_intent_mode=intent.get("decision_intent_mode", "INTENT_SKELETON"),
-        strategy_status=intent.get("strategy_status", "READY_NO_DECISION"),
-        data_quality_status=intent.get("data_quality_status", "OK"),
+        symbol=_text_field(intent, "symbol", "EURUSD"),
+        source=_text_field(intent, "source", "mock"),
+        decision_intent_status=_text_field(intent, "decision_intent_status", "NO_DECISION"),
+        decision_intent_mode=_text_field(intent, "decision_intent_mode", "INTENT_SKELETON"),
+        strategy_status=_text_field(intent, "strategy_status", "READY_NO_DECISION"),
+        data_quality_status=_text_field(intent, "data_quality_status", "OK"),
         read_only=True,
         safe_to_trade=False,
         real_trading=False,
