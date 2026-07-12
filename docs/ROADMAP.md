@@ -22,6 +22,8 @@
 - A17 concluida: MT5 Feed Quality Gate Mock.
 - A18 concluida: MT5 Feed Source Selector Mock.
 - A19 concluida: Observation Frame Builder Mock.
+- A20 concluida: Observation Frame Quality Gate.
+- A21 concluida: Strategy Context Snapshot Mock.
 
 ## A14 - MT5 Bridge Mock Adapter
 
@@ -83,6 +85,14 @@
 - Expor endpoint `GET /observation/frame/quality`.
 - Integrar os gates no smoke local, com `modules_count=17`.
 - Manter `safe_to_use_for_decision=false`, sem decisao, sem proposta, sem risco aprovado e sem execucao.
+
+## A21 - Strategy Context Snapshot Mock
+
+- Criar snapshot imutavel e deterministico a partir da qualidade A20.
+- Expor comando `python3 -m odin.cli strategy-context-snapshot`.
+- Expor endpoint `GET /strategy/context/snapshot`.
+- Integrar o snapshot no smoke local, com `modules_count=18`.
+- Manter sem decisao, proposta, risco aprovado, execucao ou trading real.
 
 ## A0 - Bootstrap
 

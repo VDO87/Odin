@@ -99,3 +99,9 @@ Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `decision_ge
 A20 permite apenas validar a completude e coerencia do frame observacional A19. Um resultado `OK` confirma que o frame esta completo, coerente e bloqueado, mas nao autoriza analise decisoria, proposta, aprovacao de risco ou execucao.
 
 Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `decision_generated=false`, `trade_proposal_generated=false`, `risk_approved=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.
+
+## A21 - Strategy Context Snapshot
+
+A21 pode apenas congelar contexto observacional aprovado por A20 num contrato imutavel e deterministico. Qualidade `OK` e fingerprint valido nao autorizam analise decisoria, proposta, risco ou execucao.
+
+Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `decision_generated=false`, `trade_proposal_generated=false`, `risk_approved=false`, `real_trading=false`, `safe_to_trade=false` e `execution_allowed=false`.

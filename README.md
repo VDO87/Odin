@@ -264,3 +264,15 @@ Os gates A20 validam o frame observacional A19 antes de qualquer uso futuro em a
 Endpoint:
 
 - `GET /observation/frame/quality`
+
+## A21 - Strategy Context Snapshot Mock
+
+```bash
+python3 -m odin.cli strategy-context-snapshot
+```
+
+O snapshot A21 congela apenas contexto observacional aprovado por A20. A serializacao e o fingerprint sao deterministicos e todos os flags de decisao, proposta, risco aprovado, execucao e trading real permanecem bloqueados.
+
+Endpoint:
+
+- `GET /strategy/context/snapshot`

@@ -39,6 +39,9 @@ Permitido:
 - A20 so pode criar gates de qualidade para o frame observacional, sem decisao ou execucao.
 - Comando A20 permitido: `python3 -m odin.cli observation-frame-quality`.
 - Endpoint A20 permitido: `GET /observation/frame/quality`.
+- Comando A21 permitido: `python3 -m odin.cli strategy-context-snapshot`.
+- Endpoint A21 permitido: `GET /strategy/context/snapshot`.
+- O snapshot A21 permanece mock, observacional e sem capacidade operacional.
 
 Proibido:
 

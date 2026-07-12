@@ -145,3 +145,16 @@ Risco global estimado: medio, devido a integracao transversal; risco financeiro:
 ## Condicao para iniciar implementacao
 
 A implementacao da A21 so pode comecar depois de aprovacao humana deste plano. A Fase 7 termina com a worktree preparada e este documento; nenhum modulo funcional A21 e criado nesta fase.
+
+## Resultado da implementacao aprovada
+
+- Contrato imutavel e builder deterministico implementados.
+- CLI, dashboard e smoke integrados.
+- Fingerprint SHA-256 validado sem campos volateis.
+- Entrada A20 invalida falha fechada em `BLOCKED`.
+- Smoke elevado para 18 modulos seguros.
+- 13 testes A21 especificos aprovados.
+- Suite integral com 512 testes aprovada.
+- Ruff aprovado na worktree completa.
+- mypy aprovado nos dois modulos A21 com imports externos ignorados; permanecem erros antigos fora do escopo em A9-A11.
+- Nenhum push ou merge realizado.

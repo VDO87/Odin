@@ -31,6 +31,7 @@ python3 -m odin.cli dashboard --host 127.0.0.1 --port 8765
 - `/feed/source`
 - `/observation/frame`
 - `/observation/frame/quality`
+- `/strategy/context/snapshot`
 - `/strategy/status`
 - `/decision/intent`
 - `/risk/gate`
@@ -63,6 +64,8 @@ ODIN dashboard stopped
 - Validar `python3 -m odin.cli feed-source`.
 - Validar `python3 -m odin.cli observation-frame`.
 - Validar `python3 -m odin.cli observation-frame-quality`.
+- Validar `python3 -m odin.cli strategy-context-snapshot`.
+- Confirmar fingerprint deterministico e todos os flags criticos bloqueados.
 - Manter o smoke local em `PASS`.
 - Reforcar documentacao, testes e bloqueios de seguranca.
 - Continuar sem integracao real de broker.

@@ -75,3 +75,7 @@ O endpoint `GET /observation/frame` devolve apenas frame agregado `OBSERVATION_O
 ## A20 - Observation Frame Quality Endpoint
 
 O endpoint `GET /observation/frame/quality` devolve apenas gates de qualidade para o frame A19: `quality_mode=OBSERVATION_FRAME_GATES`, `frame_quality_status=OK`, `all_gates_passed=true`, com decisao, proposta, risco aprovado e execucao bloqueados.
+
+## A21 - Strategy Context Snapshot Endpoint
+
+O endpoint `GET /strategy/context/snapshot` devolve um snapshot `MOCK_OBSERVATION_ONLY`, imutavel e deterministico, com fingerprint observacional e todos os flags de decisao, proposta, risco aprovado, execucao e trading real bloqueados.

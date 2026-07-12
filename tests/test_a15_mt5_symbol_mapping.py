@@ -95,13 +95,13 @@ class A15MT5SymbolMappingTests(unittest.TestCase):
         self.assertIn("mt5-symbols", names)
         self.assertEqual(report["status"], "PASS")
 
-    def test_smoke_modules_count_17(self):
+    def test_smoke_modules_count_18(self):
         report = run_runtime_smoke(
             log_path=str(self.root / "logs" / "events.jsonl"),
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 17)
+        self.assertEqual(report["modules_count"], 18)
 
 
 def _mapping(report: dict[str, object], symbol: str) -> str:

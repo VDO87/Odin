@@ -21,6 +21,7 @@ from odin.decision.observation_frame import observation_frame_status
 from odin.decision.observation_frame_quality import observation_frame_quality_status
 from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
+from odin.decision.strategy_context_snapshot import strategy_context_snapshot_status
 from odin.contracts.events import (
     DASHBOARD_LOGS_TAIL_SERVED,
     DASHBOARD_REQUEST_RECEIVED,
@@ -49,6 +50,7 @@ from odin.dashboard.schemas import (
     runtime_smoke_payload,
     shadow_proposal_payload,
     strategy_status_payload,
+    strategy_context_snapshot_payload,
     treasury_status_payload,
 )
 from odin.hermes.service import generate_hermes_summary
@@ -152,6 +154,16 @@ class DashboardRoutes:
         if path == "/observation/frame/quality":
             payload = observation_frame_quality_payload(
                 observation_frame_quality_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/strategy/context/snapshot":
+            payload = strategy_context_snapshot_payload(
+                strategy_context_snapshot_status(
+                    log_path=self.log_path,
+                    sqlite_path=self.sqlite_path,
+                )
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

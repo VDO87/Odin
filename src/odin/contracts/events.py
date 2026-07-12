@@ -110,6 +110,11 @@ OBSERVATION_FRAME_QUALITY_PASS = "observation.frame_quality.pass"
 OBSERVATION_FRAME_QUALITY_FAIL = "observation.frame_quality.fail"
 OBSERVATION_FRAME_QUALITY_DECISION_BLOCKED = "observation.frame_quality.decision.blocked"
 OBSERVATION_FRAME_QUALITY_EXECUTION_BLOCKED = "observation.frame_quality.execution.blocked"
+STRATEGY_CONTEXT_SNAPSHOT_REQUESTED = "strategy.context_snapshot.requested"
+STRATEGY_CONTEXT_SNAPSHOT_BUILT = "strategy.context_snapshot.built"
+STRATEGY_CONTEXT_SNAPSHOT_INVALID = "strategy.context_snapshot.invalid"
+STRATEGY_CONTEXT_SNAPSHOT_DECISION_BLOCKED = "strategy.context_snapshot.decision.blocked"
+STRATEGY_CONTEXT_SNAPSHOT_EXECUTION_BLOCKED = "strategy.context_snapshot.execution.blocked"
 
 
 @dataclass(frozen=True)

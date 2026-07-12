@@ -67,6 +67,10 @@ def observation_frame_quality_payload(status: dict[str, object]) -> dict[str, ob
     return status
 
 
+def strategy_context_snapshot_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
 def strategy_status_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 

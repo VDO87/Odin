@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - A21 Strategy Context Snapshot Mock
+
+- Adicionado contrato imutavel de contexto estrategico observacional.
+- Adicionado fingerprint deterministico sem campos operacionais ou volateis.
+- Adicionado comando `python3 -m odin.cli strategy-context-snapshot`.
+- Adicionado endpoint read-only `GET /strategy/context/snapshot`.
+- Integrado o snapshot no smoke local, elevando o total para 18 modulos seguros.
+
 ## Unreleased - Fase 6 Ensaio Controlado
 
 - Adicionado fluxo isolado entre proposta Ollama, validadores e revisao Codex.
