@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased - Fase 6 Ensaio Controlado
+
+- Adicionado fluxo isolado entre proposta Ollama, validadores e revisao Codex.
+- Limitada a aplicacao de propostas a sandboxes descartaveis e caminhos autorizados.
+- Fixados os validadores em pytest, Ruff e mypy, sem aceitar comandos do modelo.
+- Adicionada repeticao local delimitada e escalamento persistente sem chamada automatica.
+- Impedido o estado COMPLETED automatico; sucesso tecnico aguarda aprovacao.
+- Adicionados timeout por operacao, limite global e watchdog externo apos deteccao de bloqueio.
+- Validado escalamento real para CODEX_REVIEW perante erro repetido do modelo local.
+
+## Unreleased - Fase 5 Motor de Progresso e Escalamento
+
+- Adicionada maquina de estados persistente para tarefas Hermes.
+- Adicionada avaliacao objectiva por testes, cobertura, lint, tipagem, ambito e regressao.
+- Limitadas as tentativas locais e criado escalamento por ausencia de progresso.
+- Adicionado pacote compacto de diagnostico para revisao Codex.
+- Mantidas desactivadas chamadas automaticas ao Codex e aplicacao automatica de codigo.
+
+## Unreleased - Fase 4 Hermes Ollama Adapter
+
+- Adicionado adaptador local controlado entre Hermes e Ollama.
+- Limitados endpoint, contexto, temperatura, tentativas, timeout e duracao por tarefa.
+- Adicionados cancelamento, validacao de resposta e resultado estruturado com metricas.
+- Adicionado log de auditoria sem prompts, respostas ou segredos.
+- Mantidas bloqueadas execucao, alteracao do repositorio e capacidades de trading.
+- Validada inferencia real com `qwen2.5-coder:1.5b` na Quadro M4000.
+
 ## Unreleased - A19 Observation Frame Builder Mock
 
 - Adicionado contrato de frame observacional agregado.

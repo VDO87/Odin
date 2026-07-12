@@ -3,13 +3,54 @@ hermes:
   can_write_orders: false
   can_modify_risk: false
   can_modify_treasury: false
+  local_worker:
+    provider: ollama
+    endpoint: http://127.0.0.1:11434
+    model: qwen2.5-coder:1.5b
+    context_size: 2048
+    temperature: 0.1
+    json_mode: false
+    timeout_seconds: 120
+    max_task_seconds: 300
+    max_attempts: 2
+    max_loaded_models: 1
+    audit_log_path: logs/hermes_ollama.jsonl
+    can_execute: false
+    can_modify_repository: false
+    can_access_secrets: false
+  progress_engine:
+    state_root: /home/odin/hermes_state
+    max_no_progress_attempts: 2
+    max_local_attempts: 3
+    max_diff_growth_percent: 20
+    max_escalation_diff_chars: 12000
+    automatic_codex_calls: false
+    automatic_code_application: false
+    require_human_approval_for_critical_changes: true
+  controlled_flow:
+    sandbox_root: /home/odin/hermes_state/sandboxes
+    allowed_validators:
+      - pytest
+      - ruff
+      - mypy
+    validator_timeout_seconds: 60
+    proposal_format: files_json_only
+    ollama_json_mode: true
+    sandbox_code_application: true
+    repository_code_application: false
+    automatic_codex_calls: false
+    successful_state: AWAITING_APPROVAL
   allowed_outputs:
     - summaries
     - reports
     - recommendations
     - audit_notes
+    - code_proposals
   blocked_actions:
     - place_order
     - approve_real_trading
     - bypass_risk
     - bypass_treasury
+    - commit
+    - push
+    - merge
