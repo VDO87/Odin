@@ -29,6 +29,7 @@ from odin.decision.observation_frame_quality import observation_frame_quality_st
 from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
 from odin.decision.strategy_context_snapshot import strategy_context_snapshot_status
+from odin.decision.strategy_context_snapshot_quality import strategy_context_snapshot_quality_status
 from odin.hermes.service import generate_hermes_summary
 from odin.logging.jsonl_logger import JsonlLogger
 from odin.risk.gate import risk_gate
@@ -124,6 +125,7 @@ def _check_modules(*, log_path: str, sqlite_path: str) -> list[SmokeModuleResult
         ("observation-frame", lambda: observation_frame_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("observation-frame-quality", lambda: observation_frame_quality_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("strategy-context-snapshot", lambda: strategy_context_snapshot_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
+        ("strategy-context-snapshot-quality", lambda: strategy_context_snapshot_quality_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
     ]
     return [
         _module_result(name, call(), expected_status, expected_blocking)
@@ -174,6 +176,7 @@ def _observed_state(payload: dict[str, object]) -> str:
         "quality_mode",
         "selector_mode",
         "frame_mode",
+        "quality_mode",
         "snapshot_mode",
         "decision_intent_status",
         "strategy_status",

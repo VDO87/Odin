@@ -79,3 +79,9 @@ O endpoint `GET /observation/frame/quality` devolve apenas gates de qualidade pa
 ## A21 - Strategy Context Snapshot Endpoint
 
 O endpoint `GET /strategy/context/snapshot` devolve um snapshot `MOCK_OBSERVATION_ONLY`, imutavel e deterministico, com fingerprint observacional e todos os flags de decisao, proposta, risco aprovado, execucao e trading real bloqueados.
+
+## A22 Strategy Context Snapshot Quality
+
+- Endpoint: `/strategy/context/snapshot/quality`.
+- Returns the immutable A22 quality report as JSON.
+- Read-only and fail-closed; all critical trading and execution flags remain `false`.

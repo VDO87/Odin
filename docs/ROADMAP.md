@@ -207,3 +207,9 @@ Qualquer demo, limited real ou integracao operacional exige revisao formal, test
 - Comando unico para confirmar estado seguro e bloqueante.
 - Sem comandos shell internos, sem execucao e sem novas integracoes.
 - Endpoint de dashboard para resultado do smoke.
+
+## A22 - Strategy Context Snapshot Quality Gate
+
+- Adds a read-only quality gate over A21 snapshot consistency.
+- Validates mode, version, required schema fields, deterministic fingerprint and fail-closed flags.
+- Does not authorize decisions, proposals, risk approval, execution or real trading.

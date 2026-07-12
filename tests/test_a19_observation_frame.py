@@ -91,13 +91,13 @@ class A19ObservationFrameTests(unittest.TestCase):
         self.assertIn("observation-frame", names)
         self.assertEqual(report["status"], "PASS")
 
-    def test_smoke_modules_count_18(self):
+    def test_smoke_modules_count_19(self):
         report = run_runtime_smoke(
             log_path=str(self.root / "logs" / "events.jsonl"),
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 18)
+        self.assertEqual(report["modules_count"], 19)
 
 
 if __name__ == "__main__":

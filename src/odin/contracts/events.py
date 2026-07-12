@@ -115,6 +115,10 @@ STRATEGY_CONTEXT_SNAPSHOT_BUILT = "strategy.context_snapshot.built"
 STRATEGY_CONTEXT_SNAPSHOT_INVALID = "strategy.context_snapshot.invalid"
 STRATEGY_CONTEXT_SNAPSHOT_DECISION_BLOCKED = "strategy.context_snapshot.decision.blocked"
 STRATEGY_CONTEXT_SNAPSHOT_EXECUTION_BLOCKED = "strategy.context_snapshot.execution.blocked"
+STRATEGY_CONTEXT_SNAPSHOT_QUALITY_REQUESTED = "strategy.context_snapshot_quality.requested"
+STRATEGY_CONTEXT_SNAPSHOT_QUALITY_PASS = "strategy.context_snapshot_quality.pass"
+STRATEGY_CONTEXT_SNAPSHOT_QUALITY_BLOCKED = "strategy.context_snapshot_quality.blocked"
+STRATEGY_CONTEXT_SNAPSHOT_QUALITY_DECISION_BLOCKED = "strategy.context_snapshot_quality.decision.blocked"
 
 
 @dataclass(frozen=True)
