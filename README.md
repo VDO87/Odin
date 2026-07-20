@@ -73,6 +73,18 @@ Endpoint:
 
 - `GET /hermes/summary`
 
+## H1 - Hermes Supervisor Foundation
+
+```bash
+python3 -m odin.cli hermes-supervisor
+```
+
+O supervisor H1 regista agentes permanentes, skills, objetivo persistente, memoria e checkpoints em modo seguro. O routing e local-first por desenho, mas o estado fica `DEGRADED` enquanto `ollama` ou modelos locais nao estiverem realmente disponiveis no host. O supervisor mantem `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
+
+Endpoint:
+
+- `GET /hermes/runtime`
+
 ## A4 - Treasury PT Skeleton
 
 ```bash

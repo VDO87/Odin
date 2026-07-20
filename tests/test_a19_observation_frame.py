@@ -97,7 +97,7 @@ class A19ObservationFrameTests(unittest.TestCase):
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 20)
+        self.assertEqual(report["modules_count"], 21)
 
 
 if __name__ == "__main__":

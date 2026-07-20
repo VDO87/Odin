@@ -3,6 +3,26 @@ hermes:
   can_write_orders: false
   can_modify_risk: false
   can_modify_treasury: false
+  supervisor_enabled: true
+  local_first: true
+  local_provider: ollama
+  allow_cloud_fallback: false
+  codex_last_resort: false
+  persistent_memory: sqlite_jsonl
+  dynamic_agents_enabled: true
+  goal_engine:
+    enabled: true
+    default_agent: hermes_supervisor
+    supported_states:
+      - PENDING
+      - RUNNING
+      - WAITING
+      - BLOCKED
+      - RETRYING
+      - DEGRADED
+      - COMPLETED
+      - FAILED
+      - SAFE_STOP
   local_worker:
     provider: ollama
     endpoint: http://127.0.0.1:11434
@@ -46,6 +66,8 @@ hermes:
     - recommendations
     - audit_notes
     - code_proposals
+    - checkpoints
+    - structured_status
   blocked_actions:
     - place_order
     - approve_real_trading
@@ -54,3 +76,5 @@ hermes:
     - commit
     - push
     - merge
+    - push_repository
+    - merge_main

@@ -39,6 +39,10 @@ def hermes_summary_payload(summary: dict[str, object]) -> dict[str, object]:
     return summary
 
 
+def hermes_runtime_payload(summary: dict[str, object]) -> dict[str, object]:
+    return summary
+
+
 def treasury_status_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 

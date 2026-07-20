@@ -26,6 +26,7 @@ from odin.decision.strategy_context_snapshot import strategy_context_snapshot_st
 from odin.decision.strategy_context_snapshot_diff import strategy_context_snapshot_diff_status
 from odin.decision.strategy_context_snapshot_quality import strategy_context_snapshot_quality_status
 from odin.hermes.service import generate_hermes_summary
+from odin.hermes.supervisor import run_hermes_supervisor
 from odin.risk.gate import risk_gate
 from odin.treasury.engine import treasury_status
 
@@ -35,6 +36,9 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate", help="Validate the A1 fail-closed runtime state.")
     subparsers.add_parser("hermes-summary", help="Generate the A3 Hermes read-only summary.")
+    supervisor = subparsers.add_parser("hermes-supervisor", help="Run one or more Hermes supervisor cycles in safe mode.")
+    supervisor.add_argument("--cycles", type=int, default=1)
+    supervisor.add_argument("--sleep-seconds", type=int, default=0)
     subparsers.add_parser("treasury-status", help="Generate the A4 Treasury PT read-only status.")
     subparsers.add_parser("market-status", help="Generate the A5 mock market data status.")
     subparsers.add_parser("market-watch", help="Run A6 mock MARKET_WATCH observation mode.")
@@ -82,6 +86,11 @@ def main(argv: list[str] | None = None) -> int:
         result = generate_hermes_summary()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["read_only"] is True else 1
+
+    if args.command == "hermes-supervisor":
+        result = run_hermes_supervisor(cycles=args.cycles, sleep_seconds=args.sleep_seconds)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] in {"OK", "DEGRADED"} and result["execution_allowed"] is False else 1
 
     if args.command == "treasury-status":
         result = treasury_status()

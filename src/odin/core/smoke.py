@@ -32,6 +32,7 @@ from odin.decision.strategy_context_snapshot import strategy_context_snapshot_st
 from odin.decision.strategy_context_snapshot_diff import strategy_context_snapshot_diff_status
 from odin.decision.strategy_context_snapshot_quality import strategy_context_snapshot_quality_status
 from odin.hermes.service import generate_hermes_summary
+from odin.hermes.supervisor import run_hermes_supervisor
 from odin.logging.jsonl_logger import JsonlLogger
 from odin.risk.gate import risk_gate
 from odin.storage.sqlite_store import SQLiteStore
@@ -110,6 +111,7 @@ def _check_modules(*, log_path: str, sqlite_path: str) -> list[SmokeModuleResult
     calls: list[tuple[str, Callable[[], dict[str, object]], str, bool]] = [
         ("validate/core", lambda: validate_runtime(log_path=log_path, sqlite_path=sqlite_path), "PASS", True),
         ("hermes-summary", lambda: generate_hermes_summary(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
+        ("hermes-supervisor", lambda: run_hermes_supervisor(log_path=log_path, sqlite_path=sqlite_path), "SAFE_RUNTIME", True),
         ("treasury-status", lambda: treasury_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("market-status", lambda: market_status(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
         ("market-watch", lambda: run_market_watch(log_path=log_path, sqlite_path=sqlite_path), "OK", True),
@@ -157,8 +159,9 @@ def _module_result(
     real_trading = bool(payload.get("real_trading", False))
     execution_allowed = bool(payload.get("execution_allowed", False))
     observed_key_state = _observed_state(payload)
+    status_ok = status in {"OK", "DEGRADED"} if expected_status == "SAFE_RUNTIME" else status == expected_status
     passed = (
-        status == expected_status
+        status_ok
         and safe_to_trade is False
         and real_trading is False
         and execution_allowed is False
@@ -196,6 +199,7 @@ def _observed_state(payload: dict[str, object]) -> str:
         "safe_to_use_for_decision",
         "quality_status",
         "safe_to_transfer",
+        "operational_state",
         "hermes_mode",
         "risk_state",
     ):

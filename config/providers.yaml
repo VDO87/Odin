@@ -1,8 +1,17 @@
 providers:
   llm:
-    enabled: false
-    secrets_source: external_manual_only
+    enabled: true
+    default_provider: ollama_local
+    local_first: true
+    allow_cloud_fallback: true
+    require_reason_for_cloud: true
     allow_real_secrets_in_repo: false
+    ollama:
+      preferred_fast_model: local_fast
+      preferred_main_model: local_main
+      max_loaded_models: 1
+    codex:
+      role: last_resort_for_code
   mt5:
     enabled: false
     allowed_modes:

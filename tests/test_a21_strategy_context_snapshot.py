@@ -90,7 +90,7 @@ class A21StrategyContextSnapshotTests(unittest.TestCase):
         )
         names = {str(module["name"]) for module in report["modules"]}
         self.assertIn("strategy-context-snapshot", names)
-        self.assertEqual(report["modules_count"], 20)
+        self.assertEqual(report["modules_count"], 21)
         self.assertEqual(report["status"], "PASS")
 
 

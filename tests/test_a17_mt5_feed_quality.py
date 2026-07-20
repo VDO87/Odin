@@ -114,7 +114,7 @@ class A17MT5FeedQualityTests(unittest.TestCase):
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 20)
+        self.assertEqual(report["modules_count"], 21)
 
 
 def _gate_symbols(report: dict[str, object]) -> set[str]:

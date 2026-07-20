@@ -37,6 +37,7 @@ from odin.dashboard.schemas import (
     feed_source_payload,
     health_payload,
     hermes_summary_payload,
+    hermes_runtime_payload,
     hermes_status_payload,
     not_found_payload,
     market_status_payload,
@@ -58,6 +59,7 @@ from odin.dashboard.schemas import (
     treasury_status_payload,
 )
 from odin.hermes.service import generate_hermes_summary
+from odin.hermes.supervisor import run_hermes_supervisor
 from odin.logging.jsonl_logger import JsonlLogger
 from odin.risk.gate import risk_gate
 from odin.storage.sqlite_store import SQLiteStore
@@ -111,6 +113,13 @@ class DashboardRoutes:
         if path == "/hermes/summary":
             payload = hermes_summary_payload(
                 generate_hermes_summary(log_path=self.log_path, sqlite_path=self.sqlite_path)
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/hermes/runtime":
+            payload = hermes_runtime_payload(
+                run_hermes_supervisor(log_path=self.log_path, sqlite_path=self.sqlite_path)
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload

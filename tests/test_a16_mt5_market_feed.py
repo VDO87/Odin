@@ -100,7 +100,7 @@ class A16MT5MarketFeedTests(unittest.TestCase):
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 20)
+        self.assertEqual(report["modules_count"], 21)
 
 
 def _tick(report: dict[str, object], symbol: str) -> dict[str, object]:

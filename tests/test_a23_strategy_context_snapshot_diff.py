@@ -120,7 +120,7 @@ class A23StrategyContextSnapshotDiffTests(unittest.TestCase):
         )
         names = {str(module["name"]) for module in smoke["modules"]}
         self.assertIn("strategy-context-snapshot-diff", names)
-        self.assertEqual(smoke["modules_count"], 20)
+        self.assertEqual(smoke["modules_count"], 21)
         self.assertEqual(smoke["status"], "PASS")
 
 
