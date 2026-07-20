@@ -105,7 +105,7 @@ class A20ObservationFrameQualityTests(unittest.TestCase):
             sqlite_path=str(self.root / "runtime" / "odin.sqlite"),
         )
 
-        self.assertEqual(report["modules_count"], 19)
+        self.assertEqual(report["modules_count"], 20)
 
 
 if __name__ == "__main__":

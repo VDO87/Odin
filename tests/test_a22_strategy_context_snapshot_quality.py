@@ -118,7 +118,7 @@ class A22StrategyContextSnapshotQualityTests(unittest.TestCase):
         )
         names = {str(module["name"]) for module in report["modules"]}
         self.assertIn("strategy-context-snapshot-quality", names)
-        self.assertEqual(report["modules_count"], 19)
+        self.assertEqual(report["modules_count"], 20)
         self.assertEqual(report["status"], "PASS")
 
 

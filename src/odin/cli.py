@@ -23,6 +23,7 @@ from odin.decision.observation_frame_quality import observation_frame_quality_st
 from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
 from odin.decision.strategy_context_snapshot import strategy_context_snapshot_status
+from odin.decision.strategy_context_snapshot_diff import strategy_context_snapshot_diff_status
 from odin.decision.strategy_context_snapshot_quality import strategy_context_snapshot_quality_status
 from odin.hermes.service import generate_hermes_summary
 from odin.risk.gate import risk_gate
@@ -52,6 +53,12 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("observation-frame-quality", help="Run A20 observation frame quality gates.")
     subparsers.add_parser("strategy-context-snapshot", help="Run A21 mock strategy context snapshot.")
     subparsers.add_parser("strategy-context-snapshot-quality", help="Run A22 strategy context snapshot quality gate.")
+    diff = subparsers.add_parser(
+        "strategy-context-snapshot-diff",
+        help="Run A23 read-only diff over two supplied A21 snapshots.",
+    )
+    diff.add_argument("--before-json", required=True, help="A21 snapshot JSON before the observation.")
+    diff.add_argument("--after-json", required=True, help="A21 snapshot JSON after the observation.")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -161,6 +168,16 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
 
+    if args.command == "strategy-context-snapshot-diff":
+        before = _snapshot_argument(parser, args.before_json, "--before-json")
+        after = _snapshot_argument(parser, args.after_json, "--after-json")
+        result = strategy_context_snapshot_diff_status(
+            before_snapshot=before,
+            after_snapshot=after,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
     if args.command == "smoke":
         result = run_runtime_smoke()
         print(json.dumps(result, indent=2, sort_keys=True))
@@ -168,6 +185,20 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.error("unknown command")
     return 2
+
+
+def _snapshot_argument(
+    parser: argparse.ArgumentParser,
+    raw: str,
+    argument_name: str,
+) -> dict[str, object]:
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as error:
+        parser.error(f"{argument_name} must contain valid JSON: {error.msg}")
+    if not isinstance(value, dict):
+        parser.error(f"{argument_name} must contain a JSON object")
+    return value
 
 
 if __name__ == "__main__":

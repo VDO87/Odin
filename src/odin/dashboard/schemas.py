@@ -75,6 +75,10 @@ def strategy_context_snapshot_quality_payload(status: dict[str, object]) -> dict
     return status
 
 
+def strategy_context_snapshot_diff_payload(status: dict[str, object]) -> dict[str, object]:
+    return status
+
+
 def strategy_status_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 

@@ -22,6 +22,7 @@ from odin.decision.observation_frame_quality import observation_frame_quality_st
 from odin.decision.shadow_proposal import shadow_proposal
 from odin.decision.strategy_status import strategy_status
 from odin.decision.strategy_context_snapshot import strategy_context_snapshot_status
+from odin.decision.strategy_context_snapshot_diff import strategy_context_snapshot_diff_status
 from odin.decision.strategy_context_snapshot_quality import strategy_context_snapshot_quality_status
 from odin.contracts.events import (
     DASHBOARD_LOGS_TAIL_SERVED,
@@ -52,6 +53,7 @@ from odin.dashboard.schemas import (
     shadow_proposal_payload,
     strategy_status_payload,
     strategy_context_snapshot_payload,
+    strategy_context_snapshot_diff_payload,
     strategy_context_snapshot_quality_payload,
     treasury_status_payload,
 )
@@ -78,7 +80,9 @@ class DashboardRoutes:
         if path == "/logs/tail":
             payload = self.logs_tail()
             self._audit(DASHBOARD_REQUEST_RECEIVED, {"path": path})
-            self._audit(DASHBOARD_LOGS_TAIL_SERVED, {"path": path, "count": len(payload["lines"])})
+            lines = payload.get("lines", [])
+            count = len(lines) if isinstance(lines, list) else 0
+            self._audit(DASHBOARD_LOGS_TAIL_SERVED, {"path": path, "count": count})
             return 200, payload
 
         self._audit(DASHBOARD_REQUEST_RECEIVED, {"path": path})
@@ -175,6 +179,20 @@ class DashboardRoutes:
                 strategy_context_snapshot_quality_status(
                     log_path=self.log_path,
                     sqlite_path=self.sqlite_path,
+                )
+            )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/strategy/context/snapshot/diff":
+            snapshot = strategy_context_snapshot_status(
+                log_path=self.log_path,
+                sqlite_path=self.sqlite_path,
+            )
+            payload = strategy_context_snapshot_diff_payload(
+                strategy_context_snapshot_diff_status(
+                    before_snapshot=snapshot,
+                    after_snapshot=dict(snapshot),
                 )
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
