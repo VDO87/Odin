@@ -70,3 +70,27 @@ ignored by Git and never belongs in reports, logs or the `D:` archive.
 - Real trading, real account credentials and real order submission.
 - Automatic code application, push, merge or unattended daemon operation.
 - Financial recommendations presented as advice or profitability guarantees.
+
+## Definition of done: ready for supervised demo
+
+ODIN is ready for a supervised demo only when all of the following are true:
+
+1. One `Ubuntu-ODIN` distribution, a clean local `master`, a verified backup
+   and reproducible smoke/validation evidence exist.
+2. The dashboard is usable locally and shows runtime, Hermes, safety flags,
+   data freshness/quality, recent errors, resources and configuration summary.
+3. Logs, SQLite state, daily reports and test artefacts persist under
+   `D:\ODIN_LOCAL`, with a documented diagnosis and recovery procedure.
+4. A documented Forex read-only source has bounded timeouts, local cache,
+   provenance, freshness/gap validation and failure events. No data failure can
+   enable a decision or execution path.
+5. Shadow observation has completed its approved reliability window with
+   restart/failure evidence and all safety flags continuously blocked.
+6. The demo guard rejects missing, unknown and real account modes; secrets are
+   absent from Git, logs, dashboard and reports; kill switch is tested.
+7. Focused tests, full validation, Ruff, `git diff --check`, dashboard smoke
+   and a final operator walkthrough pass.
+
+At that point the automation stops adding backlog work and reports
+`READY_FOR_SUPERVISED_DEMO`. Any demo login or order capability remains a
+separate explicit operator authorization.
