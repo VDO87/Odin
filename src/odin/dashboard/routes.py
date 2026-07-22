@@ -34,6 +34,7 @@ from odin.dashboard.schemas import (
     dashboard_state_payload,
     data_quality_payload,
     decision_intent_payload,
+    operational_overview_payload,
     feed_source_payload,
     health_payload,
     hermes_summary_payload,
@@ -92,6 +93,11 @@ class DashboardRoutes:
         if path == "/health":
             state = self._state()
             payload = health_payload(state)
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/operations/overview":
+            payload = self._operational_overview()
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
@@ -295,6 +301,23 @@ class DashboardRoutes:
 
     def _state(self) -> dict[str, object]:
         return validate_runtime(log_path=self.log_path, sqlite_path=self.sqlite_path)
+
+    def _operational_overview(self) -> dict[str, object]:
+        """Return one read-only, human-oriented local-first operations view."""
+        return operational_overview_payload(
+            state=self._state(),
+            hermes=run_hermes_supervisor(
+                log_path=self.log_path,
+                sqlite_path=self.sqlite_path,
+            ),
+            market=market_status(log_path=self.log_path, sqlite_path=self.sqlite_path),
+            observation=observation_frame_status(
+                log_path=self.log_path,
+                sqlite_path=self.sqlite_path,
+            ),
+            strategy=strategy_status(log_path=self.log_path, sqlite_path=self.sqlite_path),
+            risk=risk_gate(log_path=self.log_path, sqlite_path=self.sqlite_path),
+        )
 
     def _audit(self, event_name: str, payload: dict[str, object]) -> None:
         event = OdinEvent.create(

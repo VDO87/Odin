@@ -40,6 +40,26 @@ class H1HermesSupervisorCliDashboardTests(unittest.TestCase):
         self.assertIs(payload["safe_to_trade"], False)
         self.assertIs(payload["real_trading"], False)
 
+    def test_dashboard_operations_overview_consolidates_safe_local_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            routes = DashboardRoutes(
+                log_path=str(root / "logs" / "events.jsonl"),
+                sqlite_path=str(root / "runtime" / "odin.sqlite"),
+            )
+            code, payload = routes.serve("/operations/overview")
+        self.assertEqual(code, 200)
+        self.assertEqual(payload["component"], "operations_overview")
+        self.assertEqual(payload["mode"], "LOCAL_ONLY")
+        self.assertIs(payload["read_only"], True)
+        self.assertIs(payload["safety"]["safe_to_trade"], False)
+        self.assertIs(payload["safety"]["real_trading"], False)
+        self.assertIs(payload["safety"]["execution_allowed"], False)
+        self.assertIs(payload["safety"]["dashboard_configuration_writes_allowed"], False)
+        self.assertEqual(payload["configuration"]["provider_policy"], "local_first")
+        self.assertIs(payload["configuration"]["cloud_fallback_allowed"], False)
+        self.assertIs(payload["configuration"]["automatic_code_application"], False)
+
 
 if __name__ == "__main__":
     unittest.main()

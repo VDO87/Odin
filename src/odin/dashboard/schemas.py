@@ -119,6 +119,59 @@ def runtime_smoke_payload(status: dict[str, object]) -> dict[str, object]:
     return status
 
 
+def operational_overview_payload(
+    *,
+    state: dict[str, object],
+    hermes: dict[str, object],
+    market: dict[str, object],
+    observation: dict[str, object],
+    strategy: dict[str, object],
+    risk: dict[str, object],
+) -> dict[str, object]:
+    """Stable read-only summary for a human operator dashboard.
+
+    This endpoint deliberately presents controls and observations together but
+    never accepts configuration, provider, strategy, or execution input.
+    """
+    return {
+        "status": "OK",
+        "component": "operations_overview",
+        "mode": "LOCAL_ONLY",
+        "read_only": True,
+        "safety": {
+            "safe_to_trade": False,
+            "real_trading": False,
+            "execution_allowed": False,
+            "human_approval_required": True,
+            "dashboard_configuration_writes_allowed": False,
+        },
+        "local_runtime": {
+            "runtime_status": state["status"],
+            "hermes_status": hermes["status"],
+            "hermes_operational_state": hermes["operational_state"],
+            "ollama_available": hermes["local_provider"]["ollama_available"],
+            "local_models": hermes["local_provider"]["models"],
+            "resource_guardian": hermes["resource_guardian"],
+            "warnings": hermes["warnings"],
+        },
+        "observation": {
+            "market_status": market["status"],
+            "market_provider": market.get("provider", "market_data_mock"),
+            "observation_frame_status": observation["status"],
+            "strategy_status": strategy["status"],
+            "risk_gate_status": risk["status"],
+        },
+        "configuration": {
+            "provider_policy": "local_first",
+            "cloud_fallback_allowed": False,
+            "automatic_code_application": False,
+            "repository_code_application": False,
+            "financial_data_policy": "read_only_observation",
+            "changes": "Use a reviewed local config change; this endpoint is informational.",
+        },
+    }
+
+
 def dashboard_state_payload(state: dict[str, object]) -> dict[str, object]:
     return {
         "status": state["status"],
