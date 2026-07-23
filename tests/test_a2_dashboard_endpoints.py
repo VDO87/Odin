@@ -84,6 +84,10 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
     def test_cockpit_shell_is_local_and_read_only(self):
         page = self.routes.cockpit_html()
 
+        self.assertIn("CPU load 1m", page)
+        self.assertIn("Memory free", page)
+        self.assertIn("Disk free", page)
+        self.assertIn("GPU probe", page)
         self.assertIn("ODIN Cockpit", page)
         self.assertIn("/operations/overview", page)
         self.assertIn("/operations/events", page)
