@@ -12,6 +12,7 @@ from odin.adapters.mt5.market_feed import mt5_market_feed_status
 from odin.adapters.mt5.symbol_mapping import mt5_symbol_mapping_status
 from odin.contracts.events import OdinEvent
 from odin.adapters.market_data.mock_market import market_status
+from odin.dashboard.cockpit import cockpit_html
 from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.feed_source_selector import feed_source_status
@@ -301,6 +302,9 @@ class DashboardRoutes:
 
     def _state(self) -> dict[str, object]:
         return validate_runtime(log_path=self.log_path, sqlite_path=self.sqlite_path)
+
+    def cockpit_html(self) -> str:
+        return cockpit_html()
 
     def _operational_overview(self) -> dict[str, object]:
         """Return one read-only, human-oriented local-first operations view."""

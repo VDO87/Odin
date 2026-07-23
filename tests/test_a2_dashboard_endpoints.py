@@ -73,6 +73,15 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
         self.assertEqual(payload["lines"], [])
         self.assertEqual(payload["reason"], "log file not found yet")
 
+    def test_cockpit_shell_is_local_and_read_only(self):
+        page = self.routes.cockpit_html()
+
+        self.assertIn("ODIN Cockpit", page)
+        self.assertIn("/operations/overview", page)
+        self.assertIn("/logs/tail", page)
+        self.assertNotIn("order_send", page)
+        self.assertNotIn("POST", page)
+
 
 if __name__ == "__main__":
     unittest.main()
