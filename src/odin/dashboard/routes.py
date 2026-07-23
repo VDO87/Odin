@@ -102,6 +102,11 @@ class DashboardRoutes:
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
+        if path == "/operations/events":
+            payload = self.events_summary()
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
         if path == "/state":
             payload = dashboard_state_payload(self._state())
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
@@ -300,6 +305,21 @@ class DashboardRoutes:
             "lines": lines,
         }
 
+    def events_summary(self) -> dict[str, object]:
+        """Classify recent audit events for a human operator, without mutation."""
+        raw = self.logs_tail(limit=50).get("lines", [])
+        events = [line for line in raw if isinstance(line, dict)] if isinstance(raw, list) else []
+        alerts = [event for event in events if _is_alert(event)]
+        return {
+            "status": "OK",
+            "component": "operations_events",
+            "read_only": True,
+            "events_count": len(events),
+            "alerts_count": len(alerts),
+            "alerts": [_event_view(event) for event in alerts[-20:]],
+            "recent_events": [_event_view(event) for event in events[-20:]],
+        }
+
     def _state(self) -> dict[str, object]:
         return validate_runtime(log_path=self.log_path, sqlite_path=self.sqlite_path)
 
@@ -333,3 +353,33 @@ class DashboardRoutes:
         self.logger.write(event)
         self.store.initialize()
         self.store.record_event(event)
+
+
+def _is_alert(event: dict[str, object]) -> bool:
+    severity = str(event.get("severity", "INFO")).upper()
+    name = str(event.get("event", "")).lower()
+    return severity in {"ERROR", "WARNING", "CRITICAL"} or name.endswith(".fail")
+
+
+def _event_view(event: dict[str, object]) -> dict[str, object]:
+    name = str(event.get("event", "unknown"))
+    severity = str(event.get("severity", "INFO")).upper()
+    return {
+        "timestamp": event.get("timestamp", ""),
+        "component": event.get("component", "unknown"),
+        "event": name,
+        "severity": severity,
+        "reason": event.get("reason", ""),
+        "next_safe_action": _next_safe_action(name, severity),
+    }
+
+
+def _next_safe_action(name: str, severity: str) -> str:
+    lowered = name.lower()
+    if lowered.endswith(".fail") or severity in {"ERROR", "CRITICAL"}:
+        return "Inspect event payload and run the bounded smoke before retrying."
+    if "degraded" in lowered or severity == "WARNING":
+        return "Inspect provider or Hermes status; keep execution blocked."
+    if "blocked" in lowered:
+        return "No action required: the safety guard is working as designed."
+    return "Review context in the raw event log."

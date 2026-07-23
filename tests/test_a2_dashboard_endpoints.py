@@ -73,12 +73,20 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
         self.assertEqual(payload["lines"], [])
         self.assertEqual(payload["reason"], "log file not found yet")
 
+    def test_operations_events_endpoint_is_read_only(self):
+        payload = self.get_payload("/operations/events")
+
+        self.assertEqual(payload["component"], "operations_events")
+        self.assertIs(payload["read_only"], True)
+        self.assertEqual(payload["alerts_count"], 0)
+        self.assertEqual(payload["alerts"], [])
+
     def test_cockpit_shell_is_local_and_read_only(self):
         page = self.routes.cockpit_html()
 
         self.assertIn("ODIN Cockpit", page)
         self.assertIn("/operations/overview", page)
-        self.assertIn("/logs/tail", page)
+        self.assertIn("/operations/events", page)
         self.assertNotIn("order_send", page)
         self.assertNotIn("POST", page)
 
