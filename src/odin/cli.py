@@ -29,6 +29,7 @@ from odin.hermes.service import generate_hermes_summary
 from odin.hermes.supervisor import run_hermes_supervisor
 from odin.research.historical_return import historical_return_report
 from odin.risk.gate import risk_gate
+from odin.reporting.operational_report import write_operational_report
 from odin.treasury.engine import treasury_status
 
 
@@ -67,6 +68,8 @@ def build_parser() -> argparse.ArgumentParser:
     report = subparsers.add_parser("historical-return-report", help="Run a local observation-only return report.")
     report.add_argument("--closes-json", required=True, help="JSON array of positive local close prices.")
     report.add_argument("--transaction-cost-bps", type=float, default=10.0)
+    operational = subparsers.add_parser("operational-report", help="Write a local read-only operational report.")
+    operational.add_argument("--output-dir", default="reports")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -194,6 +197,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "historical-return-report":
         closes = json.loads(args.closes_json)
         result = historical_return_report(closes, transaction_cost_bps=args.transaction_cost_bps)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "operational-report":
+        result = write_operational_report(output_dir=args.output_dir)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
 
