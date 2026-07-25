@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import csv
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from odin.contracts.market_data import Candle
@@ -53,6 +53,47 @@ def load_forex_history(
         "safe_to_trade": False,
         "real_trading": False,
     }
+
+
+def assess_history_quality(
+    history: dict[str, object], *, now: datetime | None = None,
+    max_age: timedelta = timedelta(days=2),
+) -> dict[str, object]:
+    """Assess freshness and expected candle gaps without enabling decisions."""
+    if history.get("status") != "OK":
+        return _quality_blocked("history_not_available")
+    candles = history.get("candles", [])
+    expected = _timeframe_duration(str(history.get("timeframe", "")))
+    if not isinstance(candles, list) or expected is None:
+        return _quality_blocked("history_quality_input_invalid")
+    timestamps = [datetime.fromisoformat(str(c["timestamp"]).replace("Z", "+00:00"))
+                  for c in candles if isinstance(c, dict)]
+    if len(timestamps) != len(candles) or not timestamps:
+        return _quality_blocked("history_quality_input_invalid")
+    reference = now or datetime.now(UTC)
+    if reference.tzinfo is None:
+        reference = reference.replace(tzinfo=UTC)
+    age = reference - timestamps[-1]
+    gaps = [{"after": left.isoformat(), "before": right.isoformat()}
+            for left, right in zip(timestamps, timestamps[1:]) if right - left > expected]
+    fresh = age <= max_age
+    return {"status": "OK" if fresh and not gaps else "WARNING",
+            "component": "forex_history_quality", "mode": "READ_ONLY_HISTORY",
+            "last_timestamp": timestamps[-1].isoformat(), "age_seconds": int(age.total_seconds()),
+            "max_age_seconds": int(max_age.total_seconds()), "fresh": fresh,
+            "gaps_count": len(gaps), "gaps": gaps, "safe_to_use_for_decision": False,
+            "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
+
+
+def _timeframe_duration(timeframe: str) -> timedelta | None:
+    return {"M1": timedelta(minutes=1), "M5": timedelta(minutes=5),
+            "M15": timedelta(minutes=15), "H1": timedelta(hours=1)}.get(timeframe)
+
+
+def _quality_blocked(reason: str) -> dict[str, object]:
+    return {"status": "BLOCKED", "component": "forex_history_quality", "reason": reason,
+            "safe_to_use_for_decision": False, "execution_allowed": False,
+            "safe_to_trade": False, "real_trading": False}
 
 
 def _candle_from_row(row: dict[str, str], *, symbol: str, timeframe: str) -> Candle:
