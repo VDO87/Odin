@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,6 +17,7 @@ from odin.dashboard.cockpit import cockpit_html
 from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.feed_source_selector import feed_source_status
+from odin.data.public_observation import public_observation_cache_status
 from odin.data.quality import data_quality_status
 from odin.decision.intent import decision_intent
 from odin.decision.observation_frame import observation_frame_status
@@ -73,9 +75,13 @@ class DashboardRoutes:
         *,
         log_path: str = "logs/odin_events.jsonl",
         sqlite_path: str = "runtime/odin.sqlite",
+        public_cache_root: str | None = None,
     ) -> None:
         self.log_path = log_path
         self.sqlite_path = sqlite_path
+        self.public_cache_root = public_cache_root or os.environ.get(
+            "ODIN_PUBLIC_DATA_CACHE_DIR", "/mnt/d/ODIN_LOCAL/cache/public"
+        )
         self.run_id = str(uuid4())
         self.logger = JsonlLogger(log_path)
         self.store = SQLiteStore(sqlite_path)
@@ -104,6 +110,11 @@ class DashboardRoutes:
 
         if path == "/operations/events":
             payload = self.events_summary()
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/data/public":
+            payload = public_observation_cache_status(self.public_cache_root)
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 

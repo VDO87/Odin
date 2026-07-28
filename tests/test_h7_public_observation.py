@@ -8,6 +8,7 @@ from odin.data.public_observation import (
     assess_public_freshness,
     fetch_public_observation,
     ingest_public_observation,
+    public_observation_cache_status,
 )
 
 
@@ -77,6 +78,23 @@ class PublicObservationTests(unittest.TestCase):
         self.assertEqual(result["status"], "WARNING")
         self.assertTrue(result["gap_detected"])
         self.assertIs(result["safe_to_use_for_decision"], False)
+
+    def test_cache_status_is_metadata_only_and_reports_freshness(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = ingest_public_observation(
+                source="ecb", url="https://data.ecb.europa.eu/feed", body=b"opaque",
+                cache_root=tmp, allowed_hosts={"data.ecb.europa.eu"}, kind="macro_data",
+                retrieved_at=datetime(2026, 7, 28, 12, tzinfo=UTC),
+            )
+            status = public_observation_cache_status(
+                tmp, max_age_seconds=60, now=datetime(2026, 7, 28, 12, 0, 30, tzinfo=UTC),
+            )
+
+        self.assertEqual(status["status"], "OK")
+        self.assertEqual(status["records_count"], 1)
+        self.assertEqual(status["latest_content_hash"], result["content_hash"])
+        self.assertNotIn("opaque", json.dumps(status))
+        self.assertIs(status["execution_allowed"], False)
 
 
 if __name__ == "__main__":

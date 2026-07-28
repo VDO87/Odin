@@ -50,6 +50,8 @@ def build_server(
     log_path: str = "logs/odin_events.jsonl",
     sqlite_path: str = "runtime/odin.sqlite",
 ) -> ThreadingHTTPServer:
+    if host != "127.0.0.1":
+        raise ValueError("ODIN dashboard may bind only to 127.0.0.1")
     routes = DashboardRoutes(log_path=log_path, sqlite_path=sqlite_path)
 
     class Handler(DashboardRequestHandler):

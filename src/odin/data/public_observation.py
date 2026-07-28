@@ -142,6 +142,44 @@ def assess_public_freshness(
     }
 
 
+def public_observation_cache_status(
+    cache_root: str, *, max_age_seconds: int = 86_400, now: datetime | None = None,
+) -> dict[str, object]:
+    """Summarise metadata-only cache evidence for the local read-only cockpit."""
+    root = Path(cache_root)
+    if not root.is_dir():
+        return _cache_blocked("public_cache_not_found")
+    records: list[dict[str, object]] = []
+    invalid_count = 0
+    for path in sorted(root.glob("*/*/observation.json")):
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            invalid_count += 1
+            continue
+        if not isinstance(value, dict) or not isinstance(value.get("retrieved_at"), str):
+            invalid_count += 1
+            continue
+        records.append(value)
+    if not records:
+        return _cache_blocked("public_cache_empty", invalid_records=invalid_count)
+    latest = max(records, key=lambda item: str(item["retrieved_at"]))
+    freshness = assess_public_freshness(
+        {"status": "OK", "retrieved_at": latest["retrieved_at"]}, max_age_seconds=max_age_seconds, now=now,
+    )
+    return {
+        **freshness,
+        "component": "public_observation_cache",
+        "cache_root": str(root),
+        "records_count": len(records),
+        "invalid_records_count": invalid_count,
+        "latest_source": latest.get("source", "unknown"),
+        "latest_kind": latest.get("kind", "unknown"),
+        "latest_content_hash": latest.get("content_hash", ""),
+        "latest_source_url": latest.get("source_url", ""),
+    }
+
+
 def _validate_source(
     source: str, url: str, allowed_hosts: set[str] | frozenset[str], kind: str,
 ) -> tuple[str | None, str | None]:
@@ -191,6 +229,21 @@ def _freshness_blocked(reason: str) -> dict[str, object]:
         "mode": "READ_ONLY_PUBLIC_DATA",
         "reason": reason,
         "events": ["public_data.failure"],
+        "safe_to_use_for_decision": False,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
+
+
+def _cache_blocked(reason: str, **extra: object) -> dict[str, object]:
+    return {
+        "status": "BLOCKED",
+        "component": "public_observation_cache",
+        "mode": "READ_ONLY_PUBLIC_DATA",
+        "reason": reason,
+        "events": ["public_data.failure"],
+        **extra,
         "safe_to_use_for_decision": False,
         "execution_allowed": False,
         "safe_to_trade": False,
