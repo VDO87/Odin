@@ -53,7 +53,8 @@ Proibido:
 - Usar pacote MetaTrader5 real.
 - Transformar shadow proposal em ordem executavel.
 - Guardar credenciais.
-- Detectar ou ligar a terminal real.
+- Ligar, autenticar ou enviar qualquer pedido a terminal real sem autorizacao humana explicita.
+- A deteccao local do binario pode ser adicionada numa fase demo dedicada, sem ligacao, login ou ordens.
 - Transformar mapeamento de simbolos em autorizacao para trading.
 - Transformar ticks mock em decisao, risco aprovado ou execucao.
 - Transformar gates de qualidade em permissao de decisao ou execucao.
