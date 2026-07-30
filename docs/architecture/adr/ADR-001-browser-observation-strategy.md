@@ -1,7 +1,27 @@
-# ADR-001: browser observation
+# ADR-001: isolated browser observation
 
-Use Playwright Python only after approval, behind a localhost service of fixed read-only capabilities. Hermes receives structured results only.
+## Decision
 
-Controls: dedicated Chromium profile; local token; domain/redirect allowlist; redaction; timeouts; rate limit; circuit breaker; kill switch; dry-run; audit; negative tests. No generic navigation, input, JavaScript, financial action, personal Chrome or cloud LLM for authenticated data.
+If the operator explicitly approves XTB observation later, ODIN will use only
+Playwright Python behind a fixed-capability service bound to `127.0.0.1`. The
+first code phase contains a fail-closed request guard only; Playwright is not
+installed and XTB is not contacted.
 
-Playwright is not installed in this phase. MCP/CLI browser tools are development diagnostics only.
+## Boundaries
+
+- Dedicated Chromium profile outside the personal Chrome profile.
+- Local token, domain allowlist, redirect rejection, response-size/time limits.
+- Fixed read-only capabilities: account summary, open positions, trade history.
+- No arbitrary URL, input, script, upload, download, browser control, order, or
+  financial action reaches Hermes.
+- Authenticated content is redacted before local logs and is never sent to a
+  cloud LLM.
+- Rate limit, circuit breaker, kill switch, dry-run default, JSONL audit and
+  health state are mandatory before the runtime can be enabled.
+
+## Consequences
+
+The service must fail closed for unavailable Playwright, missing local token,
+unknown domains, redirect, timeout, malformed response, redaction failure and
+any unrecognised capability. It cannot use the user's personal browser data or
+become a general automation interface.
