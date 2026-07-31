@@ -29,6 +29,7 @@ def build_hermes_summary(
     *,
     state: dict[str, object],
     log_events: list[dict[str, Any]],
+    market_evidence: dict[str, object] | None = None,
 ) -> dict[str, object]:
     warnings: list[str] = []
     if state["safe_to_trade"] is not False:
@@ -38,6 +39,7 @@ def build_hermes_summary(
     if state["hermes_mode"] != "READ_ONLY":
         warnings.append("Hermes is not read-only")
 
+    evidence = _market_evidence_view(market_evidence or {})
     return {
         "status": "OK",
         "component": "hermes",
@@ -51,7 +53,25 @@ def build_hermes_summary(
         "risk_state": state["risk_state"],
         "hermes_mode": state["hermes_mode"],
         "log_events_seen": len(log_events),
+        "market_evidence": evidence,
         "critical_warnings": warnings,
         "recommendations": build_read_only_recommendations(state),
     }
 
+
+
+
+def _market_evidence_view(value: dict[str, object]) -> dict[str, object]:
+    """Expose only cache provenance to Hermes; remote content stays unavailable."""
+    return {
+        "status": value.get("status", "BLOCKED"),
+        "source": value.get("latest_source", "unavailable"),
+        "fresh": value.get("fresh", False),
+        "records_count": value.get("records_count", 0),
+        "content_hash": value.get("latest_content_hash", ""),
+        "interpretation": "untrusted_observational_evidence_not_for_trading",
+        "safe_to_use_for_decision": False,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }

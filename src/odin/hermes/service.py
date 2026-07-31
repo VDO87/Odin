@@ -12,6 +12,7 @@ from odin.contracts.events import (
     OdinEvent,
 )
 from odin.core.bootstrap import validate_runtime
+from odin.data.public_observation import public_observation_cache_status
 from odin.hermes.summary import build_hermes_summary, read_log_tail
 from odin.logging.jsonl_logger import JsonlLogger
 from odin.storage.sqlite_store import SQLiteStore
@@ -31,7 +32,8 @@ def generate_hermes_summary(
     _audit(logger, store, run_id, HERMES_SUMMARY_STARTED, {})
     state = validate_runtime(log_path=log_path, sqlite_path=sqlite_path)
     log_events = read_log_tail(log_path)
-    summary = build_hermes_summary(state=state, log_events=log_events)
+    evidence = public_observation_cache_status("/mnt/d/ODIN_LOCAL/cache/public")
+    summary = build_hermes_summary(state=state, log_events=log_events, market_evidence=evidence)
 
     _audit(
         logger,
