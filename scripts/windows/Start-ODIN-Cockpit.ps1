@@ -17,7 +17,7 @@ $Stderr = Join-Path $LogRoot "dashboard.stderr.log"
 function Test-OdinCockpit {
     try {
         $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3
-        return $response.StatusCode -eq 200 -and $response.Content -match "ODIN Cockpit"
+        return $response.StatusCode -eq 200 -and $response.Content -match "ODIN TradeDesk|ODIN Cockpit"
     }
     catch {
         return $false
