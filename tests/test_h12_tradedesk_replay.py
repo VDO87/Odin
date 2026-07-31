@@ -18,6 +18,7 @@ class TradeDeskReplayTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["wins"], 1)
         self.assertEqual(result["metrics"]["losses"], 1)
         self.assertLess(float(result["metrics"]["net_profit"]), float(result["metrics"]["gross_profit"]))
+        self.assertIn(result["public_data"]["status"], {"OK", "BLOCKED", "WARNING"})
         self.assertIs(result["execution_allowed"], False)
 
     def test_dashboard_exposes_replay_endpoint_and_separates_cockpit(self):
