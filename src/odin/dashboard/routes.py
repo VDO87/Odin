@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 from uuid import uuid4
 
+from odin.adapters.brokers.isolated_observer import observer_status
+from odin.adapters.mt5.demo_guard import demo_account_guard
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -352,6 +354,8 @@ class DashboardRoutes:
             ),
             strategy=strategy_status(log_path=self.log_path, sqlite_path=self.sqlite_path),
             risk=risk_gate(log_path=self.log_path, sqlite_path=self.sqlite_path),
+            observer=observer_status(),
+            mt5=demo_account_guard(None),
         )
 
     def _audit(self, event_name: str, payload: dict[str, object]) -> None:

@@ -127,6 +127,8 @@ def operational_overview_payload(
     observation: dict[str, object],
     strategy: dict[str, object],
     risk: dict[str, object],
+    observer: dict[str, object],
+    mt5: dict[str, object],
 ) -> dict[str, object]:
     """Stable read-only summary for a human operator dashboard.
 
@@ -160,6 +162,19 @@ def operational_overview_payload(
             "observation_frame_status": observation["status"],
             "strategy_status": strategy["status"],
             "risk_gate_status": risk["status"],
+        },
+        "supervised_demo": {
+            "observer": {
+                "status": observer["status"],
+                "reason": observer["reason"],
+                "execution_allowed": observer["execution_allowed"],
+            },
+            "mt5": {
+                "status": mt5["status"],
+                "reason": mt5["reason"],
+                "terminal_connection_attempted": mt5["terminal_connection_attempted"],
+                "execution_allowed": mt5["execution_allowed"],
+            },
         },
         "configuration": {
             "provider_policy": "local_first",

@@ -35,6 +35,8 @@ class PublicDashboardTests(unittest.TestCase):
 
         self.assertIn("/data/public", page)
         self.assertIn("Public data freshness", page)
+        self.assertIn("MT5 preparation", page)
+        self.assertIn("Observer", page)
         self.assertNotIn("POST", page)
 
     def test_dashboard_rejects_non_local_binding(self):
