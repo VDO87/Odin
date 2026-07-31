@@ -14,8 +14,6 @@ def replay_trading_state(symbol: str = "EURUSD", timeframe: str = "M15") -> dict
     public_data = public_observation_cache_status("/mnt/d/ODIN_LOCAL/cache/public")
     configuration = load_replay_config()
     mt5_demo = read_demo_readonly_state()
-    configuration = load_replay_config()
-    mt5_demo = read_demo_readonly_state()
     positions = [
         {"ticket": "R-1001", "symbol": "EURUSD", "side": "BUY", "volume": 0.05,
          "entry": 1.0842, "mark": 1.0850, "stop_loss": 1.0815, "take_profit": 1.0895,

@@ -35,7 +35,10 @@ try:
     else:
         account=mt5.account_info(); is_demo=bool(account and account.trade_mode == mt5.ACCOUNT_TRADE_MODE_DEMO)
         positions=mt5.positions_get() or ()
-        result={"status":"CONNECTED_DEMO_READ_ONLY" if is_demo else "BLOCKED","reason":"demo_verified" if is_demo else "account_mode_not_demo","as_of":datetime.now(timezone.utc).isoformat(timespec="seconds"),"account":{"currency":account.currency,"balance":account.balance,"equity":account.equity,"margin":account.margin,"free_margin":account.margin_free} if is_demo else {},"positions":[{"symbol":p.symbol,"volume":p.volume,"profit":p.profit,"type":"BUY" if p.type==0 else "SELL"} for p in positions] if is_demo else []}
+        tick=mt5.symbol_info_tick("EURUSD") if is_demo else None
+        rates=mt5.copy_rates_from_pos("EURUSD", mt5.TIMEFRAME_M15, 0, 32) if is_demo else None
+        market={"symbol":"EURUSD","status":"OK" if tick else "UNAVAILABLE","bid":float(tick.bid) if tick else None,"ask":float(tick.ask) if tick else None,"as_of":datetime.fromtimestamp(tick.time, timezone.utc).isoformat(timespec="seconds") if tick else None,"candles":[{"time":datetime.fromtimestamp(int(row["time"]), timezone.utc).isoformat(timespec="seconds"),"open":float(row["open"]),"high":float(row["high"]),"low":float(row["low"]),"close":float(row["close"])} for row in (rates if rates is not None else ())]}
+        result={"status":"CONNECTED_DEMO_READ_ONLY" if is_demo else "BLOCKED","reason":"demo_verified" if is_demo else "account_mode_not_demo","as_of":datetime.now(timezone.utc).isoformat(timespec="seconds"),"account":{"currency":account.currency,"balance":account.balance,"equity":account.equity,"margin":account.margin,"free_margin":account.margin_free} if is_demo else {},"positions":[{"symbol":p.symbol,"volume":p.volume,"profit":p.profit,"type":"BUY" if p.type==0 else "SELL"} for p in positions] if is_demo else [],"market":market if is_demo else {}}
     result.update({"terminal_connected":bool(ok),"execution_allowed":False,"safe_to_trade":False,"real_trading":False})
     tmp=out.with_suffix(".tmp"); tmp.write_text(json.dumps(result, sort_keys=True), encoding="utf-8"); tmp.replace(out); print(json.dumps({"status":result["status"],"positions_count":len(result.get("positions",[])),"execution_allowed":False}))
     sys.exit(0 if result["status"]=="CONNECTED_DEMO_READ_ONLY" else 1)
