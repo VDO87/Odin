@@ -23,7 +23,7 @@ Estes ficheiros não devem incluir palavra-passe ou outras credenciais. A config
 
 ## Verificação antes de confiar numa observação
 
-- A hora da cotação deve ser recente e o estado deve ser `CONNECTED_DEMO_READ_ONLY`.
+- A hora da cotação deve ser recente e o estado deve ser `CONNECTED_DEMO_READ_ONLY`. Após 15 minutos sem recolha, ODIN trata a observação MT5 como bloqueada; execute a atualização manual em vez de assumir que a informação antiga continua válida.
 - A fonte pública deve mostrar `OK` e `Data fresh = true`.
 - O cockpit não deve indicar alertas críticos, temperatura elevada ou indisponibilidade do runtime.
 - A secção Hermes é apenas diagnóstico local; a evidência é não confiável para decisão e não é um sinal de mercado.
