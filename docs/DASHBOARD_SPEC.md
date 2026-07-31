@@ -59,6 +59,8 @@ O dashboard e read-only e nao disponibiliza accoes de trading.
 
 The Windows installer creates `ODIN TradeDesk (Demo).lnk` and `ODIN Refresh DEMO Observations.lnk` on the Desktop. The latter is a manual read-only collection action and contains no credentials.
 
+The complete operator walkthrough is [OPERATOR_DEMO_WALKTHROUGH.md](OPERATOR_DEMO_WALKTHROUGH.md).
+
 ## A13 - Runtime Smoke Confirmado
 
 O endpoint `GET /runtime/smoke` faz parte do runtime seguro atual e deve continuar a devolver o estado agregado do smoke local, sem executar subprocessos, ordens ou integracoes reais.

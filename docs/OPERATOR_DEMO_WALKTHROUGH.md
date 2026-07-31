@@ -1,0 +1,33 @@
+# ODIN TradeDesk — operador DEMO
+
+## Objetivo e limites
+
+Este ambiente permite observar uma conta MT5 **DEMO** e dados públicos, manter um registo local e testar o ecrã de investimento. Não envia ordens, não produz recomendações financeiras e não liga trading real. Os três bloqueios devem permanecer `false`: `safe_to_trade`, `real_trading` e `execution_allowed`.
+
+## Utilização diária
+
+1. Abra `ODIN TradeDesk (Demo)` no Ambiente de Trabalho. A página local abre em `http://127.0.0.1:8765/`.
+2. Abra `ODIN Refresh DEMO Observations` para fazer uma recolha manual limitada. O fluxo recolhe a conta/posições/cotação MT5 DEMO em leitura, atualiza a observação ECB e guarda um relatório local.
+3. Atualize a página TradeDesk. Confirme `MT5 DEMO = CONNECTED_DEMO_READ_ONLY`, a moeda da conta, o timestamp de EURUSD e `Execution = false`.
+4. Leia o gráfico: `MT5 DEMO M15` significa velas do terminal; `local replay` significa dados simulados. Os resultados, posições e diário de **replay** não pertencem à conta MT5.
+5. Abra `Technical cockpit` para saúde de ODIN/Hermes, recursos, eventos, frescura de dados e última observação MT5.
+
+## Onde ficam os registos
+
+- Estado MT5 DEMO sanitizado: `D:\ODIN_LOCAL\runtime\mt5_demo_readonly.json`.
+- Auditoria de recolhas MT5: `D:\ODIN_LOCAL\logs\mt5_demo_readonly.jsonl`.
+- Dados públicos e proveniência: `D:\ODIN_LOCAL\cache\public` e `D:\ODIN_LOCAL\logs\public_data_events.jsonl`.
+- Relatórios: `D:\ODIN_LOCAL\reports`.
+
+Estes ficheiros não devem incluir palavra-passe ou outras credenciais. A configuração local fica no `.env` ignorado pelo Git dentro do WSL.
+
+## Verificação antes de confiar numa observação
+
+- A hora da cotação deve ser recente e o estado deve ser `CONNECTED_DEMO_READ_ONLY`.
+- A fonte pública deve mostrar `OK` e `Data fresh = true`.
+- O cockpit não deve indicar alertas críticos, temperatura elevada ou indisponibilidade do runtime.
+- A secção Hermes é apenas diagnóstico local; a evidência é não confiável para decisão e não é um sinal de mercado.
+
+## Paragem segura
+
+Se houver falha de terminal, dados antigos, temperatura CPU/GPU igual ou superior a 80°C, erro CUDA ou falta de memória, pare a recolha e mantenha o TradeDesk em observação. Não tente contornar os bloqueios nem introduza ordens pela aplicação. O operador deve investigar os registos e restaurar apenas uma recolha read-only saudável.
