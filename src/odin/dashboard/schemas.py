@@ -129,6 +129,7 @@ def operational_overview_payload(
     risk: dict[str, object],
     observer: dict[str, object],
     mt5: dict[str, object],
+    mt5_observation: dict[str, object],
 ) -> dict[str, object]:
     """Stable read-only summary for a human operator dashboard.
 
@@ -174,6 +175,14 @@ def operational_overview_payload(
                 "reason": mt5.get("reason", "demo_preparation_pending_operator_review"),
                 "terminal_connection_attempted": mt5["terminal_connection_attempted"],
                 "execution_allowed": mt5["execution_allowed"],
+            },
+            "mt5_observation": {
+                "status": mt5_observation["status"],
+                "as_of": mt5_observation.get("as_of", ""),
+                "market_status": mt5_observation.get("market", {}).get("status", "UNKNOWN") if isinstance(mt5_observation.get("market"), dict) else "UNKNOWN",
+                "market_as_of": mt5_observation.get("market", {}).get("as_of", "") if isinstance(mt5_observation.get("market"), dict) else "",
+                "positions_count": len(mt5_observation.get("positions", [])) if isinstance(mt5_observation.get("positions"), list) else 0,
+                "execution_allowed": False,
             },
         },
         "configuration": {

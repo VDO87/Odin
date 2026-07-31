@@ -20,6 +20,13 @@ class Mt5DemoPrepareCliDashboardTests(unittest.TestCase):
         self.assertFalse(result["execution_allowed"])
         reconcile.assert_called_once()
 
+    def test_dashboard_exposes_sanitized_demo_observation(self):
+        status, result = DashboardRoutes().serve("/mt5/demo/observation")
+
+        self.assertEqual(status, 200)
+        self.assertFalse(result["execution_allowed"])
+        self.assertNotIn("password", result)
+
 
 if __name__ == "__main__":
     unittest.main()
