@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 
@@ -22,6 +23,13 @@ def read_demo_readonly_state(
         return _blocked("demo_readonly_state_missing")
     if not isinstance(value, dict) or value.get("status") != "CONNECTED_DEMO_READ_ONLY":
         return _blocked("demo_readonly_state_invalid")
+    content_hash = value.get("content_hash")
+    unsigned = dict(value)
+    unsigned.pop("content_hash", None)
+    canonical = json.dumps(unsigned, sort_keys=True, separators=(",", ":"))
+    expected_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    if not isinstance(content_hash, str) or content_hash != expected_hash:
+        return _blocked("demo_readonly_state_integrity_failed")
     observed_at = _parse_observed_at(value.get("as_of"))
     if observed_at is None:
         return _blocked("demo_readonly_state_invalid_timestamp")
