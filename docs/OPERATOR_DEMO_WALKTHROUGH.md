@@ -7,10 +7,12 @@ Este ambiente permite observar uma conta MT5 **DEMO** e dados públicos, manter 
 ## Utilização diária
 
 1. Abra `ODIN TradeDesk (Demo)` no Ambiente de Trabalho. A página local abre em `http://127.0.0.1:8765/`.
-2. Abra `ODIN Refresh DEMO Observations` para fazer uma recolha manual limitada. O fluxo recolhe a conta/posições/cotação MT5 DEMO em leitura, atualiza a observação ECB e guarda um relatório local.
+2. Abra `ODIN Refresh DEMO Observations` para fazer uma recolha manual limitada. O fluxo recolhe a conta/posições/cotação MT5 DEMO em leitura, atualiza a observação ECB, persiste um ciclo shadow sem decisão e guarda um relatório local.
 3. Atualize a página TradeDesk. Confirme `MT5 DEMO = CONNECTED_DEMO_READ_ONLY`, a moeda da conta, o timestamp de EURUSD e `Execution = false`.
 4. Leia o gráfico: `MT5 DEMO M15` significa velas do terminal; `local replay` significa dados simulados. Os resultados, posições e diário de **replay** não pertencem à conta MT5.
 5. Abra `Technical cockpit` para saúde de ODIN/Hermes, recursos, eventos, frescura de dados e última observação MT5.
+
+O TradeDesk também mostra a última `shadow observation`. Este é apenas um registo de que as entradas observacionais estavam frescas; o estado esperado é `OBSERVED_NO_DECISION`, com decisão, proposta e execução em `false`.
 
 ## Onde ficam os registos
 

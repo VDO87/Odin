@@ -33,6 +33,7 @@ from odin.research.historical_return import historical_return_report
 from odin.risk.gate import risk_gate
 from odin.reporting.operational_report import write_operational_report
 from odin.treasury.engine import treasury_status
+from odin.trading.shadow_cycle import run_shadow_observation
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -57,6 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("decision-intent", help="Run A9 blocked decision intent skeleton.")
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
     subparsers.add_parser("shadow-proposal", help="Run A11 blocked shadow proposal skeleton.")
+    shadow_observe = subparsers.add_parser("shadow-observe", help="Persist one bounded DEMO observation cycle with no decision.")
+    shadow_observe.add_argument("--state-path", default="/mnt/d/ODIN_LOCAL/runtime/shadow_observation_latest.json")
     subparsers.add_parser("smoke", help="Run A12 local safe runtime smoke pack.")
     mt5_prepare = subparsers.add_parser("mt5-demo-prepare", help="Persist a local MT5 DEMO preparation record; never logs in or connects.")
     mt5_prepare.add_argument("--account-mode", default="")
@@ -159,6 +162,11 @@ def main(argv: list[str] | None = None) -> int:
         result = shadow_proposal()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "shadow-observe":
+        result = run_shadow_observation(state_path=args.state_path)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] in {"OBSERVED_NO_DECISION", "BLOCKED_INPUTS"} and result["execution_allowed"] is False else 1
 
     if args.command == "mt5-demo-prepare":
         result = prepare_demo_session(

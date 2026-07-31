@@ -30,9 +30,9 @@ is not repeated; the next unchecked item becomes the next concrete task.
 
 ## M3 — Shadow operation
 
-- [ ] Define a shadow-cycle state machine and idempotent run record.
-- [ ] Add bounded single-cycle CLI with watchdog-compatible exit status.
-- [ ] Add failure/restart and stale-data simulations.
+- [x] Define a shadow-cycle state machine and idempotent run record.
+- [x] Add bounded single-cycle CLI with watchdog-compatible exit status.
+- [x] Add failure/restart and stale-data simulations.
 - [ ] Add daily comparison report: source freshness, observations and failures.
 - [ ] Add explicit operator procedure for approving a persistent local process.
 
