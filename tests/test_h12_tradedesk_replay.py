@@ -31,6 +31,7 @@ class TradeDeskReplayTests(unittest.TestCase):
         self.assertIn("Technical cockpit", routes.tradedesk_html())
         self.assertIn("MT5 DEMO open positions", routes.tradedesk_html())
         self.assertIn("Current terminal observation", routes.tradedesk_html())
+        self.assertIn("Hermes local diagnostic", routes.tradedesk_html())
         self.assertIn("ODIN Cockpit", routes.cockpit_html())
         self.assertIs(payload["real_trading"], False)
 
