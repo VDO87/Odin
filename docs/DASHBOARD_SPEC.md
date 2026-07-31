@@ -53,6 +53,10 @@ O dashboard e read-only e nao disponibiliza accoes de trading.
 
 `python3 -m odin.cli operational-report` persists a metadata-only report by default under `D:\ODIN_LOCAL\reports` (WSL: `/mnt/d/ODIN_LOCAL/reports`). It is read-only and contains no credentials or remote response content.
 
+## Bounded manual observation refresh
+
+`scripts/windows/Refresh-ODIN-Observations.ps1` is the operator-run refresh path. It first collects the already-authorized MT5 DEMO state in read-only mode, then refreshes the bounded ECB observation and writes an operational report. Every stage has a timeout and failure stops later stages. It does not run continuously, send orders, generate a trading decision or modify execution flags.
+
 ## A13 - Runtime Smoke Confirmado
 
 O endpoint `GET /runtime/smoke` faz parte do runtime seguro atual e deve continuar a devolver o estado agregado do smoke local, sem executar subprocessos, ordens ou integracoes reais.
