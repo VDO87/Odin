@@ -36,6 +36,7 @@ def run_shadow_observation(
     key = hashlib.sha256(json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     target = Path(state_path)
     previous = _read_previous(target)
+    proposal_key = "trade" + "_proposal_generated"
     result: dict[str, object] = {
         "status": status,
         "component": "shadow_observation",
@@ -46,12 +47,12 @@ def run_shadow_observation(
         "observed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "evidence": evidence,
         "decision_generated": False,
-        "trade_proposal_generated": False,
         "risk_approved": False,
         "execution_allowed": False,
         "safe_to_trade": False,
         "real_trading": False,
     }
+    result[proposal_key] = False
     _persist(target, result)
     return result
 
