@@ -5,6 +5,7 @@ from __future__ import annotations
 from odin.data.candles import candles_for
 from odin.data.public_observation import public_observation_cache_status
 from odin.trading.replay_config import load_replay_config
+from odin.adapters.mt5.demo_readonly_state import read_demo_readonly_state
 
 
 def replay_trading_state(symbol: str = "EURUSD", timeframe: str = "M15") -> dict[str, object]:
@@ -12,7 +13,9 @@ def replay_trading_state(symbol: str = "EURUSD", timeframe: str = "M15") -> dict
     candles = [candle.to_dict() for candle in candles_for(symbol, timeframe)]
     public_data = public_observation_cache_status("/mnt/d/ODIN_LOCAL/cache/public")
     configuration = load_replay_config()
+    mt5_demo = read_demo_readonly_state()
     configuration = load_replay_config()
+    mt5_demo = read_demo_readonly_state()
     positions = [
         {"ticket": "R-1001", "symbol": "EURUSD", "side": "BUY", "volume": 0.05,
          "entry": 1.0842, "mark": 1.0850, "stop_loss": 1.0815, "take_profit": 1.0895,
@@ -46,6 +49,7 @@ def replay_trading_state(symbol: str = "EURUSD", timeframe: str = "M15") -> dict
                  "max_position_lots": configuration["risk_limits"]["max_position_lots"],
                  "kill_switch_engaged": False},
         "configuration": configuration,
+        "mt5_demo": mt5_demo,
         "odin": {"state": "OBSERVING", "next_action": "collect_replay_outcome",
                  "reason": "replay_only_no_broker_connection"},
         "execution_allowed": False, "safe_to_trade": False, "real_trading": False,
