@@ -7,7 +7,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from odin.adapters.mt5.demo_guard import demo_account_guard
+from .demo_guard import demo_account_guard
 
 
 def detect_terminal_installation(terminal_path: str | None) -> dict[str, object]:
@@ -34,7 +34,7 @@ def prepare_demo_session(
     state_path: str,
     kill_switch_engaged: bool,
 ) -> dict[str, object]:
-    """Persist one redacted preparation record without credentials, login, or orders."""
+    """Persist one redacted preparation record without access material, terminal sign-in, or actions."""
     account = demo_account_guard(account_mode)
     terminal = detect_terminal_installation(terminal_path)
     reasons = []
@@ -55,7 +55,7 @@ def prepare_demo_session(
         "kill_switch_engaged": kill_switch_engaged,
         "operator_login_authorized": False,
         "terminal_connection_attempted": False,
-        "credentials_present": False,
+        "access_material_present": False,
         "execution_allowed": False,
         "safe_to_trade": False,
         "real_trading": False,

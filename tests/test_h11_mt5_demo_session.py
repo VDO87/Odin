@@ -33,7 +33,7 @@ class MT5DemoSessionTests(unittest.TestCase):
 
         self.assertEqual(first["status"], "READY_FOR_REVIEW")
         self.assertTrue(second["idempotent_reuse"])
-        self.assertFalse(saved["credentials_present"])
+        self.assertFalse(saved["access_material_present"])
         self.assertNotIn("password", json.dumps(saved).lower())
         self.assertIs(first["execution_allowed"], False)
 
