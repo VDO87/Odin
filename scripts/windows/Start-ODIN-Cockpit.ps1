@@ -29,7 +29,7 @@ if (-not (Test-OdinCockpit)) {
     $arguments = "-d $Distro -u odin --exec /home/odin/projects/odin/scripts/run_dashboard_local.sh $WatchdogSeconds"
     $process = Start-Process -FilePath "wsl.exe" -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $Stdout -RedirectStandardError $Stderr
     $ready = $false
-    for ($attempt = 0; $attempt -lt 10; $attempt++) {
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
         Start-Sleep -Seconds 1
         if (Test-OdinCockpit) {
             $ready = $true

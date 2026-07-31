@@ -18,6 +18,9 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path == "/":
+            self._send_html(200, self.routes.tradedesk_html())
+            return
+        if path == "/cockpit":
             self._send_html(200, self.routes.cockpit_html())
             return
         status, payload = self.routes.serve(path)

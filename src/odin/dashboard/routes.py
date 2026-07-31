@@ -16,6 +16,8 @@ from odin.adapters.mt5.symbol_mapping import mt5_symbol_mapping_status
 from odin.contracts.events import OdinEvent
 from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.cockpit import cockpit_html
+from odin.dashboard.tradedesk import tradedesk_html
+from odin.trading.replay import replay_trading_state
 from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.feed_source_selector import feed_source_status
@@ -117,6 +119,11 @@ class DashboardRoutes:
 
         if path == "/data/public":
             payload = public_observation_cache_status(self.public_cache_root)
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/trading/replay":
+            payload = replay_trading_state()
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
@@ -338,6 +345,9 @@ class DashboardRoutes:
 
     def cockpit_html(self) -> str:
         return cockpit_html()
+
+    def tradedesk_html(self) -> str:
+        return tradedesk_html()
 
     def _operational_overview(self) -> dict[str, object]:
         """Return one read-only, human-oriented local-first operations view."""
