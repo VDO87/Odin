@@ -36,6 +36,7 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /decision/intent`: intencao de decisao bloqueada.
 - `GET /risk/gate`: gate de risco bloqueante.
 - `GET /shadow/proposal`: proposta shadow bloqueada.
+- `GET /mt5/demo/session`: estado persistido da preparacao DEMO, sem login ou contacto ao terminal.
 - `GET /mt5/bridge`: estado mock-only da futura bridge MT5.
 - `GET /mt5/symbols`: mapeamento mock Odin para futura bridge MT5.
 - `GET /mt5/feed`: feed mock MT5 com ticks determinísticos e sem ligacao real.

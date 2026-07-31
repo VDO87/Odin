@@ -8,7 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from odin.adapters.brokers.isolated_observer import observer_status
-from odin.adapters.mt5.demo_guard import demo_account_guard
+from odin.adapters.mt5.demo_session import reconcile_demo_session
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -268,6 +268,11 @@ class DashboardRoutes:
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
+        if path == "/mt5/demo/session":
+            payload = reconcile_demo_session("/mnt/d/ODIN_LOCAL/runtime/mt5_demo_session.json")
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
         if path == "/mt5/bridge":
             payload = mt5_bridge_payload(
                 mt5_bridge_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
@@ -373,7 +378,7 @@ class DashboardRoutes:
             strategy=strategy_status(log_path=self.log_path, sqlite_path=self.sqlite_path),
             risk=risk_gate(log_path=self.log_path, sqlite_path=self.sqlite_path),
             observer=observer_status(),
-            mt5=demo_account_guard(None),
+            mt5=reconcile_demo_session("/mnt/d/ODIN_LOCAL/runtime/mt5_demo_session.json"),
         )
 
     def _audit(self, event_name: str, payload: dict[str, object]) -> None:

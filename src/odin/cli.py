@@ -16,6 +16,7 @@ from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.adapters.mt5.symbol_mapping import mt5_symbol_mapping_status
+from odin.adapters.mt5.demo_session import prepare_demo_session
 from odin.data.feed_source_selector import feed_source_status
 from odin.dashboard.server import run_dashboard
 from odin.decision.intent import decision_intent
@@ -57,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
     subparsers.add_parser("shadow-proposal", help="Run A11 blocked shadow proposal skeleton.")
     subparsers.add_parser("smoke", help="Run A12 local safe runtime smoke pack.")
+    mt5_prepare = subparsers.add_parser("mt5-demo-prepare", help="Persist a local MT5 DEMO preparation record; never logs in or connects.")
+    mt5_prepare.add_argument("--account-mode", default="")
+    mt5_prepare.add_argument("--terminal-path", default="/mnt/d/ODIN_LOCAL/mt5/terminal64.exe")
+    mt5_prepare.add_argument("--state-path", default="/mnt/d/ODIN_LOCAL/runtime/mt5_demo_session.json")
+    mt5_prepare.add_argument("--kill-switch-engaged", action="store_true")
     subparsers.add_parser("mt5-bridge", help="Run A14 mock-only MT5 bridge status.")
     subparsers.add_parser("mt5-symbols", help="Run A15 mock-only MT5 symbol mapping.")
     subparsers.add_parser("mt5-feed", help="Run A16 mock-only MT5 market feed.")
@@ -153,6 +159,14 @@ def main(argv: list[str] | None = None) -> int:
         result = shadow_proposal()
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "mt5-demo-prepare":
+        result = prepare_demo_session(
+            account_mode=args.account_mode, terminal_path=args.terminal_path,
+            state_path=args.state_path, kill_switch_engaged=args.kill_switch_engaged,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] in {"READY_FOR_REVIEW", "BLOCKED"} and result["execution_allowed"] is False else 1
 
     if args.command == "mt5-bridge":
         result = mt5_bridge_status()
