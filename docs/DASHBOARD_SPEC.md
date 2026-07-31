@@ -44,6 +44,14 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 
 O dashboard e read-only e nao disponibiliza accoes de trading.
 
+## TradeDesk DEMO
+
+`/` is the local TradeDesk for simulated account, replay P/L, open and closed replay operations, decision journal, data provenance and constrained replay preferences. `/cockpit` remains the technical read-only view for ODIN, Hermes, resources and events. The only configuration endpoint is local `POST /trading/replay/config`; it persists an allowlisted replay watchlist and bounded simulated risk limits, and always returns `execution_allowed=false`, `safe_to_trade=false` and `real_trading=false`.
+
+## Operational reports
+
+`python3 -m odin.cli operational-report` persists a metadata-only report by default under `D:\ODIN_LOCAL\reports` (WSL: `/mnt/d/ODIN_LOCAL/reports`). It is read-only and contains no credentials or remote response content.
+
 ## A13 - Runtime Smoke Confirmado
 
 O endpoint `GET /runtime/smoke` faz parte do runtime seguro atual e deve continuar a devolver o estado agregado do smoke local, sem executar subprocessos, ordens ou integracoes reais.

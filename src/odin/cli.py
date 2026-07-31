@@ -76,7 +76,7 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--closes-json", required=True, help="JSON array of positive local close prices.")
     report.add_argument("--transaction-cost-bps", type=float, default=10.0)
     operational = subparsers.add_parser("operational-report", help="Write a local read-only operational report.")
-    operational.add_argument("--output-dir", default="reports")
+    operational.add_argument("--output-dir", default="/mnt/d/ODIN_LOCAL/reports")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
