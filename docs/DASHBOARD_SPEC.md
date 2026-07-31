@@ -47,7 +47,7 @@ O dashboard e read-only e nao disponibiliza accoes de trading.
 
 ## TradeDesk DEMO
 
-`/` is the local TradeDesk for simulated account, replay P/L, open and closed replay operations, decision journal, data provenance and constrained replay preferences. `/cockpit` remains the technical read-only view for ODIN, Hermes, resources and events. The only configuration endpoint is local `POST /trading/replay/config`; it persists an allowlisted replay watchlist and bounded simulated risk limits, and always returns `execution_allowed=false`, `safe_to_trade=false` and `real_trading=false`.
+`/` is the local TradeDesk for simulated account, replay P/L, open and closed replay operations, decision journal, data provenance and constrained replay preferences. When the bounded DEMO collector has a fresh local state, it also shows the MT5 DEMO account summary, open positions and EURUSD M15 observation separately from replay. The DEMO collection audit is `D:\ODIN_LOCAL\logs\mt5_demo_readonly.jsonl`; it contains timestamp, status, candle count and content hash, never credentials. `/cockpit` remains the technical read-only view for ODIN, Hermes, resources and events. The only configuration endpoint is local `POST /trading/replay/config`; it persists an allowlisted replay watchlist and bounded simulated risk limits, and always returns `execution_allowed=false`, `safe_to_trade=false` and `real_trading=false`.
 
 ## Operational reports
 
