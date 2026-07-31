@@ -30,4 +30,4 @@ Estes ficheiros não devem incluir palavra-passe ou outras credenciais. A config
 
 ## Paragem segura
 
-Se houver falha de terminal, dados antigos, temperatura CPU/GPU igual ou superior a 80°C, erro CUDA ou falta de memória, pare a recolha e mantenha o TradeDesk em observação. Não tente contornar os bloqueios nem introduza ordens pela aplicação. O operador deve investigar os registos e restaurar apenas uma recolha read-only saudável.
+Se houver falha de terminal, dados antigos, temperatura CPU/GPU igual ou superior a 80°C, erro CUDA ou falta de memória, pare a recolha e mantenha o TradeDesk em observação. A atualização manual verifica a GPU antes de cada etapa e bloqueia a 80°C; também bloqueia se uma sonda térmica CPU do Windows reportar 80°C ou mais. Não tente contornar os bloqueios nem introduza ordens pela aplicação. O operador deve investigar os registos e restaurar apenas uma recolha read-only saudável.
