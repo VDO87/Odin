@@ -27,6 +27,13 @@ class Mt5DemoPrepareCliDashboardTests(unittest.TestCase):
         self.assertFalse(result["execution_allowed"])
         self.assertNotIn("password", result)
 
+    def test_dashboard_exposes_read_only_demo_audit(self):
+        status, result = DashboardRoutes().serve("/mt5/demo/audit")
+
+        self.assertEqual(status, 200)
+        self.assertTrue(result["read_only"])
+        self.assertFalse(result["execution_allowed"])
+
 
 if __name__ == "__main__":
     unittest.main()

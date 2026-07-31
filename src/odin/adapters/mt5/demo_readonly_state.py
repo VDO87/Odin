@@ -67,6 +67,46 @@ def _parse_observed_at(value: object) -> datetime | None:
     return parsed if parsed.tzinfo is not None else None
 
 
+def read_demo_observation_audit(
+    path: str = "/mnt/d/ODIN_LOCAL/logs/mt5_demo_readonly.jsonl",
+    *,
+    limit: int = 10,
+) -> dict[str, object]:
+    """Read a bounded, sanitized local collection history."""
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()[-limit:]
+    except OSError:
+        lines = []
+    events: list[dict[str, object]] = []
+    for line in lines:
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(value, dict) or value.get("event") != "mt5_demo_readonly_snapshot":
+            continue
+        market = value.get("market")
+        events.append({
+            "as_of": value.get("as_of", ""),
+            "status": value.get("status", "UNKNOWN"),
+            "positions_count": value.get("positions_count", 0),
+            "content_hash": value.get("content_hash", ""),
+            "market": {
+                key: market.get(key) for key in ("symbol", "as_of", "status", "candles")
+            } if isinstance(market, dict) else {},
+            "execution_allowed": False,
+        })
+    return {
+        "status": "OK",
+        "component": "mt5_demo_observation_audit",
+        "read_only": True,
+        "events": events,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
+
+
 def _blocked(reason: str, *, as_of: str = "", age_seconds: int | None = None) -> dict[str, object]:
     result: dict[str, object] = {
         "status": "BLOCKED",

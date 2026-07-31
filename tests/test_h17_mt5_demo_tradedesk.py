@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from odin.adapters.mt5.demo_readonly_state import read_demo_readonly_state
+from odin.adapters.mt5.demo_readonly_state import read_demo_observation_audit, read_demo_readonly_state
 
 class Mt5DemoTradeDeskTests(unittest.TestCase):
     def test_sanitized_demo_state_is_read_only(self):
@@ -28,6 +28,16 @@ class Mt5DemoTradeDeskTests(unittest.TestCase):
         self.assertEqual(state["status"], "BLOCKED")
         self.assertEqual(state["reason"], "demo_readonly_state_stale")
         self.assertFalse(state["execution_allowed"])
+
+    def test_audit_reader_sanitizes_bounded_events(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "audit.jsonl"
+            p.write_text(json.dumps({"event":"mt5_demo_readonly_snapshot","as_of":"x","status":"CONNECTED_DEMO_READ_ONLY","positions_count":0,"content_hash":"hash","market":{"symbol":"EURUSD","candles":32,"password":"hidden"}})+"\nnot-json",encoding="utf-8")
+            audit = read_demo_observation_audit(str(p))
+        self.assertEqual(audit["status"], "OK")
+        self.assertEqual(len(audit["events"]), 1)
+        self.assertNotIn("password", audit["events"][0]["market"])
+        self.assertFalse(audit["execution_allowed"])
 
 if __name__ == "__main__":
     unittest.main()

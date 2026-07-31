@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from odin.adapters.brokers.isolated_observer import observer_status
 from odin.adapters.mt5.demo_session import reconcile_demo_session
-from odin.adapters.mt5.demo_readonly_state import read_demo_readonly_state
+from odin.adapters.mt5.demo_readonly_state import read_demo_observation_audit, read_demo_readonly_state
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -276,6 +276,11 @@ class DashboardRoutes:
 
         if path == "/mt5/demo/observation":
             payload = read_demo_readonly_state()
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/mt5/demo/audit":
+            payload = read_demo_observation_audit()
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
