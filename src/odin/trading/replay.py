@@ -21,6 +21,7 @@ def replay_trading_state(symbol: str = "EURUSD", timeframe: str = "M15") -> dict
          "opened_at": "2026-07-29T09:45:00+00:00", "closed_at": "2026-07-29T12:30:00+00:00",
          "profit": -3.0, "mode": "REPLAY"},
     ]
+    journal = [{"id": "J-1001", "symbol": "EURUSD", "state": "OPEN_REPLAY", "context": "trend_retest", "entry": 1.0842, "stop_loss": 1.0815, "take_profit": 1.0895, "risk": 13.5, "reason": "replay_price_above_local_average", "outcome": "awaiting_close"}, {"id": "J-0998", "symbol": "EURUSD", "state": "CLOSED_REPLAY", "context": "range_break", "entry": 1.0861, "stop_loss": 1.0880, "take_profit": 1.0820, "risk": 9.5, "reason": "replay_break_below_range", "outcome": "profit_7.50"}]
     metrics = replay_metrics(orders)
     balance = 10_000.0
     open_profit = sum(float(position["profit"]) for position in positions)
@@ -32,7 +33,7 @@ def replay_trading_state(symbol: str = "EURUSD", timeframe: str = "M15") -> dict
                     "daily_profit": 8.5, "drawdown_percent": 0.3, "account_connected": False},
         "market": {"symbol": symbol, "timeframe": timeframe, "bid": 1.08500, "ask": 1.08508,
                    "spread": 0.00008, "candles": candles, "data_source": "local_replay"},
-        "positions": positions, "orders": orders, "metrics": metrics,
+        "positions": positions, "orders": orders, "metrics": metrics, "decision_journal": journal,
         "risk": {"open_exposure": 0.05, "risk_to_stops": 13.5, "daily_loss_limit": 100.0,
                  "kill_switch_engaged": False},
         "odin": {"state": "OBSERVING", "next_action": "collect_replay_outcome",

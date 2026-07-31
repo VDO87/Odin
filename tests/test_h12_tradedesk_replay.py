@@ -13,6 +13,8 @@ class TradeDeskReplayTests(unittest.TestCase):
         self.assertTrue(result["market"]["candles"])
         self.assertTrue(result["positions"])
         self.assertTrue(result["orders"])
+        self.assertTrue(result["decision_journal"])
+        self.assertIn("risk", result["decision_journal"][0])
         self.assertEqual(result["metrics"]["wins"], 1)
         self.assertEqual(result["metrics"]["losses"], 1)
         self.assertLess(float(result["metrics"]["net_profit"]), float(result["metrics"]["gross_profit"]))
