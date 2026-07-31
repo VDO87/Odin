@@ -48,4 +48,4 @@ if (-not $NoBrowser) {
     Start-Process $Url
 }
 
-Write-Output "ODIN cockpit ready at $Url (local-only, read-only)."
+Write-Output "ODIN TradeDesk ready at $Url (local-only; replay preferences only; execution blocked)."
