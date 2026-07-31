@@ -4,15 +4,26 @@ Fundacao limpa para a fase A0 - Bootstrap.
 
 ODIN e o motor operacional: core, risco, dados, logs, tesouraria e execucao controlada. Hermes e a camada cognitiva: memoria, RAG, relatorios, recomendacoes e apoio ao operador. O Dashboard e o cockpit humano para auditoria, logs e decisao assistida.
 
-Estado inicial:
+Estado atual:
 
 - Trading real bloqueado por defeito.
 - Hermes em modo read-only.
-- MT5 limitado a Market Watch, Shadow Decision e Demo futura.
+- MT5 DEMO com coletor local limitado a leitura: saldo, equity, posições, EURUSD e velas M15.
 - XTB limitado a operacao manual/assistida, sem cliques automaticos.
 - Codex limitado a engenharia interna em staging/desenvolvimento.
 
-Este projecto ainda nao implementa logica funcional de trading.
+Este projecto ainda nao implementa logica funcional de trading nem capacidade de enviar ordens.
+
+## Abrir o ODIN DEMO local
+
+No PC ODIN, use o atalho `ODIN TradeDesk (Demo)` no Ambiente de Trabalho. Ele abre o painel local em `http://127.0.0.1:8765/`:
+
+- `/` é o TradeDesk de investidor: conta MT5 DEMO observacional, EURUSD, auditoria de recolhas e replay claramente separado.
+- `/cockpit` é o cockpit técnico: saúde de ODIN/Hermes, recursos, eventos, frescura e guardrails.
+
+Para recolher novos dados sem criar um daemon, execute o atalho `ODIN Refresh DEMO Observations`. A atualização tem timeouts, verifica GPU antes de cada etapa, lê apenas a conta DEMO, atualiza a fonte pública ECB e persiste relatório/logs em `D:\ODIN_LOCAL`. Uma observação MT5 com mais de 15 minutos ou hash inválida é bloqueada automaticamente.
+
+Consulte [docs/OPERATOR_DEMO_WALKTHROUGH.md](docs/OPERATOR_DEMO_WALKTHROUGH.md) para o procedimento completo. As invariantes mantêm-se: `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`.
 
 ## Current Safe Runtime
 
