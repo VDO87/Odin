@@ -29,6 +29,8 @@ class TradeDeskReplayTests(unittest.TestCase):
         self.assertEqual(payload["component"], "trading_replay")
         self.assertIn("ODIN TradeDesk", routes.tradedesk_html())
         self.assertIn("Technical cockpit", routes.tradedesk_html())
+        self.assertIn("MT5 DEMO open positions", routes.tradedesk_html())
+        self.assertIn("Current terminal observation", routes.tradedesk_html())
         self.assertIn("ODIN Cockpit", routes.cockpit_html())
         self.assertIs(payload["real_trading"], False)
 
