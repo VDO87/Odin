@@ -26,6 +26,26 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
         status, payload = self.routes.serve(path)
         self._send_json(status, payload)
 
+    def do_POST(self) -> None:
+        path = urlparse(self.path).path
+        if path != "/trading/replay/config":
+            self._send_json(404, {"status": "NOT_FOUND", "execution_allowed": False})
+            return
+        try:
+            size = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            size = 0
+        if not 0 < size <= 4096 or self.headers.get("Content-Type", "").split(";", 1)[0] != "application/json":
+            self._send_json(400, {"status": "BLOCKED", "reason": "replay_config_request_invalid", "execution_allowed": False})
+            return
+        try:
+            value = json.loads(self.rfile.read(size))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._send_json(400, {"status": "BLOCKED", "reason": "replay_config_json_invalid", "execution_allowed": False})
+            return
+        status, payload = self.routes.configure_replay(value)
+        self._send_json(status, payload)
+
     def log_message(self, format: str, *args: Any) -> None:
         return
 

@@ -18,6 +18,7 @@ from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.cockpit import cockpit_html
 from odin.dashboard.tradedesk import tradedesk_html
 from odin.trading.replay import replay_trading_state
+from odin.trading.replay_config import save_replay_config
 from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.feed_source_selector import feed_source_status
@@ -303,6 +304,13 @@ class DashboardRoutes:
             return 200, payload
 
         return 404, not_found_payload(path)
+
+    def configure_replay(self, value: object) -> tuple[int, dict[str, object]]:
+        """Persist a constrained replay preference; it never enables execution."""
+        result = save_replay_config(value)
+        event_name = "trading.replay_config.updated" if result["status"] == "OK" else "trading.replay_config.blocked"
+        self._audit(event_name, {"status": result["status"], "reason": result.get("reason", ""), "watchlist": result.get("watchlist", [])})
+        return (200 if result["status"] == "OK" else 400), result
 
     def logs_tail(self, *, limit: int = 20) -> dict[str, object]:
         path = Path(self.log_path)
