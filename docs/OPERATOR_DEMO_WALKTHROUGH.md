@@ -7,7 +7,7 @@ Este ambiente permite observar uma conta MT5 **DEMO** e dados públicos, manter 
 ## Utilização diária
 
 1. Abra `ODIN TradeDesk (Demo)` no Ambiente de Trabalho. A página local abre em `http://127.0.0.1:8765/`.
-2. Abra `ODIN Refresh DEMO Observations` para fazer uma recolha manual limitada. O fluxo recolhe a conta/posições/cotação MT5 DEMO em leitura, atualiza a observação ECB, persiste um ciclo shadow sem decisão e guarda um relatório local.
+2. Abra `ODIN Refresh DEMO Observations` para fazer uma recolha manual limitada. O fluxo recolhe a conta/posições/cotação MT5 DEMO em leitura, atualiza a observação ECB, persiste um ciclo shadow sem decisão, compara a frescura/histórico de recolhas e guarda relatórios locais.
 3. Atualize a página TradeDesk. Confirme `MT5 DEMO = CONNECTED_DEMO_READ_ONLY`, a moeda da conta, o timestamp de EURUSD e `Execution = false`.
 4. Leia o gráfico: `MT5 DEMO M15` significa velas do terminal; `local replay` significa dados simulados. Os resultados, posições e diário de **replay** não pertencem à conta MT5.
 5. Abra `Technical cockpit` para saúde de ODIN/Hermes, recursos, eventos, frescura de dados e última observação MT5.
@@ -20,6 +20,10 @@ O TradeDesk também mostra a última `shadow observation`. Este é apenas um reg
 - Auditoria de recolhas MT5: `D:\ODIN_LOCAL\logs\mt5_demo_readonly.jsonl`.
 - Dados públicos e proveniência: `D:\ODIN_LOCAL\cache\public` e `D:\ODIN_LOCAL\logs\public_data_events.jsonl`.
 - Relatórios: `D:\ODIN_LOCAL\reports`.
+
+O relatório `odin-shadow-observation-*.json` é factual: compara a frescura das
+fontes e contabiliza recolhas/falhas. Não interpreta preços, não cria decisões
+e não permite execução.
 
 Estes ficheiros não devem incluir palavra-passe ou outras credenciais. A configuração local fica no `.env` ignorado pelo Git dentro do WSL.
 

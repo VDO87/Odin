@@ -30,22 +30,27 @@ if (-not (Test-Path -LiteralPath $Collector)) {
 }
 
 Assert-ODINHardwareSafe
-Write-Output "[1/4] Collecting MT5 DEMO observation (read-only)."
+Write-Output "[1/5] Collecting MT5 DEMO observation (read-only)."
 & $Collector -TimeoutSeconds $Mt5TimeoutSeconds
 if ($LASTEXITCODE -ne 0) { throw "MT5 DEMO observation failed; no further collection was attempted." }
 
 Assert-ODINHardwareSafe
-Write-Output "[2/4] Refreshing bounded public ECB observation."
+Write-Output "[2/5] Refreshing bounded public ECB observation."
 & wsl.exe -d $Distro -u odin -- bash -lc "cd /home/odin/projects/odin && ulimit -n 8192 && timeout 45s python3 -m odin.cli public-data-refresh --timeout-seconds $PublicDataTimeoutSeconds"
 if ($LASTEXITCODE -ne 0) { throw "Public observation refresh failed; execution remains blocked." }
 
 Assert-ODINHardwareSafe
-Write-Output "[3/4] Persisting one no-decision shadow observation."
+Write-Output "[3/5] Persisting one no-decision shadow observation."
 & wsl.exe -d $Distro -u odin -- bash -lc "cd /home/odin/projects/odin && ulimit -n 8192 && timeout 45s python3 -m odin.cli shadow-observe"
 if ($LASTEXITCODE -ne 0) { throw "Shadow observation failed; execution remains blocked." }
 
 Assert-ODINHardwareSafe
-Write-Output "[4/4] Writing local operational report."
+Write-Output "[4/5] Writing factual shadow observation comparison."
+& wsl.exe -d $Distro -u odin -- bash -lc "cd /home/odin/projects/odin && ulimit -n 8192 && timeout 45s python3 -m odin.cli shadow-observation-report"
+if ($LASTEXITCODE -ne 0) { throw "Shadow comparison report failed; execution remains blocked." }
+
+Assert-ODINHardwareSafe
+Write-Output "[5/5] Writing local operational report."
 & wsl.exe -d $Distro -u odin -- bash -lc "cd /home/odin/projects/odin && ulimit -n 8192 && timeout 45s python3 -m odin.cli operational-report"
 if ($LASTEXITCODE -ne 0) { throw "Operational report failed; execution remains blocked." }
 

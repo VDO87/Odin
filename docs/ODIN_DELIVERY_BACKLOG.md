@@ -33,7 +33,7 @@ is not repeated; the next unchecked item becomes the next concrete task.
 - [x] Define a shadow-cycle state machine and idempotent run record.
 - [x] Add bounded single-cycle CLI with watchdog-compatible exit status.
 - [x] Add failure/restart and stale-data simulations.
-- [ ] Add daily comparison report: source freshness, observations and failures.
+- [x] Add daily comparison report: source freshness, observations and failures.
 - [ ] Add explicit operator procedure for approving a persistent local process.
 
 ## M4 — Demo-ready guardrails
