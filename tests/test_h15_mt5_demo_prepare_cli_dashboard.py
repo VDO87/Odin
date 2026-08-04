@@ -20,6 +20,12 @@ class Mt5DemoPrepareCliDashboardTests(unittest.TestCase):
         self.assertFalse(result["execution_allowed"])
         reconcile.assert_called_once()
 
+    def test_reconciled_dashboard_state_includes_kill_switch(self):
+        status, result = DashboardRoutes().serve("/operations/overview")
+        self.assertEqual(status, 200)
+        self.assertIn("kill_switch_engaged", result["supervised_demo"]["mt5"])
+        self.assertFalse(result["supervised_demo"]["mt5"]["execution_allowed"])
+
     def test_dashboard_exposes_sanitized_demo_observation(self):
         status, result = DashboardRoutes().serve("/mt5/demo/observation")
 

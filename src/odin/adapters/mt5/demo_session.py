@@ -80,13 +80,15 @@ def reconcile_demo_session(state_path: str) -> dict[str, object]:
     state = _read_state(Path(state_path))
     if not state:
         return _blocked("demo_session_state_missing")
-    if state.get("account_mode") != "demo" or state.get("kill_switch_engaged") is True:
-        return _blocked("demo_session_state_not_eligible")
+    engaged = state.get("kill_switch_engaged") is True
+    if state.get("account_mode") != "demo" or engaged:
+        return _blocked("demo_session_state_not_eligible", kill_switch_engaged=engaged)
     return {
         "status": "READY_FOR_REVIEW",
         "component": "mt5_demo_reconciliation",
         "fingerprint": state.get("fingerprint", ""),
         "reconciled": True,
+        "kill_switch_engaged": False,
         "terminal_connection_attempted": False,
         "execution_allowed": False,
         "safe_to_trade": False,
@@ -108,11 +110,12 @@ def _read_state(path: Path) -> dict[str, object] | None:
     return value if isinstance(value, dict) else None
 
 
-def _blocked(reason: str) -> dict[str, object]:
+def _blocked(reason: str, *, kill_switch_engaged: bool = False) -> dict[str, object]:
     return {
         "status": "BLOCKED",
         "component": "mt5_demo_reconciliation",
         "reason": reason,
+        "kill_switch_engaged": kill_switch_engaged,
         "terminal_connection_attempted": False,
         "execution_allowed": False,
         "safe_to_trade": False,

@@ -174,6 +174,7 @@ def operational_overview_payload(
                 "status": mt5["status"],
                 "reason": mt5.get("reason", "demo_preparation_pending_operator_review"),
                 "terminal_connection_attempted": mt5["terminal_connection_attempted"],
+                "kill_switch_engaged": mt5.get("kill_switch_engaged", False),
                 "execution_allowed": mt5["execution_allowed"],
             },
             "mt5_observation": {
