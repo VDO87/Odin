@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -19,8 +20,21 @@ class SQLiteStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         return sqlite3.connect(self.path)
 
+    @contextmanager
+    def _managed_connection(self):
+        """Commit/rollback and always close the SQLite descriptor."""
+        connection = self.connect()
+        try:
+            yield connection
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
     def initialize(self) -> bool:
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS system_state (
@@ -126,7 +140,7 @@ class SQLiteStore:
 
     def record_event(self, event: OdinEvent) -> None:
         safe_payload = event.to_dict()["payload"]
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO events (
@@ -152,7 +166,7 @@ class SQLiteStore:
 
     def set_state(self, key: str, value: str) -> None:
         updated_at = datetime.now(UTC).isoformat(timespec="seconds")
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO system_state (key, value, updated_at)
@@ -166,7 +180,7 @@ class SQLiteStore:
 
     def record_validation(self, state: OdinState) -> None:
         timestamp = datetime.now(UTC).isoformat(timespec="seconds")
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO validations (
@@ -190,7 +204,7 @@ class SQLiteStore:
 
     def register_agents(self, agents: list[dict[str, object]]) -> None:
         updated_at = datetime.now(UTC).isoformat(timespec="seconds")
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.executemany(
                 """
                 INSERT INTO hermes_agents (
@@ -226,7 +240,7 @@ class SQLiteStore:
 
     def register_skills(self, skills: list[dict[str, object]]) -> None:
         updated_at = datetime.now(UTC).isoformat(timespec="seconds")
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.executemany(
                 """
                 INSERT INTO hermes_skills (
@@ -259,7 +273,7 @@ class SQLiteStore:
             )
 
     def upsert_hermes_goal(self, goal: dict[str, object]) -> None:
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO hermes_goals (
@@ -302,7 +316,7 @@ class SQLiteStore:
 
     def upsert_hermes_memory(self, scope: str, key: str, value: dict[str, object]) -> None:
         updated_at = datetime.now(UTC).isoformat(timespec="seconds")
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO hermes_memory (scope, memory_key, value_json, updated_at)
@@ -323,7 +337,7 @@ class SQLiteStore:
         state: dict[str, object],
     ) -> None:
         created_at = datetime.now(UTC).isoformat(timespec="seconds")
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO hermes_checkpoints (checkpoint_id, goal_id, summary, state_json, created_at)
@@ -338,7 +352,7 @@ class SQLiteStore:
 
     def record_hermes_runtime(self, report: dict[str, object]) -> None:
         timestamp = datetime.now(UTC).isoformat(timespec="seconds")
-        with self.connect() as conn:
+        with self._managed_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO hermes_runtime_cycles (timestamp, status, operational_state, report_json)

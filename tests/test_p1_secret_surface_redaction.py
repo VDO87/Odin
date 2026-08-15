@@ -45,7 +45,9 @@ class SecretSurfaceRedactionTests(unittest.TestCase):
             with redirect_stdout(console):
                 print(json.dumps({"api": api_payload, "hermes": summary, "report": report["status"]}))
 
-            sqlite_payloads = [row[0] for row in sqlite3.connect(sqlite_path).execute("SELECT payload_json FROM events")]
+            with sqlite3.connect(sqlite_path) as connection:
+                sqlite_payloads = [row[0] for row in connection.execute("SELECT payload_json FROM events")]
+            connection.close()
             surfaces = [
                 emitted_log, *sqlite_payloads,
                 json.dumps(api_payload), json.dumps(summary), Path(report["report_path"]).read_text(encoding="utf-8"),
