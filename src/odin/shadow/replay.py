@@ -32,7 +32,9 @@ def replay_shadow(bars: list[MarketBar], *, costs_bps: float = 1.0, slippage_bps
         raise ValueError("shadow_replay_input_invalid")
     decisions = []
     for index in range(4, len(bars) - 1):
-        current = bars[: index + 1]
+        # The v1 strategy consumes only its five most recent bars.  Keeping the
+        # window exact avoids quadratic replay cost without adding look-ahead.
+        current = bars[index - 4 : index + 1]
         decision = shadow_decision(current, now_utc=_parse(current[-1].timestamp_utc))
         next_close = bars[index + 1].close
         outcome = _simulated_outcome(decision["signal"], current[-1].close, next_close, costs_bps, slippage_bps)
