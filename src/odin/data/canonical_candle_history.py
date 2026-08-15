@@ -32,6 +32,7 @@ def import_canonical_candle_history(
     artifact_root: str | Path,
     ingested_at: datetime | None = None,
     manifest_extras: dict[str, object] | None = None,
+    continuity_exceptions: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     """Validate a CSV fully before copying it to the local artifact store.
 
@@ -59,7 +60,7 @@ def import_canonical_candle_history(
         return _blocked("dataset_hash_invalid")
 
     timestamps = [_parse_utc(row["timestamp_utc"]) for row in rows]
-    issue = _validate_continuity(timestamps, timeframe)
+    issue = _validate_continuity(timestamps, timeframe, continuity_exceptions)
     if issue:
         return _blocked(issue)
     if manifest_extras and set(manifest_extras).intersection(
@@ -196,16 +197,30 @@ def _parse_utc(value: str) -> datetime:
     return timestamp
 
 
-def _validate_continuity(timestamps: list[datetime], timeframe: str) -> str | None:
+def _validate_continuity(
+    timestamps: list[datetime], timeframe: str, exceptions: list[dict[str, object]] | None = None
+) -> str | None:
+    """Validate continuity, allowing only explicit, reviewed market-data gaps.
+
+    The v1 CSV format remains unchanged.  A v2 manifest can attach a precise
+    exception to a derived-candle discontinuity; implicit gaps always block.
+    """
     expected_seconds = SUPPORTED_TIMEFRAMES_SECONDS[timeframe]
+    remaining = list(exceptions or [])
     for previous, current in zip(timestamps, timestamps[1:]):
         delta_seconds = int((current - previous).total_seconds())
         if delta_seconds == expected_seconds:
             continue
-        # The only tolerated market closure is a bounded Friday-to-Sunday weekend gap.
+        matched = next((item for item in remaining if item.get("from_utc") == previous.isoformat().replace("+00:00", "Z") and item.get("to_utc") == current.isoformat().replace("+00:00", "Z")), None)
+        if matched and matched.get("classification") in {"EXPECTED_GAP", "NO_TICK_GAP"}:
+            remaining.remove(matched)
+            continue
+        # The original v1 tolerance remains valid for old datasets.
         if previous.weekday() == 4 and current.weekday() == 6 and delta_seconds <= 60 * 60 * 60:
             continue
         return "canonical_gap_incompatible"
+    if remaining:
+        return "canonical_gap_exception_unused"
     return None
 
 

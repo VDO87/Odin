@@ -411,14 +411,31 @@ O relatório final deve registar:
 
 # 8. P0 — PRIORIDADE ATUAL: HISTÓRICO DE CANDLES
 
-**Estado em 2026-08-15:** o contrato v1 e importador fail-closed foram
-implementados nos checkpoints `b314264` e `71af19b`, com `11 passed, 8
-subtests passed` na validação P0/TradeDesk. A integração de apresentação no
-TradeDesk está concluída. A validação end-to-end contra o destino real
-`D:\ODIN_LOCAL` continua pendente porque não existe CSV canónico com licença e
-proveniência verificáveis no host; P0 não pode ainda ser aceite.
+**Estado em 2026-08-15: P0 READY.** O contrato v1 e o importador fail-closed
+foram implementados nos checkpoints `b314264` e `71af19b`. A fonte selecionada
+OANDA TMS/MT5 foi validada end-to-end read-only no destino real
+`D:\ODIN_LOCAL`: M1 RAW imutável SHA-256
+`3484f28eab61c60e78cd0f4c1e7ca4d9deedbb4e36d2e681b94858c58bb0f35a`, 32.888
+barras, 54 lacunas classificadas (4 `EXPECTED_GAP`, 50 `NO_TICK_GAP`, 0
+`SUSPICIOUS_GAP`) e cobertura ativa `99,371525%`. O M15 derivado validado tem
+hash `50e422310881add19674b390f06497070a61b2b1bc6470f77de57a9bca96c217` e
+referencia o hash RAW. P0 não autoriza trading; os três guardrails mantêm-se
+`false`.
 
-Esta é a prioridade imediata.
+## 8.0.1 Política canónica de lacunas Forex M1
+
+Uma lacuna não é preenchida, reparada ou ocultada. A qualidade é avaliada com
+evidência de ticks do mesmo terminal para os minutos ausentes:
+
+- `EXPECTED_GAP`: fecho de mercado/fim de semana identificado; aceite e registado;
+- `NO_TICK_GAP`: não há ticks no intervalo ausente; aceite com `WARN`, sem candle sintético;
+- `SUSPICIOUS_GAP`: há ticks no intervalo ausente; dataset `DEGRADED` e revisão obrigatória;
+- `INVALID_GAP`: não existe evidência necessária ou a regra é incompatível; `BLOCK`.
+
+O CSV canónico v1 mantém-se retrocompatível. O manifesto
+`odin.market_data_manifest/v2` acrescenta `license_id`, `usage_basis`,
+`terms_reference` e `provenance_v2`, além da lista de lacunas e da referência
+hash RAW→M15. Não se inferem direitos de redistribuição de uma referência a termos.
 
 ## 8.0 Período de certificação P0
 
@@ -546,7 +563,7 @@ timezone, formato, hash, proveniência e referência aos termos. Não existe ain
 dataset Dukascopy real aceite em `D:\ODIN_LOCAL\artifacts\market-data`; P2 não
 inicia antes da aceitação integral P0.
 
-# 8.6 Fonte P0 OANDA Practice — preparada, ainda bloqueada
+# 8.6 Fonte P0 OANDA Practice REST — preparada, não selecionada
 
 Foi autorizada a preparação de OANDA v20 **Practice** exclusivamente como fonte
 histórica read-only, sem autorização de trading. O adaptador fixo usa apenas
@@ -566,6 +583,26 @@ limite e a ausência de credenciais em erros/superfícies auditáveis.
 do acordo de licença API aplicável à divisão da conta. Essa URL é obrigatória
 para preencher `license` honestamente; sem ela o importador bloqueia e não reduz
 o contrato canónico. O detalhe operacional está em `docs/OANDA_P0_READONLY.md`.
+
+# 8.7 Fonte P0 selecionada — OANDA TMS via MetaTrader 5 read-only
+
+A fonte selecionada é o terminal DEMO já ligado, sem REST OANDA e sem carregar
+credenciais: `OANDA TMS Brokers S.A.` / `MetaTrader 5` /
+`OANDATMS-MT5`, símbolo `EURUSD`, BID M1 UTC. O adaptador
+`odin.data.mt5_oanda_history` recebe exclusivamente a saída de
+`MetaTrader5.copy_rates_range` e evidência de `copy_ticks_range`, conserva RAW
+M1 imutável com SHA-256, aplica a política acima, agrega apenas janelas M15
+completas e persiste depois da validação em
+`D:\ODIN_LOCAL\artifacts\market-data`.
+
+Para a certificação de julho de 2026, o manifesto deve declarar período pedido
+`[2026-07-01T00:00:00Z,2026-08-01T00:00:00Z)`, período observado, 32.888 barras,
+cobertura ativa `99,371525%`, 4 `EXPECTED_GAP`, 50 `NO_TICK_GAP`, 0
+`SUSPICIOUS_GAP`, broker/servidor, versões disponíveis, hash RAW e hash M15.
+O uso é apenas interno local ODIN para validação/replay e sem redistribuição.
+Como não foi identificada licença formal específica, o manifesto usa
+`license_id=NOT_EXPLICITLY_STATED`, `usage_basis` explícita e referências
+oficiais verificáveis; não inventa uma licença nem direitos de redistribuição.
 
 # 9. P1 — SEGURANÇA DE SEGREDOS
 
