@@ -19,9 +19,9 @@ is not repeated; the next unchecked item becomes the next concrete task.
 
 ## M2 — Read-only Forex data
 
-- [ ] Define the canonical candle/history CSV schema and provenance contract.
-- [ ] Add a local CSV importer with strict validation and fail-closed errors.
-- [ ] Add a cache layout under `D:\ODIN_LOCAL\artifacts\market-data`.
+- [x] Define the canonical candle/history CSV schema and provenance contract.
+- [x] Add a local CSV importer with strict validation and fail-closed errors.
+- [x] Add a cache layout under `D:\ODIN_LOCAL\artifacts\market-data`.
 - [x] Add data freshness, duplicate, gap and timestamp-quality gates.
 - [x] Add dashboard source/freshness/provenance panels.
 - [x] Select a documented public Forex provider: ECB EXR, observation-only.

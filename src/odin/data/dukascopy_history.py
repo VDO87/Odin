@@ -9,7 +9,6 @@ explicit, complete-window-only, reproducible, and fail-closed.
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import math
 import random
