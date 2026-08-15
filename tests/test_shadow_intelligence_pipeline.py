@@ -63,6 +63,7 @@ class ShadowIntelligenceTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertFalse(payload["execution_allowed"])
         self.assertIn("SHADOW INTELLIGENCE", routes.tradedesk_html())
+        self.assertIn("SHADOW INTELLIGENCE", routes.cockpit_html())
 
     def test_all_inputs_normalize_to_marketbar_without_strategy_provider_branch(self):
         replay = from_replay_candles([{"timestamp": "2026-08-15T12:00:00Z", "open": 1.1, "high": 1.2, "low": 1.0, "close": 1.15, "volume": 5, "spread": 0.0001}], symbol="EURUSD", timeframe="M15")
