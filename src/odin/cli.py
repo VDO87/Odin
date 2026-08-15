@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 
 from odin.core.bootstrap import validate_runtime
 from odin.core.market_watch import run_market_watch
@@ -12,6 +13,7 @@ from odin.core.smoke import run_runtime_smoke
 from odin.data.quality import data_quality_status
 from odin.data.public_refresh import refresh_ecb_public_data
 from odin.data.canonical_candle_history import import_canonical_candle_history
+from odin.data.dukascopy_history import DukascopyHistoryError, import_dukascopy_eurusd_m15
 from odin.adapters.market_data.mock_market import market_status
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -63,6 +65,13 @@ def build_parser() -> argparse.ArgumentParser:
     history_import.add_argument("--symbol", required=True)
     history_import.add_argument("--timeframe", required=True)
     history_import.add_argument("--artifact-root", default="/mnt/d/ODIN_LOCAL")
+    dukascopy_import = subparsers.add_parser(
+        "dukascopy-eurusd-m15-import", help="Download official Dukascopy M1 and fail-closed import deterministic UTC M15."
+    )
+    dukascopy_import.add_argument("--start-utc", required=True, help="Inclusive ISO-8601 UTC timestamp, minute-aligned.")
+    dukascopy_import.add_argument("--end-utc", required=True, help="Exclusive ISO-8601 UTC timestamp, minute-aligned.")
+    dukascopy_import.add_argument("--artifact-root", default="/mnt/d/ODIN_LOCAL")
+    dukascopy_import.add_argument("--timeout-seconds", type=float, default=20.0)
     subparsers.add_parser("strategy-status", help="Run A8 baseline observe-only strategy status.")
     subparsers.add_parser("decision-intent", help="Run A9 blocked decision intent skeleton.")
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
@@ -153,6 +162,19 @@ def main(argv: list[str] | None = None) -> int:
         result = import_canonical_candle_history(
             args.csv, symbol=args.symbol, timeframe=args.timeframe, artifact_root=args.artifact_root
         )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "VALIDATED" and result["execution_allowed"] is False else 1
+
+    if args.command == "dukascopy-eurusd-m15-import":
+        try:
+            result = import_dukascopy_eurusd_m15(
+                start_utc=datetime.fromisoformat(args.start_utc.replace("Z", "+00:00")),
+                end_utc=datetime.fromisoformat(args.end_utc.replace("Z", "+00:00")),
+                artifact_root=args.artifact_root,
+                timeout_seconds=args.timeout_seconds,
+            )
+        except (DukascopyHistoryError, ValueError) as error:
+            result = {"status": "BLOCKED", "component": "dukascopy_history", "reason": str(error), "safe_to_trade": False, "real_trading": False, "execution_allowed": False}
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "VALIDATED" and result["execution_allowed"] is False else 1
 
