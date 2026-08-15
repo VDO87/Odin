@@ -125,6 +125,7 @@ class SQLiteStore:
         return self.path.exists() and self.path.is_file()
 
     def record_event(self, event: OdinEvent) -> None:
+        safe_payload = event.to_dict()["payload"]
         with self.connect() as conn:
             conn.execute(
                 """
@@ -145,7 +146,7 @@ class SQLiteStore:
                     event.symbol,
                     int(event.safe_to_trade),
                     event.reason,
-                    json.dumps(event.payload, sort_keys=True),
+                    json.dumps(safe_payload, sort_keys=True),
                 ),
             )
 
@@ -350,4 +351,3 @@ class SQLiteStore:
                     json.dumps(report, sort_keys=True),
                 ),
             )
-

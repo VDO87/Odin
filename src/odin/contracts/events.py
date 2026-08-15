@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+import os
 from typing import Any
 from uuid import uuid4
 
@@ -178,5 +179,36 @@ class OdinEvent:
             "symbol": self.symbol,
             "safe_to_trade": self.safe_to_trade,
             "reason": self.reason,
-            "payload": self.payload,
+            "payload": _redact_payload(self.payload),
         }
+
+
+def _redact_payload(value: Any) -> Any:
+    """Remove local access material before an event reaches JSONL or SQLite."""
+    secrets = _local_access_values()
+    return _redact_value(value, secrets)
+
+
+def _local_access_values() -> set[str]:
+    names = ("ODIN_MT5_LOGIN", "ODIN_MT5_PASSWORD", "ODIN_MT5_SERVER")
+    return {os.environ[name] for name in names if os.environ.get(name)}
+
+
+def _redact_value(value: Any, secrets: set[str]) -> Any:
+    if isinstance(value, str):
+        return "[REDACTED]" if value in secrets else value
+    if isinstance(value, dict):
+        return {
+            str(key): "[REDACTED]" if _sensitive_key(str(key)) else _redact_value(item, secrets)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_value(item, secrets) for item in value]
+    if isinstance(value, tuple):
+        return [_redact_value(item, secrets) for item in value]
+    return value
+
+
+def _sensitive_key(key: str) -> bool:
+    normalized = key.lower().replace("-", "_")
+    return any(part in normalized for part in ("password", "secret", "token", "credential", "api_key", "access_key"))

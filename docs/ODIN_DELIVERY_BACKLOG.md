@@ -41,7 +41,7 @@ is not repeated; the next unchecked item becomes the next concrete task.
 - [x] Define a demo account configuration contract with redacted fields.
 - [x] Add guard that rejects missing, unknown and real account modes.
 - [x] Add a kill-switch contract and dashboard status.
-- [ ] Add secret-loading tests proving `.env` values cannot reach logs/events.
+- [x] Add secret-loading tests proving `.env` values cannot reach logs/events.
 - [x] Add MT5 terminal detection and a bounded, read-only DEMO collector; no order path.
 - [x] Obtain operator approval before the one authorised DEMO read-only login check.
 
