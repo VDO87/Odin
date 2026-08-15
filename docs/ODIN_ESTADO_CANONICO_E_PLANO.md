@@ -1129,21 +1129,21 @@ ODIN
 │
 ├── Infraestrutura local ................. OPERACIONAL
 ├── Ubuntu-ODIN .......................... OPERACIONAL
-├── TradeDesk ............................ IMPLEMENTADO / A REFINAR
-├── Cockpit .............................. IMPLEMENTADO
-├── MT5 DEMO read-only ................... TESTADO
-├── EURUSD / candles M15 ................. TESTADO
+├── TradeDesk ............................ VALIDADO / P2 CONCLUÍDO
+├── Cockpit .............................. VALIDADO
+├── MT5 DEMO read-only ................... VALIDADO
+├── EURUSD / candles M15 ................. VALIDADO / P0 CONCLUÍDO
 ├── ECB public data ...................... IMPLEMENTADO
 ├── Proveniência/cache/hash .............. IMPLEMENTADO
 ├── Hermes local diagnóstico ............. IMPLEMENTADO
-├── Replay ............................... IMPLEMENTADO / A VALIDAR
+├── Replay ............................... VALIDADO / SEPARADO
 ├── Shadow factual cycle ................. IMPLEMENTADO
 ├── Kill switch representation ........... IMPLEMENTADO
-├── Redaction JSONL/SQLite ............... REPORTADO COMO CONCLUÍDO
-├── CSV histórico canónico ............... EM CURSO / P0
-├── Importador fail-closed ............... EM CURSO / P0
-├── TradeDesk final ...................... P2
-├── Operator walkthrough ................. P3
+├── Redaction JSONL/SQLite ............... VALIDADO
+├── CSV histórico canónico ............... VALIDADO / P0 CONCLUÍDO
+├── Importador fail-closed ............... VALIDADO
+├── TradeDesk final ...................... P2 CONCLUÍDO
+├── Operator walkthrough ................. P3 CONCLUÍDO
 ├── Processo persistente ................. NÃO AUTORIZADO
 ├── Shadow Intelligence .................. FASE FUTURA
 ├── Ordens DEMO .......................... BLOQUEADAS
@@ -1165,8 +1165,7 @@ Este documento consolida e substitui, para efeitos de planeamento, os conteúdos
 E incorpora as decisões mais recentes:
 
 - P1.1 redaction comunicado pelo Codex como concluído;
-- P0 definido como prioridade atual;
-- P2 e P3 fecham a baseline;
+- P0, P2 e P3 concluídos com evidência na acceptance report;
 - Shadow Intelligence é uma fase separada e posterior;
 - novas skills/agentes/frameworks ficam fora do escopo até a baseline estar congelada.
 
