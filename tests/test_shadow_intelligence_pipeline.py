@@ -7,6 +7,9 @@ from pathlib import Path
 from odin.contracts.shadow_intelligence import ContextPacket, MarketBar
 from odin.dashboard.routes import DashboardRoutes
 from odin.shadow.ledger import append_decision
+from odin.shadow.market_data import from_mt5_observation, from_replay_candles
+from odin.shadow.context import context_from_public_observation
+from odin.shadow.service import run_shadow_cycle
 from odin.shadow.pipeline import build_market_state, evaluate_shadow_risk, shadow_decision
 from odin.shadow.replay import replay_shadow
 
@@ -60,6 +63,27 @@ class ShadowIntelligenceTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertFalse(payload["execution_allowed"])
         self.assertIn("SHADOW INTELLIGENCE", routes.tradedesk_html())
+
+    def test_all_inputs_normalize_to_marketbar_without_strategy_provider_branch(self):
+        replay = from_replay_candles([{"timestamp": "2026-08-15T12:00:00Z", "open": 1.1, "high": 1.2, "low": 1.0, "close": 1.15, "volume": 5, "spread": 0.0001}], symbol="EURUSD", timeframe="M15")
+        mt5 = from_mt5_observation({"status": "CONNECTED_DEMO_READ_ONLY", "fresh": True, "content_hash": "hash", "market": {"status": "OK", "symbol": "EURUSD", "spread": 0.0001, "candles": [{"time": "2026-08-15T12:00:00Z", "open": 1.1, "high": 1.2, "low": 1.0, "close": 1.15}]}})
+        self.assertEqual(type(replay[0]), type(mt5[0]))
+        self.assertEqual(shadow_decision(replay, now_utc=datetime(2026, 8, 15, 12, 1, tzinfo=UTC))["execution_allowed"], False)
+
+    def test_context_is_evidence_only_and_never_changes_risk(self):
+        packet = context_from_public_observation({"status": "OK", "fresh": True, "source": "ecb", "source_url": "https://example.test", "content_hash": "abc"})
+        self.assertEqual(packet.status, "VALID")
+        decision = shadow_decision(bars(), now_utc=datetime(2026, 8, 15, 13, tzinfo=UTC))
+        self.assertEqual(decision["risk_result"]["risk_status"], "ALLOW_SHADOW")
+
+    def test_sanitized_mt5_cycle_writes_shadow_ledger_without_execution(self):
+        state = {"status": "CONNECTED_DEMO_READ_ONLY", "fresh": True, "content_hash": "hash", "market": {"status": "OK", "symbol": "EURUSD", "spread": 0.0001, "candles": [{"time": "2026-08-15T12:00:00Z", "open": 1.1, "high": 1.2, "low": 1.0, "close": 1.15}]}}
+        with tempfile.TemporaryDirectory() as root:
+            state_path = Path(root) / "mt5.json"
+            state_path.write_text(json.dumps(state))
+            result = run_shadow_cycle(mt5_state_path=state_path, ledger_path=Path(root) / "ledger.jsonl")
+            self.assertFalse(result["execution_allowed"])
+            self.assertTrue(result["ledger_record_hash"])
 
 if __name__ == "__main__":
     unittest.main()
