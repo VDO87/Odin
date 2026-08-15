@@ -32,7 +32,7 @@ class _Response:
 
 class OandaP0HistoryTests(unittest.TestCase):
     def setUp(self):
-        self.start = datetime(2025, 7, 1, tzinfo=UTC)
+        self.start = datetime(2026, 7, 1, tzinfo=UTC)
         self.environment = {
             OANDA_TOKEN_ENV: "test-token-not-a-secret",
             OANDA_ACCOUNT_ID_ENV: "101-001-1234567-001",

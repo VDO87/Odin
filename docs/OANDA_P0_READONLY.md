@@ -8,8 +8,9 @@ Mantém permanentemente `safe_to_trade=false`, `real_trading=false` e
 
 - origem fixa: `https://api-fxpractice.oanda.com`;
 - único pedido remoto permitido: `GET /v3/accounts/{accountID}/instruments/EUR_USD/candles`;
-- parâmetros fixos P0: `EUR_USD`, `price=B`, `granularity=M1`, UTC e intervalo
-  `[2025-07-01T00:00:00Z, 2025-08-01T00:00:00Z)`;
+- parâmetros P0: `EUR_USD`, `price=B`, `granularity=M1`, UTC e um mês histórico
+  completo fechado; a preferência atual é
+  `[2026-07-01T00:00:00Z, 2026-08-01T00:00:00Z)`;
 - não existem chamadas a endpoints de execução, posição, transação ou configuração;
 - o adaptador usa apenas a biblioteca padrão Python, sem SDK nem downloader externo.
 

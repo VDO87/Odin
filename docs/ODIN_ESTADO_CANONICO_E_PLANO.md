@@ -420,6 +420,16 @@ proveniência verificáveis no host; P0 não pode ainda ser aceite.
 
 Esta é a prioridade imediata.
 
+## 8.0 Período de certificação P0
+
+O P0 exige um intervalo histórico **completo, fechado e em UTC**, com cobertura
+contínua compatível apenas com as pausas normais de mercado. Julho de 2025 foi
+um dataset de validação inicial, não um requisito funcional do ODIN. O intervalo
+preferido atual é `[2026-07-01T00:00:00Z,2026-08-01T00:00:00Z)`; uma substituição
+futura requer igualmente um mês histórico completo e deve ser declarada na
+proveniência e no manifesto. Todos os restantes critérios P0 permanecem
+inalterados.
+
 ## 8.1 Contrato CSV canónico
 
 Campos mínimos:
@@ -515,8 +525,9 @@ fonte. Foi criado o checkpoint `38f2464` com descodificação M1 oficial, agrega
 M1→M15 UTC determinística de janelas completas, testes e importação obrigatória
 via o importador fail-closed.
 
-Configuração proposta e documentada: EUR/USD BID, UTC,
-`[2025-07-01T00:00:00Z, 2025-08-01T00:00:00Z)`, origem do exportador
+Configuração proposta e documentada: EUR/USD BID, UTC e um mês histórico
+completo fechado (preferência atual
+`[2026-07-01T00:00:00Z,2026-08-01T00:00:00Z)`), origem do exportador
 `https://widgets.dukascopy.com/en/historical-data-export`, backend
 `https://jetta.dukascopy.com/v1` e referência aos termos oficiais. Nenhuma
 credencial ou cookie foi guardado.
@@ -541,7 +552,8 @@ Foi autorizada a preparação de OANDA v20 **Practice** exclusivamente como font
 histórica read-only, sem autorização de trading. O adaptador fixo usa apenas
 `GET /v3/accounts/{accountID}/instruments/EUR_USD/candles` no host oficial
 `https://api-fxpractice.oanda.com`, com `EUR_USD`, `price=B`, `granularity=M1`,
-UTC e o intervalo `[2025-07-01T00:00:00Z,2025-08-01T00:00:00Z)`.
+UTC e um mês histórico completo fechado (preferência atual
+`[2026-07-01T00:00:00Z,2026-08-01T00:00:00Z)`).
 
 O RAW JSON é imutável, paginado abaixo de 5.000 M1, recebe SHA-256 por página e
 por lote, e só avança após validação de BID, UTC, período completo, gaps e OHLCV.
