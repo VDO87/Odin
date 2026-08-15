@@ -14,7 +14,7 @@ from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
 from odin.adapters.mt5.symbol_mapping import mt5_symbol_mapping_status
-from odin.contracts.events import OdinEvent
+from odin.contracts.events import OdinEvent, redact_for_audit
 from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.cockpit import cockpit_html
 from odin.dashboard.tradedesk import tradedesk_html
@@ -355,9 +355,10 @@ class DashboardRoutes:
         lines: list[object] = []
         for line in raw_lines:
             try:
-                lines.append(json.loads(line))
+                parsed = json.loads(line)
+                lines.append(redact_for_audit(parsed))
             except json.JSONDecodeError:
-                lines.append({"raw": line, "parse_error": True})
+                lines.append({"raw": "[REDACTED_UNPARSEABLE_LOG_LINE]", "parse_error": True})
         return {
             "status": "OK",
             "lines": lines,

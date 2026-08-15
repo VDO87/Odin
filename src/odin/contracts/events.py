@@ -185,8 +185,12 @@ class OdinEvent:
 
 def _redact_payload(value: Any) -> Any:
     """Remove local access material before an event reaches JSONL or SQLite."""
-    secrets = _local_access_values()
-    return _redact_value(value, secrets)
+    return redact_for_audit(value)
+
+
+def redact_for_audit(value: Any) -> Any:
+    """Sanitize a value before it reaches any local operator-facing surface."""
+    return _redact_value(value, _local_access_values())
 
 
 def _local_access_values() -> set[str]:
@@ -196,7 +200,7 @@ def _local_access_values() -> set[str]:
 
 def _redact_value(value: Any, secrets: set[str]) -> Any:
     if isinstance(value, str):
-        return "[REDACTED]" if value in secrets else value
+        return "[REDACTED]" if any(secret in value for secret in secrets) else value
     if isinstance(value, dict):
         return {
             str(key): "[REDACTED]" if _sensitive_key(str(key)) else _redact_value(item, secrets)

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from odin.contracts.events import redact_for_audit
 from odin.hermes.recommendations import build_read_only_recommendations
 
 
@@ -19,9 +20,9 @@ def read_log_tail(path: str = "logs/odin_events.jsonl", *, limit: int = 20) -> l
         try:
             parsed = json.loads(line)
         except json.JSONDecodeError:
-            parsed = {"raw": line, "parse_error": True}
+            parsed = {"raw": "[REDACTED_UNPARSEABLE_LOG_LINE]", "parse_error": True}
         if isinstance(parsed, dict):
-            events.append(parsed)
+            events.append(redact_for_audit(parsed))
     return events
 
 
