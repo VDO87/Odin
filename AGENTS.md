@@ -1,40 +1,26 @@
-# Regras para Agentes Codex
+# ODIN — regras operacionais permanentes
 
-Estas regras aplicam-se a qualquer trabalho feito neste repositorio.
+```text
+safe_to_trade=false
+real_trading=false
+execution_allowed=false
+```
 
-## Principios
+## Limites inegociáveis
 
-- Escrever codigo simples, modular e testavel.
-- Separar Core, Risk, Treasury, Hermes e Dashboard.
-- Documentar alteracoes relevantes em `CHANGELOG.md` ou em documentos de arquitectura.
-- Criar testes sempre que forem criados modulos funcionais.
-- Manter a documentacao em portugues de Portugal.
+- Proibir `mt5.order_send`; não enviar ordens DEMO ou reais, nem automatizar XTB.
+- Não alterar guardrails autonomamente. Na ausência de uma condição segura, falhar fechado.
+- Não fabricar dados, resultados ou proveniência; não ler, criar ou expor credenciais reais.
+- Risk vence Hermes; Treasury vence Hermes em matéria de dinheiro; Hermes permanece read-only.
+- O Dashboard nunca indica "pronto para real" se Core ou Risk estiver bloqueado.
+- Não instalar dependências, usar `sudo` ou apagar ficheiros existentes sem confirmação humana explícita.
 
-## Limites Nao Negociaveis
+## Método de trabalho
 
-- Nao implementar execucao real de trading.
-- Nao chamar `mt5.order_send`.
-- Nao criar automacao de clique na XTB.
-- Nao criar robos para enviar ordens XTB.
-- Nao ler nem criar secrets reais.
-- Nao criar ficheiros `.env` com chaves reais.
-- Nao instalar dependencias novas sem confirmacao explicita.
-- Nao usar `sudo`.
-- Nao apagar ficheiros existentes sem confirmacao explicita.
-
-## Arquitectura
-
-- O Risk Engine vence sempre Hermes.
-- O Treasury Engine vence sempre Hermes em materia de dinheiro.
-- O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloqueado.
-- Hermes deve permanecer read-only na fase inicial.
-- Usar logs JSONL para eventos auditaveis.
-- Usar SQLite para estado local auditavel quando existirem modulos funcionais.
-
-## Modo de Trabalho
-
-- Antes de alterar codigo, ler os documentos em `docs/` relevantes.
-- Preferir contratos explicitos em `src/odin/contracts`.
-- Manter adaptadores externos isolados em `src/odin/adapters`.
-- Usar configuracao declarativa em `config/`.
-- Nao introduzir dependencias sem explicar motivo, risco e alternativa sem dependencia.
+- Antes de trabalho significativo, ler `docs/ODIN_ESTADO_CANONICO_E_PLANO.md`; usar a respetiva Definition of Done para concluir a baseline. Se faltar ou estiver ambíguo, parar e pedir decisão humana.
+- Diagnosticar antes de corrigir; não remover testes para obter verde nem mascarar leaks aumentando limites indefinidamente.
+- Preservar trabalho existente. Não usar `git reset --hard`, `git push --force` ou merge automático.
+- Podem ser resolvidas autonomamente pequenas alterações técnicas, reversíveis e dentro do objetivo ativo; cada correção exige validação proporcional.
+- Criar checkpoint Git após um estado estável e validado. Não aumentar o escopo enquanto existir objetivo ativo.
+- Não repetir indefinidamente: exigir nova evidência antes de repetir uma tentativa; escalar após tentativas esgotadas.
+- Parar perante credenciais, licenciamento ambíguo, operação destrutiva, risco de perda de dados ou necessidade de alterar guardrails.

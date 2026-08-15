@@ -1,0 +1,4 @@
+interface:
+  display_name: "ODIN Test Repair"
+  short_description: "Repair ODIN failures with focused tests."
+  default_prompt: "Repair this failing ODIN test without weakening validation."

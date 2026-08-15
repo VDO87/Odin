@@ -1,0 +1,4 @@
+interface:
+  display_name: "ODIN Objective Runner"
+  short_description: "Run bounded ODIN objectives safely."
+  default_prompt: "Complete the active ODIN objective using the local guardrails."

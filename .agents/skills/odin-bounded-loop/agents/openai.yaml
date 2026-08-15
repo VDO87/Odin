@@ -1,0 +1,4 @@
+interface:
+  display_name: "ODIN Bounded Loop"
+  short_description: "Bound ODIN diagnosis and repair loops."
+  default_prompt: "Handle this ODIN diagnostic loop with bounded, evidence-led iteration."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ODIN Data Provenance"
+  short_description: "Verify ODIN data provenance and integrity."
+  default_prompt: "Validate the provenance and integrity of this ODIN data."

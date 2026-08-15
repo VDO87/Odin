@@ -1,0 +1,4 @@
+interface:
+  display_name: "ODIN Blocker Triage"
+  short_description: "Diagnose ODIN blockers with evidence."
+  default_prompt: "Diagnose this ODIN blocker before proposing a correction."
