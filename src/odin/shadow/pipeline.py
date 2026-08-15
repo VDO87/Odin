@@ -42,7 +42,14 @@ def build_market_state(bars: list[MarketBar], *, now_utc: datetime | None = None
     return MarketState(last.symbol, last.timeframe, last.timestamp_utc, freshness, quality, trend, round(volatility, 8), spread, session, available, "RECONCILED_SINGLE_SOURCE", bars_hash(bars))
 
 
-def evaluate_shadow_risk(state: MarketState, *, kill_switch: bool = False, max_spread: float = 0.00050) -> dict[str, object]:
+def evaluate_shadow_risk(
+    state: MarketState,
+    *,
+    kill_switch: bool = False,
+    max_spread: float = 0.00050,
+    simulated_drawdown_percent: float = 0.0,
+    max_simulated_drawdown_percent: float = 10.0,
+) -> dict[str, object]:
     """Risk is deterministic and can only permit observation, never execution."""
     reasons: list[str] = []
     if kill_switch:
@@ -57,7 +64,10 @@ def evaluate_shadow_risk(state: MarketState, *, kill_switch: bool = False, max_s
         reasons.append("invalid_reconciliation")
     if state.spread_proxy is not None and state.spread_proxy > max_spread:
         reasons.append("excessive_spread")
-    status = "KILL" if kill_switch else "BLOCK" if reasons else "ALLOW_SHADOW"
+    restricted = simulated_drawdown_percent >= max_simulated_drawdown_percent
+    if restricted:
+        reasons.append("simulated_drawdown_limit")
+    status = "KILL" if kill_switch else "BLOCK" if any(reason != "simulated_drawdown_limit" for reason in reasons) else "RESTRICT" if restricted else "ALLOW_SHADOW"
     return {"risk_status": status, "reason_codes": reasons, "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
 
 

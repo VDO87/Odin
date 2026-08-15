@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -35,6 +36,14 @@ class ShadowIntelligenceTests(unittest.TestCase):
         self.assertFalse(blocked["execution_allowed"])
         killed = evaluate_shadow_risk(build_market_state(bars(), now_utc=datetime(2026, 8, 15, 13, tzinfo=UTC)), kill_switch=True)
         self.assertEqual(killed["risk_status"], "KILL")
+
+    def test_risk_covers_bad_missing_spread_reconciliation_and_drawdown(self):
+        fresh = build_market_state(bars(), now_utc=datetime(2026, 8, 15, 13, tzinfo=UTC))
+        self.assertEqual(evaluate_shadow_risk(replace(fresh, data_quality="DEGRADED"))["risk_status"], "BLOCK")
+        self.assertEqual(evaluate_shadow_risk(build_market_state([], now_utc=datetime(2026, 8, 15, tzinfo=UTC)))["risk_status"], "BLOCK")
+        self.assertEqual(evaluate_shadow_risk(replace(fresh, spread_proxy=0.1))["risk_status"], "BLOCK")
+        self.assertEqual(evaluate_shadow_risk(replace(fresh, source_reconciliation_status="UNRECONCILED"))["risk_status"], "BLOCK")
+        self.assertEqual(evaluate_shadow_risk(fresh, simulated_drawdown_percent=10.0)["risk_status"], "RESTRICT")
 
     def test_decision_and_ledger_never_enable_execution(self):
         decision = shadow_decision(bars(), now_utc=datetime(2026, 8, 15, 13, tzinfo=UTC))
