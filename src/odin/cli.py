@@ -11,6 +11,7 @@ from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.quality import data_quality_status
 from odin.data.public_refresh import refresh_ecb_public_data
+from odin.data.canonical_candle_history import import_canonical_candle_history
 from odin.adapters.market_data.mock_market import market_status
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -55,6 +56,13 @@ def build_parser() -> argparse.ArgumentParser:
     public_refresh.add_argument("--sqlite-path", default="/mnt/d/ODIN_LOCAL/runtime/public_data.sqlite")
     public_refresh.add_argument("--series-key", default="D.USD.EUR.SP00.A")
     public_refresh.add_argument("--timeout-seconds", type=float, default=10.0)
+    history_import = subparsers.add_parser(
+        "historical-candles-import", help="Validate and persist a canonical local candle CSV."
+    )
+    history_import.add_argument("--csv", required=True)
+    history_import.add_argument("--symbol", required=True)
+    history_import.add_argument("--timeframe", required=True)
+    history_import.add_argument("--artifact-root", default="/mnt/d/ODIN_LOCAL")
     subparsers.add_parser("strategy-status", help="Run A8 baseline observe-only strategy status.")
     subparsers.add_parser("decision-intent", help="Run A9 blocked decision intent skeleton.")
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
@@ -140,6 +148,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "historical-candles-import":
+        result = import_canonical_candle_history(
+            args.csv, symbol=args.symbol, timeframe=args.timeframe, artifact_root=args.artifact_root
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "VALIDATED" and result["execution_allowed"] is False else 1
 
     if args.command == "data-quality":
         result = data_quality_status()

@@ -5,7 +5,12 @@ import unittest
 from pathlib import Path
 
 from odin.contracts.historical_candles import CANONICAL_CANDLE_COLUMNS, CANONICAL_CANDLE_SCHEMA_VERSION
-from odin.data.canonical_candle_history import canonical_dataset_hash, import_canonical_candle_history
+from odin.data.canonical_candle_history import (
+    canonical_candle_history_status,
+    canonical_dataset_hash,
+    import_canonical_candle_history,
+)
+from odin.dashboard.routes import DashboardRoutes
 
 
 class CanonicalCandleHistoryTests(unittest.TestCase):
@@ -39,6 +44,7 @@ class CanonicalCandleHistoryTests(unittest.TestCase):
         self.assertEqual(manifest["quality_status"], "VALIDATED")
         self.assertEqual(manifest["source"], "test-fixture")
         self.assertFalse(result["execution_allowed"])
+        self.assertEqual(canonical_candle_history_status(artifact_root=root)["status"], "OK")
 
     def test_invalid_schema_never_creates_artifact(self):
         rows = self._rows()
@@ -66,6 +72,13 @@ class CanonicalCandleHistoryTests(unittest.TestCase):
                 result = import_canonical_candle_history(path, symbol="EURUSD", timeframe="M15", artifact_root=root)
                 self.assertEqual(result["reason"], reason)
                 self.assertFalse((root / "artifacts").exists())
+
+    def test_dashboard_exposes_history_status_and_tradedesk_labels_it_as_evidence(self):
+        routes = DashboardRoutes()
+        status, payload = routes.serve("/data/history/canonical")
+        self.assertEqual(status, 200)
+        self.assertIn(payload["status"], {"OK", "BLOCKED"})
+        self.assertIn("Historical candles · validated dataset only", routes.tradedesk_html())
 
     def test_rejects_missing_provenance_hash_and_identity_mismatch(self):
         for field, value, expected_symbol, reason in [

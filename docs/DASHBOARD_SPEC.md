@@ -29,6 +29,8 @@ O Dashboard nunca pode mostrar "pronto para real" se Core ou Risk estiver bloque
 - `GET /market/status`: estado de dados de mercado mock.
 - `GET /market/watch`: modo MARKET_WATCH observacional.
 - `GET /data/quality`: gates de qualidade de dados.
+- `GET /data/history/canonical`: estado do último manifesto de candles históricos
+  validado, ou bloqueio explícito se não existir dataset válido.
 - `GET /feed/source`: selecao mock de fonte observacional.
 - `GET /observation/frame`: frame observacional agregado.
 - `GET /observation/frame/quality`: gates de qualidade do frame observacional.
@@ -60,6 +62,15 @@ O dashboard e read-only e nao disponibiliza accoes de trading.
 The Windows installer creates `ODIN TradeDesk (Demo).lnk` and `ODIN Refresh DEMO Observations.lnk` on the Desktop. The latter is a manual read-only collection action and contains no credentials.
 
 The complete operator walkthrough is [OPERATOR_DEMO_WALKTHROUGH.md](OPERATOR_DEMO_WALKTHROUGH.md).
+
+## Histórico canónico de candles
+
+O TradeDesk consulta `GET /data/history/canonical` e mostra apenas a metadata de
+um manifesto `VALIDATED`: fonte, período, proveniência, qualidade e hash. Não
+mostra recomendações. O carregamento é feito localmente com
+`python3 -m odin.cli historical-candles-import --csv <ficheiro> --symbol EURUSD --timeframe M15`;
+o importador conserva `execution_allowed=false` e rejeita falhas em vez de as
+corrigir. O contrato completo está em [CANONICAL_HISTORICAL_CANDLES_CSV.md](CANONICAL_HISTORICAL_CANDLES_CSV.md).
 
 ## A13 - Runtime Smoke Confirmado
 

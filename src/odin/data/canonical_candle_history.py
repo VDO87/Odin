@@ -121,6 +121,31 @@ def canonical_dataset_hash(rows: list[dict[str, str]]) -> str:
     return hashlib.sha256(("\n".join(content) + "\n").encode("utf-8")).hexdigest()
 
 
+def canonical_candle_history_status(
+    *, artifact_root: str | Path, symbol: str = "EURUSD", timeframe: str = "M15"
+) -> dict[str, object]:
+    """Read the newest validated manifest only; never infer quality from a CSV."""
+    root = Path(artifact_root) / "artifacts" / "market-data" / symbol / timeframe
+    manifests = sorted(root.glob("*.manifest.json"), key=lambda item: item.stat().st_mtime, reverse=True)
+    if not manifests:
+        return _blocked("canonical_history_unavailable")
+    try:
+        value = json.loads(manifests[0].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return _blocked("canonical_history_manifest_invalid")
+    required = {"status", "dataset_hash", "symbol", "timeframe", "source", "provenance", "period_start_utc", "period_end_utc", "quality_status"}
+    if not required.issubset(value) or value.get("status") != "VALIDATED":
+        return _blocked("canonical_history_manifest_invalid")
+    return {
+        "status": "OK",
+        "component": "canonical_candle_history",
+        "dataset": {key: value[key] for key in sorted(required - {"status"})},
+        "safe_to_trade": False,
+        "real_trading": False,
+        "execution_allowed": False,
+    }
+
+
 def _validate_rows(
     rows: list[dict[str, str]], *, symbol: str, timeframe: str
 ) -> tuple[str | None, dict[str, str]]:
