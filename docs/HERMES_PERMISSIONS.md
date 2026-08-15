@@ -9,6 +9,8 @@ Pode:
 - Criar relatorios.
 - Produzir recomendacoes explicaveis.
 - Apoiar o operador com notas de auditoria.
+- Ler e resumir a saída sanitizada da ferramenta MT5 read-only descrita em
+  `docs/runbooks/MT5_READONLY_ODIN_HERMES.md`.
 
 Nao pode:
 
