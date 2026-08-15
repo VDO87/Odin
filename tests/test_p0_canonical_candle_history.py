@@ -53,6 +53,15 @@ class CanonicalCandleHistoryTests(unittest.TestCase):
         self.assertEqual(result["reason"], "canonical_schema_invalid")
         self.assertFalse((root / "artifacts").exists())
 
+    def test_manifest_extras_cannot_override_canonical_provenance(self):
+        path, root = self._csv(self._rows())
+        result = import_canonical_candle_history(
+            path, symbol="EURUSD", timeframe="M15", artifact_root=root,
+            manifest_extras={"source": "replacement"},
+        )
+        self.assertEqual(result["reason"], "manifest_extras_override_canonical_field")
+        self.assertFalse((root / "artifacts").exists())
+
     def test_rejects_non_utc_duplicate_gap_ohlc_and_non_finite_values(self):
         cases = [
             ("timestamp_utc", "2026-08-15T00:00:00+01:00", "canonical_timestamp_or_number_invalid"),

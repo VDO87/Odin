@@ -194,7 +194,10 @@ def redact_for_audit(value: Any) -> Any:
 
 
 def _local_access_values() -> set[str]:
-    names = ("ODIN_MT5_LOGIN", "ODIN_MT5_PASSWORD", "ODIN_MT5_SERVER")
+    names = (
+        "ODIN_MT5_LOGIN", "ODIN_MT5_PASSWORD", "ODIN_MT5_SERVER",
+        "ODIN_OANDA_PRACTICE_TOKEN", "ODIN_OANDA_PRACTICE_ACCOUNT_ID",
+    )
     return {os.environ[name] for name in names if os.environ.get(name)}
 
 

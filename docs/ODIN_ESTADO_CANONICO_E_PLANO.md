@@ -535,6 +535,26 @@ timezone, formato, hash, proveniência e referência aos termos. Não existe ain
 dataset Dukascopy real aceite em `D:\ODIN_LOCAL\artifacts\market-data`; P2 não
 inicia antes da aceitação integral P0.
 
+# 8.6 Fonte P0 OANDA Practice — preparada, ainda bloqueada
+
+Foi autorizada a preparação de OANDA v20 **Practice** exclusivamente como fonte
+histórica read-only, sem autorização de trading. O adaptador fixo usa apenas
+`GET /v3/accounts/{accountID}/instruments/EUR_USD/candles` no host oficial
+`https://api-fxpractice.oanda.com`, com `EUR_USD`, `price=B`, `granularity=M1`,
+UTC e o intervalo `[2025-07-01T00:00:00Z,2025-08-01T00:00:00Z)`.
+
+O RAW JSON é imutável, paginado abaixo de 5.000 M1, recebe SHA-256 por página e
+por lote, e só avança após validação de BID, UTC, período completo, gaps e OHLCV.
+A agregação M1→M15 permanece a implementação determinística existente, e o
+manifesto M15 referencia o hash/artefacto RAW. Não há endpoints de execução,
+posição, transação ou configuração no adaptador; testes offline verificam esse
+limite e a ausência de credenciais em erros/superfícies auditáveis.
+
+**P0 continua NOT READY:** falta a conta Practice, o token pessoal local e a URL
+do acordo de licença API aplicável à divisão da conta. Essa URL é obrigatória
+para preencher `license` honestamente; sem ela o importador bloqueia e não reduz
+o contrato canónico. O detalhe operacional está em `docs/OANDA_P0_READONLY.md`.
+
 # 9. P1 — SEGURANÇA DE SEGREDOS
 
 Embora P1.1 tenha sido reportado como concluído, a fase de segurança só fecha quando existir prova mais abrangente.

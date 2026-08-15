@@ -14,15 +14,18 @@ class SecretEventRedactionTests(unittest.TestCase):
         password = "demo-password-sentinel"
         login = "demo-login-sentinel"
         server = "demo-server-sentinel"
+        oanda_token = "oanda-token-sentinel"
         payload = {
             "note": password,
             "nested": [login, {"server_hint": server, "api_token": "also-hidden"}],
+            "oanda_note": oanda_token,
             "safe": "kept",
         }
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
             "ODIN_MT5_PASSWORD": password,
             "ODIN_MT5_LOGIN": login,
             "ODIN_MT5_SERVER": server,
+            "ODIN_OANDA_PRACTICE_TOKEN": oanda_token,
         }, clear=False):
             event = OdinEvent.create(run_id="redaction-test", component="odin.test", event="test", payload=payload)
             logger = JsonlLogger(Path(tmp) / "events.jsonl")
@@ -34,7 +37,7 @@ class SecretEventRedactionTests(unittest.TestCase):
             with store.connect() as connection:
                 sqlite = connection.execute("SELECT payload_json FROM events").fetchone()[0]
 
-        for forbidden in (password, login, server, "also-hidden"):
+        for forbidden in (password, login, server, oanda_token, "also-hidden"):
             self.assertNotIn(forbidden, jsonl)
             self.assertNotIn(forbidden, sqlite)
         self.assertIn("kept", jsonl)

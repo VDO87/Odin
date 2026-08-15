@@ -31,6 +31,7 @@ def import_canonical_candle_history(
     timeframe: str,
     artifact_root: str | Path,
     ingested_at: datetime | None = None,
+    manifest_extras: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Validate a CSV fully before copying it to the local artifact store.
 
@@ -61,6 +62,10 @@ def import_canonical_candle_history(
     issue = _validate_continuity(timestamps, timeframe)
     if issue:
         return _blocked(issue)
+    if manifest_extras and set(manifest_extras).intersection(
+        {"status", "dataset_hash", "symbol", "timeframe", "period_start_utc", "period_end_utc", "candles_count", "source", "source_version", "schema_version", "provenance", "license", "ingested_at_utc", "quality_status"}
+    ):
+        return _blocked("manifest_extras_override_canonical_field")
 
     root = Path(artifact_root)
     destination = root / "artifacts" / "market-data" / symbol / timeframe / f"{dataset_hash}.csv"
@@ -70,24 +75,27 @@ def import_canonical_candle_history(
         if not destination.exists():
             shutil.copyfile(file_path, destination)
         ingested = (ingested_at or datetime.now(UTC)).astimezone(UTC).isoformat()
+        manifest_payload: dict[str, object] = {
+            "status": "VALIDATED",
+            "dataset_hash": dataset_hash,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "period_start_utc": rows[0]["timestamp_utc"],
+            "period_end_utc": rows[-1]["timestamp_utc"],
+            "candles_count": len(rows),
+            "source": metadata["source"],
+            "source_version": metadata["source_version"],
+            "schema_version": metadata["schema_version"],
+            "provenance": metadata["provenance"],
+            "license": metadata["license"],
+            "ingested_at_utc": ingested,
+            "quality_status": "VALIDATED",
+        }
+        if manifest_extras:
+            manifest_payload.update(manifest_extras)
         manifest.write_text(
             json.dumps(
-                {
-                    "status": "VALIDATED",
-                    "dataset_hash": dataset_hash,
-                    "symbol": symbol,
-                    "timeframe": timeframe,
-                    "period_start_utc": rows[0]["timestamp_utc"],
-                    "period_end_utc": rows[-1]["timestamp_utc"],
-                    "candles_count": len(rows),
-                    "source": metadata["source"],
-                    "source_version": metadata["source_version"],
-                    "schema_version": metadata["schema_version"],
-                    "provenance": metadata["provenance"],
-                    "license": metadata["license"],
-                    "ingested_at_utc": ingested,
-                    "quality_status": "VALIDATED",
-                },
+                manifest_payload,
                 ensure_ascii=False,
                 indent=2,
                 sort_keys=True,

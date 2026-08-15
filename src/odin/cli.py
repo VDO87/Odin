@@ -20,6 +20,7 @@ from odin.data.dukascopy_history import (
     import_manual_dukascopy_eurusd_m1,
     source_rate_limited_status,
 )
+from odin.data.oanda_history import OandaHistoryError, import_oanda_practice_eurusd_m1
 from odin.adapters.market_data.mock_market import market_status
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -86,6 +87,14 @@ def build_parser() -> argparse.ArgumentParser:
     dukascopy_manual.add_argument("--source-url", required=True)
     dukascopy_manual.add_argument("--terms-url", required=True)
     dukascopy_manual.add_argument("--artifact-root", default="/mnt/d/ODIN_LOCAL")
+    oanda_import = subparsers.add_parser(
+        "oanda-practice-eurusd-m1-import",
+        help="Read OANDA Practice EUR_USD BID M1 only, aggregate deterministic UTC M15, and fail closed.",
+    )
+    oanda_import.add_argument("--start-utc", required=True, help="Inclusive ISO-8601 UTC timestamp, minute-aligned.")
+    oanda_import.add_argument("--end-utc", required=True, help="Exclusive ISO-8601 UTC timestamp, minute-aligned.")
+    oanda_import.add_argument("--artifact-root", default="/mnt/d/ODIN_LOCAL")
+    oanda_import.add_argument("--timeout-seconds", type=float, default=20.0)
     subparsers.add_parser("strategy-status", help="Run A8 baseline observe-only strategy status.")
     subparsers.add_parser("decision-intent", help="Run A9 blocked decision intent skeleton.")
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
@@ -205,6 +214,19 @@ def main(argv: list[str] | None = None) -> int:
             )
         except (DukascopyHistoryError, ValueError) as error:
             result = {"status": "BLOCKED", "component": "dukascopy_history", "reason": str(error), "safe_to_trade": False, "real_trading": False, "execution_allowed": False}
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "VALIDATED" and result["execution_allowed"] is False else 1
+
+    if args.command == "oanda-practice-eurusd-m1-import":
+        try:
+            result = import_oanda_practice_eurusd_m1(
+                start_utc=datetime.fromisoformat(args.start_utc.replace("Z", "+00:00")),
+                end_utc=datetime.fromisoformat(args.end_utc.replace("Z", "+00:00")),
+                artifact_root=args.artifact_root,
+                timeout_seconds=args.timeout_seconds,
+            )
+        except (OandaHistoryError, ValueError) as error:
+            result = {"status": "BLOCKED", "component": "oanda_history", "reason": str(error), "safe_to_trade": False, "real_trading": False, "execution_allowed": False}
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "VALIDATED" and result["execution_allowed"] is False else 1
 
