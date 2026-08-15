@@ -12,9 +12,11 @@ import csv
 import hashlib
 import json
 import math
+import random
 import tempfile
 import time
 from datetime import UTC, datetime, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.error import HTTPError
@@ -28,10 +30,21 @@ DUKASCOPY_TERMS_URL = "https://www.dukascopy.com/swiss/english/legal-pages/terms
 DUKASCOPY_JETTA_URL = "https://jetta.dukascopy.com/v1"
 _M1_SECONDS = 60
 _M15_SECONDS = 15 * 60
+_MAX_ACQUISITION_ATTEMPTS = 3
+_RETRY_BASE_SECONDS = 30.0
+_RETRY_JITTER_SECONDS = 5.0
 
 
 class DukascopyHistoryError(ValueError):
     """The source response or deterministic aggregation is not acceptable."""
+
+
+class DukascopySourceRateLimited(DukascopyHistoryError):
+    """A bounded acquisition exhausted its vendor-approved retry budget."""
+
+    def __init__(self, attempts: int) -> None:
+        self.attempts = attempts
+        super().__init__("SOURCE_RATE_LIMITED")
 
 
 def decode_minute_payload(payload: dict[str, Any]) -> list[dict[str, float | int]]:
@@ -100,16 +113,43 @@ def aggregate_m1_to_m15(candles: Iterable[dict[str, float | int]]) -> list[dict[
     return result
 
 
-def _fetch_json(url: str, timeout_seconds: float) -> dict[str, Any]:
-    """Make at most three requests; 429 is never treated as data."""
-    for attempt in range(3):
+def _retry_after_seconds(headers: Any, *, now: datetime) -> float | None:
+    value = headers.get("Retry-After") if headers else None
+    if not value:
+        return None
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
         try:
-            with urlopen(url, timeout=timeout_seconds) as response:  # nosec B310 - fixed HTTPS vendor origin
+            retry_at = parsedate_to_datetime(value).astimezone(UTC)
+        except (TypeError, ValueError):
+            return None
+        seconds = (retry_at - now.astimezone(UTC)).total_seconds()
+    return max(0.0, seconds)
+
+
+def _fetch_json(
+    url: str,
+    timeout_seconds: float,
+    *,
+    opener: Any = urlopen,
+    sleeper: Any = time.sleep,
+    jitter: Any = random.uniform,
+    now: Any = lambda: datetime.now(UTC),
+) -> dict[str, Any]:
+    """Fetch JSON with a finite, rate-limit-aware retry policy."""
+    for attempt in range(1, _MAX_ACQUISITION_ATTEMPTS + 1):
+        try:
+            with opener(url, timeout=timeout_seconds) as response:  # nosec B310 - fixed HTTPS vendor origin
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
-            if error.code != 429 or attempt == 2:
+            if error.code != 429:
                 raise DukascopyHistoryError("dukascopy_source_unavailable") from error
-            time.sleep(15 * (attempt + 1))
+            if attempt == _MAX_ACQUISITION_ATTEMPTS:
+                raise DukascopySourceRateLimited(attempt) from error
+            retry_after = _retry_after_seconds(error.headers, now=now())
+            delay = retry_after if retry_after is not None else _RETRY_BASE_SECONDS * (2 ** (attempt - 1)) + float(jitter(0, _RETRY_JITTER_SECONDS))
+            sleeper(delay)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
             raise DukascopyHistoryError("dukascopy_source_unavailable") from error
     raise DukascopyHistoryError("dukascopy_source_unavailable")
@@ -133,9 +173,66 @@ def download_eurusd_m1(start_utc: datetime, end_utc: datetime, *, timeout_second
                 rows.append(candle)
         day += timedelta(days=1)
         if day < end:
-            # Vendor rate-limit compliance: one bounded request every two seconds.
-            time.sleep(2)
+            # Keep normal acquisition deliberately low-rate too.
+            time.sleep(5)
     return rows
+
+
+def source_rate_limited_status(error: DukascopySourceRateLimited) -> dict[str, object]:
+    """Stable non-success result for operator-facing automatic acquisition."""
+    return {"status": "BLOCKED", "reason": "SOURCE_RATE_LIMITED", "error_class": "EXTERNAL_TRANSIENT", "attempts": error.attempts, "safe_to_trade": False, "real_trading": False, "execution_allowed": False}
+
+
+def _utc_datetime(value: datetime, *, error_code: str) -> datetime:
+    if value.tzinfo is None or value.utcoffset() != timedelta(0):
+        raise DukascopyHistoryError(error_code)
+    return value.astimezone(UTC).replace(microsecond=0)
+
+
+def _manual_m1_csv(path: str | Path) -> list[dict[str, float | int]]:
+    expected_headers = ("UTC", "Open", "High", "Low", "Close", "Volume")
+    try:
+        handle = Path(path).open("r", newline="", encoding="utf-8")
+    except OSError as error:
+        raise DukascopyHistoryError("dukascopy_manual_file_unavailable") from error
+    with handle:
+        reader = csv.DictReader(handle)
+        if tuple(reader.fieldnames or ()) != expected_headers:
+            raise DukascopyHistoryError("dukascopy_manual_schema_invalid")
+        candles: list[dict[str, float | int]] = []
+        previous: int | None = None
+        for row in reader:
+            try:
+                raw_timestamp = row["UTC"]
+                if not raw_timestamp.endswith(("Z", "+00:00")):
+                    raise ValueError("timestamp is not UTC")
+                timestamp = _utc_datetime(datetime.fromisoformat(raw_timestamp.replace("Z", "+00:00")), error_code="dukascopy_manual_timezone_invalid")
+                candle = {"timestamp_ms": int(timestamp.timestamp() * 1000), "open": float(row["Open"]), "high": float(row["High"]), "low": float(row["Low"]), "close": float(row["Close"]), "volume": float(row["Volume"])}
+            except (AttributeError, KeyError, TypeError, ValueError) as error:
+                raise DukascopyHistoryError("dukascopy_manual_row_invalid") from error
+            if candle["timestamp_ms"] % (_M1_SECONDS * 1000) != 0 or (previous is not None and candle["timestamp_ms"] <= previous):
+                raise DukascopyHistoryError("dukascopy_manual_ordering_invalid")
+            if not all(math.isfinite(float(candle[field])) for field in ("open", "high", "low", "close", "volume")) or candle["volume"] < 0 or candle["low"] > min(candle["open"], candle["close"]) or candle["high"] < max(candle["open"], candle["close"]):
+                raise DukascopyHistoryError("dukascopy_manual_ohlcv_invalid")
+            previous = int(candle["timestamp_ms"])
+            candles.append(candle)
+    if not candles:
+        raise DukascopyHistoryError("dukascopy_manual_empty")
+    return candles
+
+
+def _persist_m15(m15: list[dict[str, float | int]], *, artifact_root: str | Path, ingested_at: datetime, provenance: str, source_version: str) -> dict[str, object]:
+    rows = [{"symbol": "EURUSD", "timeframe": "M15", "timestamp_utc": datetime.fromtimestamp(int(candle["timestamp_ms"]) / 1000, UTC).isoformat().replace("+00:00", "Z"), "open": f"{float(candle['open']):.5f}", "high": f"{float(candle['high']):.5f}", "low": f"{float(candle['low']):.5f}", "close": f"{float(candle['close']):.5f}", "volume": f"{float(candle['volume']):.6f}", "source": "Dukascopy Historical Data Export", "source_version": source_version, "schema_version": CANONICAL_CANDLE_SCHEMA_VERSION, "provenance": provenance, "license": f"Terms reference: {DUKASCOPY_TERMS_URL}"} for candle in m15]
+    digest = canonical_dataset_hash(rows)
+    for row in rows:
+        row["hash"] = digest
+    with tempfile.TemporaryDirectory(prefix="odin-dukascopy-") as temporary:
+        canonical_path = Path(temporary) / "EURUSD_M15_dukascopy_canonical.csv"
+        with canonical_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=CANONICAL_CANDLE_COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+        return import_canonical_candle_history(canonical_path, symbol="EURUSD", timeframe="M15", artifact_root=artifact_root, ingested_at=ingested_at)
 
 
 def import_dukascopy_eurusd_m15(
@@ -153,27 +250,30 @@ def import_dukascopy_eurusd_m15(
         f"period=[{start_utc.astimezone(UTC).isoformat().replace('+00:00', 'Z')},"
         f"{end_utc.astimezone(UTC).isoformat().replace('+00:00', 'Z')}); downloaded_at={downloaded.isoformat().replace('+00:00', 'Z')}"
     )
-    license_value = f"Dukascopy Terms of Use: {DUKASCOPY_TERMS_URL}; internal ODIN DEMO/replay only; no redistribution"
-    rows = [
-        {
-            "symbol": "EURUSD", "timeframe": "M15",
-            "timestamp_utc": datetime.fromtimestamp(int(candle["timestamp_ms"]) / 1000, UTC).isoformat().replace("+00:00", "Z"),
-            "open": f"{float(candle['open']):.5f}", "high": f"{float(candle['high']):.5f}",
-            "low": f"{float(candle['low']):.5f}", "close": f"{float(candle['close']):.5f}",
-            "volume": f"{float(candle['volume']):.6f}", "source": "Dukascopy Historical Data Export",
-            "source_version": "JETTA public widget API observed 2026-08-15", "schema_version": CANONICAL_CANDLE_SCHEMA_VERSION,
-            "provenance": provenance, "license": license_value,
-        }
-        for candle in m15
-    ]
-    digest = canonical_dataset_hash(rows)
-    for row in rows:
-        row["hash"] = digest
-    with tempfile.TemporaryDirectory(prefix="odin-dukascopy-") as temporary:
-        canonical_path = Path(temporary) / "EURUSD_M15_dukascopy_canonical.csv"
-        with canonical_path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=CANONICAL_CANDLE_COLUMNS)
-            writer.writeheader()
-            writer.writerows(rows)
-        result = import_canonical_candle_history(canonical_path, symbol="EURUSD", timeframe="M15", artifact_root=artifact_root, ingested_at=downloaded)
+    result = _persist_m15(m15, artifact_root=artifact_root, ingested_at=downloaded, provenance=provenance, source_version="JETTA public widget API observed 2026-08-15")
     return {**result, "source_rows_m1": len(m1), "aggregation": "M1_to_M15_UTC_complete_windows_v1", "downloaded_at_utc": downloaded.isoformat().replace("+00:00", "Z")}
+
+
+def import_manual_dukascopy_eurusd_m1(
+    *, csv_path: str | Path, acquired_at: datetime, source_url: str, terms_url: str, artifact_root: str | Path,
+) -> dict[str, object]:
+    """Accept one official M1 export, then use the same fail-closed P0 path."""
+    if source_url != DUKASCOPY_EXPORT_URL or terms_url != DUKASCOPY_TERMS_URL:
+        raise DukascopyHistoryError("dukascopy_manual_metadata_invalid")
+    acquired = _utc_datetime(acquired_at, error_code="dukascopy_manual_acquired_at_invalid")
+    m1 = _manual_m1_csv(csv_path)
+    m15 = aggregate_m1_to_m15(m1)
+    start = datetime.fromtimestamp(int(m1[0]["timestamp_ms"]) / 1000, UTC)
+    end = datetime.fromtimestamp(int(m1[-1]["timestamp_ms"]) / 1000, UTC) + timedelta(minutes=1)
+    provenance = (
+        f"acquisition_method=manual_Dukascopy_Historical_Data_Export; export_url={source_url}; "
+        f"instrument=EUR/USD; offer_side=BID; source_granularity=M1; timezone=UTC; "
+        f"period=[{start.isoformat().replace('+00:00', 'Z')},{end.isoformat().replace('+00:00', 'Z')}); "
+        f"acquired_at={acquired.isoformat().replace('+00:00', 'Z')}; terms_url={terms_url}; "
+        "aggregation=M1_to_M15_UTC_complete_windows_v1"
+    )
+    result = _persist_m15(
+        m15, artifact_root=artifact_root, ingested_at=acquired, provenance=provenance,
+        source_version="not supplied by Dukascopy Historical Data Export",
+    )
+    return {**result, "source_rows_m1": len(m1), "aggregation": "M1_to_M15_UTC_complete_windows_v1", "acquisition_method": "manual_Dukascopy_Historical_Data_Export", "acquired_at_utc": acquired.isoformat().replace("+00:00", "Z")}

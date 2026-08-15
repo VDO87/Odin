@@ -13,7 +13,13 @@ from odin.core.smoke import run_runtime_smoke
 from odin.data.quality import data_quality_status
 from odin.data.public_refresh import refresh_ecb_public_data
 from odin.data.canonical_candle_history import import_canonical_candle_history
-from odin.data.dukascopy_history import DukascopyHistoryError, import_dukascopy_eurusd_m15
+from odin.data.dukascopy_history import (
+    DukascopyHistoryError,
+    DukascopySourceRateLimited,
+    import_dukascopy_eurusd_m15,
+    import_manual_dukascopy_eurusd_m1,
+    source_rate_limited_status,
+)
 from odin.adapters.market_data.mock_market import market_status
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -72,6 +78,14 @@ def build_parser() -> argparse.ArgumentParser:
     dukascopy_import.add_argument("--end-utc", required=True, help="Exclusive ISO-8601 UTC timestamp, minute-aligned.")
     dukascopy_import.add_argument("--artifact-root", default="/mnt/d/ODIN_LOCAL")
     dukascopy_import.add_argument("--timeout-seconds", type=float, default=20.0)
+    dukascopy_manual = subparsers.add_parser(
+        "dukascopy-eurusd-m1-manual-import", help="Fail-closed import of one official Dukascopy M1 UTC export as deterministic M15."
+    )
+    dukascopy_manual.add_argument("--csv", required=True)
+    dukascopy_manual.add_argument("--acquired-at-utc", required=True, help="Actual acquisition time in ISO-8601 UTC.")
+    dukascopy_manual.add_argument("--source-url", required=True)
+    dukascopy_manual.add_argument("--terms-url", required=True)
+    dukascopy_manual.add_argument("--artifact-root", default="/mnt/d/ODIN_LOCAL")
     subparsers.add_parser("strategy-status", help="Run A8 baseline observe-only strategy status.")
     subparsers.add_parser("decision-intent", help="Run A9 blocked decision intent skeleton.")
     subparsers.add_parser("risk-gate", help="Run A10 blocking risk gate skeleton.")
@@ -172,6 +186,22 @@ def main(argv: list[str] | None = None) -> int:
                 end_utc=datetime.fromisoformat(args.end_utc.replace("Z", "+00:00")),
                 artifact_root=args.artifact_root,
                 timeout_seconds=args.timeout_seconds,
+            )
+        except DukascopySourceRateLimited as error:
+            result = {"component": "dukascopy_history", **source_rate_limited_status(error)}
+        except (DukascopyHistoryError, ValueError) as error:
+            result = {"status": "BLOCKED", "component": "dukascopy_history", "reason": str(error), "safe_to_trade": False, "real_trading": False, "execution_allowed": False}
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "VALIDATED" and result["execution_allowed"] is False else 1
+
+    if args.command == "dukascopy-eurusd-m1-manual-import":
+        try:
+            result = import_manual_dukascopy_eurusd_m1(
+                csv_path=args.csv,
+                acquired_at=datetime.fromisoformat(args.acquired_at_utc.replace("Z", "+00:00")),
+                source_url=args.source_url,
+                terms_url=args.terms_url,
+                artifact_root=args.artifact_root,
             )
         except (DukascopyHistoryError, ValueError) as error:
             result = {"status": "BLOCKED", "component": "dukascopy_history", "reason": str(error), "safe_to_trade": False, "real_trading": False, "execution_allowed": False}
