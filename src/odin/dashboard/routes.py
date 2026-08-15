@@ -21,6 +21,7 @@ from odin.dashboard.tradedesk import tradedesk_html
 from odin.trading.replay import replay_trading_state
 from odin.trading.replay_config import save_replay_config
 from odin.trading.shadow_cycle import run_shadow_observation
+from odin.shadow.replay import load_validated_bars, replay_shadow
 from odin.core.market_watch import run_market_watch
 from odin.core.smoke import run_runtime_smoke
 from odin.data.feed_source_selector import feed_source_status
@@ -140,6 +141,11 @@ class DashboardRoutes:
 
         if path == "/trading/shadow-cycle":
             payload = run_shadow_observation()
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/shadow/intelligence":
+            payload = self._shadow_intelligence()
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
@@ -407,6 +413,21 @@ class DashboardRoutes:
             mt5=reconcile_demo_session("/mnt/d/ODIN_LOCAL/runtime/mt5_demo_session.json"),
             mt5_observation=read_demo_readonly_state(),
         )
+
+    def _shadow_intelligence(self) -> dict[str, object]:
+        """Expose P0 replay evidence only; this route cannot interact with a broker."""
+        root = Path(os.environ.get("ODIN_LOCAL_ROOT", "/mnt/d/ODIN_LOCAL"))
+        manifests = sorted((root / "artifacts" / "market-data" / "EURUSD" / "M15").glob("*.manifest.json"))
+        if not manifests:
+            return {"status": "BLOCKED", "mode": "SHADOW", "reason": "validated_p0_dataset_unavailable", "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
+        try:
+            data = json.loads(manifests[-1].read_text(encoding="utf-8"))
+            bars = load_validated_bars(artifact_root=root, dataset_hash=str(data["dataset_hash"]))
+            replay = replay_shadow(bars)
+            latest = replay["decisions"][-1] if replay["decisions"] else {}
+            return {"status": "OK", "mode": "SHADOW_REPLAY", "latest": latest, "decisions_hash": replay["decisions_hash"], "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
+        except (OSError, ValueError, KeyError, json.JSONDecodeError):
+            return {"status": "BLOCKED", "mode": "SHADOW", "reason": "validated_p0_dataset_invalid", "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
 
     def _audit(self, event_name: str, payload: dict[str, object]) -> None:
         event = OdinEvent.create(
