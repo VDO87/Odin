@@ -66,6 +66,8 @@ def shadow_decision(bars: list[MarketBar], *, strategy_id: str = "trend_mean_v1"
     risk = evaluate_shadow_risk(state, kill_switch=kill_switch)
     signal = "BLOCKED" if risk["risk_status"] != "ALLOW_SHADOW" else "BUY" if state.trend == "UP" else "SELL" if state.trend == "DOWN" else "HOLD"
     assert signal in _ALLOWED_SIGNALS
+    risk_reasons = risk["reason_codes"]
+    assert isinstance(risk_reasons, list)
     seed = {"strategy_id": strategy_id, "state": state.to_dict(), "signal": signal, "risk": risk}
     decision_id = hashlib.sha256(json.dumps(seed, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    return {"status": "OK", "mode": "SHADOW", "decision_id": decision_id, "timestamp": state.as_of_utc, "symbol": state.symbol, "timeframe": state.timeframe, "strategy_id": strategy_id, "strategy_version": "1", "signal": signal, "confidence": 1.0 if signal in {"BUY", "SELL"} else 0.0, "reason_codes": list(risk["reason_codes"]) or [f"trend_{state.trend.lower()}"], "market_data_hash": state.market_data_hash, "market_state": state.to_dict(), "data_quality": state.data_quality, "freshness": state.freshness, "risk_result": risk, "expiry": state.as_of_utc, "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
+    return {"status": "OK", "mode": "SHADOW", "decision_id": decision_id, "timestamp": state.as_of_utc, "symbol": state.symbol, "timeframe": state.timeframe, "strategy_id": strategy_id, "strategy_version": "1", "signal": signal, "confidence": 1.0 if signal in {"BUY", "SELL"} else 0.0, "reason_codes": risk_reasons or [f"trend_{state.trend.lower()}"], "market_data_hash": state.market_data_hash, "market_state": state.to_dict(), "data_quality": state.data_quality, "freshness": state.freshness, "risk_result": risk, "expiry": state.as_of_utc, "execution_allowed": False, "safe_to_trade": False, "real_trading": False}

@@ -20,7 +20,8 @@ def append_decision(decision: dict[str, object], *, path: str | Path) -> dict[st
         raise ValueError("shadow_ledger_execution_must_be_false")
     record = {"git_commit": current_commit(), "decision": decision, "execution_allowed": False}
     record["record_hash"] = hashlib.sha256(json.dumps(record, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    target = Path(path); target.parent.mkdir(parents=True, exist_ok=True)
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, sort_keys=True) + "\n")
     return record
