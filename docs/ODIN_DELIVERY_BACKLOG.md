@@ -34,7 +34,7 @@ is not repeated; the next unchecked item becomes the next concrete task.
 - [x] Add bounded single-cycle CLI with watchdog-compatible exit status.
 - [x] Add failure/restart and stale-data simulations.
 - [x] Add daily comparison report: source freshness, observations and failures.
-- [ ] Add explicit operator procedure for approving a persistent local process.
+- [x] Add explicit operator procedure for approving a persistent local process.
 
 ## M4 — Demo-ready guardrails
 

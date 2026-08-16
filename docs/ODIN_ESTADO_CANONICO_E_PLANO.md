@@ -788,6 +788,9 @@ O walkthrough deve validar, após reboot quando aplicável:
 
 ## 11.3 Processo persistente
 
+O procedimento de aprovação e paragem está detalhado em
+`docs/runbooks/persistent-supervised-process-approval.md`.
+
 Não criar automaticamente.
 
 Pode apenas ser preparado depois de:
