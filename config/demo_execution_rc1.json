@@ -1,0 +1,12 @@
+{
+  "schema": "odin.demo_execution_control/v1",
+  "mode": "DEMO_EXECUTION_RC1",
+  "allowed_symbol": "EURUSD",
+  "fixed_volume": 0.01,
+  "kill_switch_engaged": false,
+  "canary_authorized": false,
+  "maximum_order_retries": 1,
+  "safe_to_trade": false,
+  "real_trading": false,
+  "execution_allowed": false
+}
