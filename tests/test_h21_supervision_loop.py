@@ -16,6 +16,15 @@ def _snapshot(*, mt5_connected: bool = True, history_status: str = "VALIDATED") 
         "history": {"status": history_status},
         "shadow": {"status": "OK", "data_quality": history_status, "freshness": "FRESH"},
         "replay": {"status": "OK", "decision_generated": False},
+        "demo_execution": {
+            "execution": {
+                "status": "NO ORDER",
+                "reconciliation_status": "NOT_STARTED",
+                "anomalies": [],
+            },
+            "risk": {"status": "BLOCK"},
+            "account": {},
+        },
         "operations": {"status": "OK", "execution_allowed": False},
         "events": {"alerts_count": 0},
         "hermes": {"status": "OK"},
@@ -61,6 +70,23 @@ def test_claim_score_fails_closed_when_observation_is_missing_or_contradicted() 
     assert scores["items"][0]["root_cause"] == "STALE_SOURCE"
     assert scores["items"][1]["result"] == "NOT_CONFIRMED"
     assert scores["items"][1]["root_cause"] == "MISSING_CONTEXT"
+
+
+def test_hermes_demo_execution_claims_are_scored_against_read_only_reality() -> None:
+    scores = score_hermes_vs_reality(
+        claims=[
+            {"claim_id": "execution", "kind": "demo_execution_status", "expected": "NO ORDER"},
+            {
+                "claim_id": "reconciliation",
+                "kind": "demo_reconciliation_status",
+                "expected": "RECONCILED",
+            },
+        ],
+        snapshot=_snapshot(),
+    )
+
+    assert scores["items"][0]["result"] == "CONFIRMED"
+    assert scores["items"][1]["result"] == "CONTRADICTED"
 
 
 def test_weekly_gate_proposes_at_most_one_human_reviewed_initiative(tmp_path) -> None:

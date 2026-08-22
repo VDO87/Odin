@@ -18,6 +18,7 @@ from odin.contracts.events import OdinEvent, redact_for_audit
 from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.cockpit import cockpit_html
 from odin.dashboard.tradedesk import tradedesk_html
+from odin.trading.demo_execution_dashboard import demo_execution_dashboard_state
 from odin.trading.replay import replay_trading_state
 from odin.trading.replay_config import save_replay_config
 from odin.trading.shadow_cycle import run_shadow_observation
@@ -85,12 +86,16 @@ class DashboardRoutes:
         log_path: str = "logs/odin_events.jsonl",
         sqlite_path: str = "runtime/odin.sqlite",
         public_cache_root: str | None = None,
+        demo_execution_ledger_path: str = "/mnt/d/ODIN_LOCAL/runtime/demo_execution_ledger.jsonl",
+        mt5_demo_state_path: str = "/mnt/d/ODIN_LOCAL/runtime/mt5_demo_readonly.json",
     ) -> None:
         self.log_path = log_path
         self.sqlite_path = sqlite_path
         self.public_cache_root = public_cache_root or os.environ.get(
             "ODIN_PUBLIC_DATA_CACHE_DIR", "/mnt/d/ODIN_LOCAL/cache/public"
         )
+        self.demo_execution_ledger_path = demo_execution_ledger_path
+        self.mt5_demo_state_path = mt5_demo_state_path
         self.run_id = str(uuid4())
         self.logger = JsonlLogger(log_path)
         self.store = SQLiteStore(sqlite_path)
@@ -136,6 +141,14 @@ class DashboardRoutes:
 
         if path == "/trading/replay":
             payload = replay_trading_state()
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/trading/demo-execution":
+            payload = demo_execution_dashboard_state(
+                ledger_path=self.demo_execution_ledger_path,
+                mt5_state_path=self.mt5_demo_state_path,
+            )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 

@@ -24,6 +24,7 @@ EXECUTION_STATES = {
     "RECONCILIATION_BLOCK",
 }
 _SUBMISSION_STATES = {"SUBMITTED", "FILLED", "REJECTED", "CANCELLED", "CLOSED"}
+_ATTEMPT_RECORD_STATES = {"SUBMITTED", "FILLED", "REJECTED"}
 
 
 def append_execution_event(
@@ -119,6 +120,56 @@ def submission_already_attempted(path: str | Path, proposal_id: str) -> bool:
         and record.get("execution_status") in _SUBMISSION_STATES
         for record in records
     ) or _reservation_path(Path(path), proposal_id).exists()
+
+
+def analyze_execution_ledger(path: str | Path) -> dict[str, object]:
+    """Return bounded anomalies for dashboards/supervision; never mutate ledger."""
+    ledger_path = Path(path)
+    verified = read_execution_ledger(ledger_path)
+    records = _read_records(ledger_path)
+    anomalies: list[str] = []
+    if verified["status"] != "OK":
+        anomalies.append("ledger_integrity_mismatch")
+    attempts: dict[str, int] = {}
+    for record in records:
+        proposal_id = str(record.get("proposal_id", ""))
+        status = record.get("execution_status")
+        if status in _ATTEMPT_RECORD_STATES:
+            attempts[proposal_id] = attempts.get(proposal_id, 0) + 1
+        risk = record.get("risk_result")
+        if status in {"SUBMITTED", "FILLED"} and (
+            not isinstance(risk, dict) or risk.get("risk_approved") is not True
+        ):
+            anomalies.append("execution_without_risk_approval")
+        if status in {"SUBMITTED", "FILLED"} and (
+            record.get("stop_loss") is None or record.get("take_profit") is None
+        ):
+            anomalies.append("execution_without_sl_tp")
+        if record.get("reconciliation_status") == "RECONCILIATION_BLOCK":
+            anomalies.append("reconciliation_block")
+        slippage = record.get("slippage")
+        if isinstance(slippage, (int, float)) and abs(slippage) > 0.00020:
+            anomalies.append("unexpected_slippage")
+        if record.get("requested_volume") not in {None, 0.01}:
+            anomalies.append("wrong_volume")
+    if any(count > 1 for count in attempts.values()):
+        anomalies.append("duplicate_submission")
+    realized = 0.0
+    for record in records:
+        value = record.get("realized_pnl")
+        if isinstance(value, (int, float)) and record.get("execution_status") == "CLOSED":
+            realized += float(value)
+    return {
+        "status": "OK" if not anomalies else "DEGRADED",
+        "anomalies": sorted(set(anomalies)),
+        "records_count": len(records),
+        "submission_attempts": sum(attempts.values()),
+        "realized_pnl": round(realized, 2),
+        "latest": records[-1] if records else None,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
 
 
 def reserve_submission(path: str | Path, proposal_id: str) -> dict[str, object]:

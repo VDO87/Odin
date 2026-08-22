@@ -153,6 +153,7 @@ def _collect_snapshot(*, log_path: str, sqlite_path: str) -> dict[str, object]:
         "operations": "/operations/overview",
         "events": "/operations/events",
         "replay": "/trading/replay",
+        "demo_execution": "/trading/demo-execution",
         "shadow": "/shadow/intelligence",
         "mt5": "/mt5/demo/observation",
         "mt5_audit": "/mt5/demo/audit",
@@ -175,6 +176,7 @@ def _daily_sections(
     replay = _as_dict(snapshot.get("replay"))
     operations = _as_dict(snapshot.get("operations"))
     events = _as_dict(snapshot.get("events"))
+    demo_execution = _as_dict(snapshot.get("demo_execution"))
     return {
         "mt5_demo_read_only": {
             "status": mt5.get("status", "UNAVAILABLE"),
@@ -184,10 +186,15 @@ def _daily_sections(
         },
         "dashboards": dashboard,
         "finance_demo_metrics": {
-            "source": "REPLAY_OR_DEMO_OBSERVATION_ONLY",
+            "source": "MT5_DEMO_EXECUTION_LEDGER_AND_REPLAY",
             "replay_status": replay.get("status", "UNAVAILABLE"),
             "simulated_result": replay.get("result", replay.get("pnl")),
             "decision_generated": replay.get("decision_generated", False),
+            "demo_execution_status": _as_dict(demo_execution.get("execution")).get("status"),
+            "demo_risk_status": _as_dict(demo_execution.get("risk")).get("status"),
+            "demo_account": demo_execution.get("account", {}),
+            "demo_anomalies": _as_dict(demo_execution.get("execution")).get("anomalies", []),
+            "canary_confirmation_required": True,
         },
         "shadow_intelligence": {
             "status": shadow.get("status", "UNAVAILABLE"),
@@ -214,12 +221,16 @@ def _daily_priority(sections: dict[str, object]) -> dict[str, object]:
     mt5 = _as_dict(sections.get("mt5_demo_read_only"))
     shadow = _as_dict(sections.get("shadow_intelligence"))
     dashboards = _as_dict(sections.get("dashboards"))
+    finance = _as_dict(sections.get("finance_demo_metrics"))
     if any(value is not False for value in _GUARDRAILS.values()):
         return _priority("SECURITY_RECONCILIATION", "guardrails must remain false", "P0")
     if str(mt5.get("status")) in {"INVALID", "BLOCKED"}:
         return _priority("SECURITY_RECONCILIATION", "MT5 read-only evidence is invalid or blocked", "P0")
     if str(shadow.get("data_quality")) in {"INVALID", "BLOCKED"}:
         return _priority("DATA_QUALITY", "historical or shadow input is not accepted", "P1")
+    anomalies = finance.get("demo_anomalies")
+    if isinstance(anomalies, list) and anomalies:
+        return _priority("SECURITY_RECONCILIATION", "DEMO execution anomalies require review", "P0")
     if dashboards and not all(_as_dict(value).get("reachable") is True for value in dashboards.values()):
         return _priority("DASHBOARD_OBSERVABILITY", "one or more local dashboards are unreachable", "P2")
     return _priority("NO_CHANGE", "no evidence-backed technical improvement is required", "NONE")
@@ -264,6 +275,12 @@ def _score_claim(claim: dict[str, object], snapshot: dict[str, object]) -> dict[
         actual = _as_dict(snapshot.get("history")).get("status")
     elif kind == "execution_allowed":
         actual = _as_dict(snapshot.get("operations")).get("execution_allowed")
+    elif kind == "demo_execution_status":
+        actual = _as_dict(_as_dict(snapshot.get("demo_execution")).get("execution")).get("status")
+    elif kind == "demo_reconciliation_status":
+        actual = _as_dict(_as_dict(snapshot.get("demo_execution")).get("execution")).get(
+            "reconciliation_status"
+        )
     else:
         return _scored(claim, actual=None, result="NOT_CONFIRMED", root_cause="MISSING_CONTEXT")
     if actual is None:
