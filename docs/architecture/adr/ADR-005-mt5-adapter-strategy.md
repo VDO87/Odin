@@ -1,5 +1,19 @@
 # ADR-005: MT5 demo adapter
 
-Current state is mock-only. A future phase may detect the local terminal and validate account mode, but cannot login, read authenticated data, send, modify or cancel orders.
+The accepted observation baseline was mock/read-only. ODIN DEMO EXECUTION RC1
+may now build an isolated DEMO adapter, inspect the already configured terminal,
+run `order_check`, and prepare exactly one guarded `order_send` call. It must not
+change credentials, select or fall back to another account, or contact a REAL
+or UNKNOWN account for execution.
 
-Gate: ODIN_MT5_ACCOUNT_MODE=demo is required; missing, unknown and real block. Secrets stay in ignored local .env. Before any future login, kill switch, idempotency, reconciliation, retcodes, restart and redaction must be tested. Demo login needs verified DEMO credentials and separate human authorization. AIOMQL is not adopted.
+Gate: environment hints are never sufficient proof. Terminal/account evidence
+must deterministically match the expected DEMO identity; missing, unknown, REAL
+and mismatch hard-block. Secrets stay in ignored local `.env` and are never
+logged or persisted. Kill switch, limits, idempotency, reconciliation, retcodes,
+restart recovery and redaction are mandatory. `order_check` does not replace
+Risk approval. The first DEMO `order_send` needs a complete PRE-FLIGHT plus a
+separate one-shot human CANARY confirmation. AIOMQL is not adopted.
+
+Decision: the single execution call is confined to
+`src/odin/adapters/mt5/demo_execution_adapter.py`; all upstream components are
+broker-agnostic and cannot invoke it. `real_trading=false` remains immutable.

@@ -7,6 +7,10 @@ description: Usar para criar, rever ou testar regras de risco. Nao usar para jus
 
 - Risk Engine vence sempre Hermes.
 - Falta de limites, logs ou aprovacao implica bloqueio.
-- Nunca criar chamadas a `mt5.order_send`.
+- Fora de ODIN DEMO EXECUTION RC1, nunca criar chamadas a `mt5.order_send`.
+- Em RC1, permitir no maximo uma chamada no adapter DEMO isolado; exigir conta
+  DEMO provada, Risk aprovado, reconciliacao, limites, kill switch e confirmacao
+  CANARY one-shot. REAL/UNKNOWN/mismatch sao `HARD_BLOCK`.
+- A permissao DEMO nunca altera `real_trading=false` nem os flags globais.
 - Nunca permitir automacao de ordens XTB.
 - Testar sempre estados bloqueados antes de estados permissivos.

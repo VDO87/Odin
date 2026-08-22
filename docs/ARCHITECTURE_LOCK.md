@@ -12,7 +12,8 @@ ODIN_HERMES_ALIVE arranca na fase A0 - Bootstrap. A arquitectura fica separada p
 Bloqueios estruturais:
 
 - Trading real esta bloqueado por defeito.
-- `mt5.order_send` e proibido.
+- `mt5.order_send` e proibido, salvo a excecao isolada e human-gated de ODIN
+  DEMO EXECUTION RC1 definida no fim deste documento.
 - XTB nao pode ser automatizado para clicar ou enviar ordens.
 - Hermes nao aprova nem executa operacoes.
 - Risk vence sempre Hermes.
@@ -109,3 +110,23 @@ Os flags permanecem obrigatorios: `safe_to_use_for_decision=false`, `decision_ge
 ## A22 Architecture Lock
 
 A22 is an observational quality gate over A21. `OK` means the snapshot is internally consistent and still blocked. It must not produce market direction, proposal fields, risk approval, execution permission or real-trading capability.
+
+## ODIN DEMO EXECUTION RC1 Architecture Lock
+
+RC1 acrescenta uma autoridade exclusivamente DEMO e distinta dos flags globais.
+`safe_to_trade=false`, `real_trading=false` e `execution_allowed=false` continuam
+imutaveis. Apenas o Demo Execution Gate pode emitir uma autorizacao efemera de
+escopo `DEMO`; essa autorizacao nao pode ser persistida, promovida ou reutilizada
+para uma conta REAL.
+
+A unica chamada permitida a `mt5.order_send` fica confinada a
+`src/odin/adapters/mt5/demo_execution_adapter.py`. Market Data, MarketState,
+Strategy, Hermes, LLM, n8n, Risk e dashboards nao podem importar ou chamar essa
+funcao. O adapter exige prova deterministica de conta DEMO e identidade exata,
+Risk aprovado, reconciliacao, freshness, kill switch, limites financeiros,
+idempotencia, `order_check` aprovado e confirmacao humana one-shot do CANARY.
+
+Conta REAL, UNKNOWN, identidade divergente ou fallback de conta sao `HARD_BLOCK`.
+Antes da confirmacao humana, RC1 termina em dry-run/pre-flight sem enviar ordem.
+Decision Ledger e Execution Ledger ligam proposta, risco, check, eventual envio
+DEMO, resultado e reconciliacao. Trading real permanece estruturalmente ausente.

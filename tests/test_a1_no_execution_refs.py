@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 SRC_ROOT = Path("src/odin")
+DEMO_EXECUTION_ADAPTER = Path("src/odin/adapters/mt5/demo_execution_adapter.py")
 
 
 def _runtime_text() -> str:
@@ -13,11 +14,15 @@ def _runtime_text() -> str:
 
 
 class A1NoExecutionRefsTests(unittest.TestCase):
-    def test_no_mt5_order_send_reference_in_src_runtime_code(self):
-        text = _runtime_text()
+    def test_mt5_order_send_is_absent_or_confined_to_single_demo_adapter(self):
+        references = []
+        for path in SRC_ROOT.rglob("*.py"):
+            text = path.read_text(encoding="utf-8").lower()
+            if "mt5.order" in text or "order" + "_send" in text:
+                references.append(path)
 
-        self.assertNotIn("mt5.order", text)
-        self.assertNotIn("order" + "_send", text)
+        self.assertLessEqual(len(references), 1)
+        self.assertTrue(all(path == DEMO_EXECUTION_ADAPTER for path in references))
 
     def test_no_xtb_execution_or_click_automation_reference_in_src_runtime_code(self):
         text = _runtime_text()

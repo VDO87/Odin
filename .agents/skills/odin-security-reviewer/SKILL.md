@@ -7,6 +7,8 @@ description: Usar para rever seguranca, secrets, permissoes e fronteiras de risc
 
 - Verificar que nao existem secrets reais no repositorio.
 - Verificar bloqueios contra trading real.
-- Procurar chamadas proibidas como `mt5.order_send`.
+- Procurar chamadas proibidas como `mt5.order_send`; em RC1, confirmar que
+  existe no maximo uma e apenas no adapter DEMO autorizado.
+- Confirmar hard block para REAL/UNKNOWN/mismatch e ausencia de fallback.
 - Confirmar que Hermes permanece read-only.
 - Confirmar que Dashboard nao contradiz Core, Risk ou Treasury.

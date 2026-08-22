@@ -1212,3 +1212,32 @@ safe_to_trade=false
 real_trading=false
 execution_allowed=false
 ```
+
+---
+
+# 24. ODIN DEMO EXECUTION RC1 — EXCEÇÃO DE POLÍTICA (2026-08-22)
+
+Esta secção é a decisão canónica mais recente para a branch dedicada
+`feature/demo-execution-rc1` e substitui, apenas para a infraestrutura DEMO
+RC1, a proibição absoluta histórica de conter `mt5.order_send`.
+
+É permitida no máximo uma chamada, confinada a
+`src/odin/adapters/mt5/demo_execution_adapter.py`, atrás do Demo Execution Gate.
+Construir e testar essa infraestrutura não autoriza executar o CANARY. A
+primeira chamada DEMO exige PRE-FLIGHT completo e confirmação humana específica
+one-shot. Conta REAL, modo UNKNOWN, identidade divergente ou fallback de conta
+são `HARD_BLOCK` antes da chamada.
+
+Risk, reconciliação, freshness, kill switch, limites financeiros, SL/TP,
+idempotência, `order_check`, Decision Ledger e Execution Ledger são obrigatórios.
+Hermes, n8n, LLM, Strategy e todos os módulos fora do adapter não têm autoridade
+de execução. A permissão DEMO é efémera, não promovível e nunca reutilizável para
+REAL. Não existe merge automático.
+
+Os guardrails globais permanecem:
+
+```text
+safe_to_trade=false
+real_trading=false
+execution_allowed=false
+```
