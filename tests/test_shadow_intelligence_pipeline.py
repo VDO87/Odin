@@ -71,7 +71,7 @@ class ShadowIntelligenceTests(unittest.TestCase):
         status, payload = routes.serve("/shadow/intelligence")
         self.assertEqual(status, 200)
         self.assertFalse(payload["execution_allowed"])
-        self.assertIn("SHADOW INTELLIGENCE", routes.tradedesk_html())
+        self.assertIn("Shadow / Aprendizagem", routes.tradedesk_html())
         self.assertIn("SHADOW INTELLIGENCE", routes.cockpit_html())
 
     def test_all_inputs_normalize_to_marketbar_without_strategy_provider_branch(self):

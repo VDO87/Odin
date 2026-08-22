@@ -87,7 +87,9 @@ class CanonicalCandleHistoryTests(unittest.TestCase):
         status, payload = routes.serve("/data/history/canonical")
         self.assertEqual(status, 200)
         self.assertIn(payload["status"], {"OK", "BLOCKED"})
-        self.assertIn("Historical candles · validated dataset only", routes.tradedesk_html())
+        page = routes.tradedesk_html()
+        self.assertIn("/data/history/canonical", page)
+        self.assertIn("historical_dataset", page)
 
     def test_rejects_missing_provenance_hash_and_identity_mismatch(self):
         for field, value, expected_symbol, reason in [

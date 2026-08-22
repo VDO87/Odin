@@ -84,16 +84,15 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
     def test_cockpit_shell_is_local_and_read_only(self):
         page = self.routes.cockpit_html()
 
-        self.assertIn("Provider policy", page)
-        self.assertIn("Cloud fallback", page)
-        self.assertIn("Config writes", page)
-        self.assertIn("CPU load 1m", page)
-        self.assertIn("Memory free", page)
-        self.assertIn("Disk free", page)
-        self.assertIn("GPU probe", page)
         self.assertIn("ODIN Cockpit", page)
+        self.assertIn("SHADOW INTELLIGENCE", page)
+        self.assertIn("MT5 DEMO", page)
+        self.assertIn("Hermes", page)
         self.assertIn("/operations/overview", page)
         self.assertIn("/operations/events", page)
+        self.assertIn("/data/history/canonical", page)
+        self.assertIn("/mt5/demo/audit", page)
+        self.assertIn("/hermes/summary", page)
         self.assertNotIn("order_send", page)
         self.assertNotIn("POST", page)
 

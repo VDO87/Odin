@@ -43,6 +43,10 @@ from odin.research.historical_return import historical_return_report
 from odin.risk.gate import risk_gate
 from odin.reporting.operational_report import write_operational_report
 from odin.reporting.shadow_comparison_report import write_shadow_comparison_report
+from odin.reporting.supervision_loop import (
+    write_daily_supervisor_report,
+    write_weekly_evolution_report,
+)
 from odin.treasury.engine import treasury_status
 from odin.trading.shadow_cycle import run_shadow_observation
 
@@ -129,6 +133,17 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--transaction-cost-bps", type=float, default=10.0)
     operational = subparsers.add_parser("operational-report", help="Write a local read-only operational report.")
     operational.add_argument("--output-dir", default="/mnt/d/ODIN_LOCAL/reports")
+    daily_supervisor = subparsers.add_parser(
+        "daily-supervisor",
+        help="Write one manual, evidence-only daily supervision report; never starts changes.",
+    )
+    daily_supervisor.add_argument("--output-dir", default="/mnt/d/ODIN_LOCAL/reports")
+    weekly_evolution = subparsers.add_parser(
+        "weekly-evolution-gate",
+        help="Evaluate recent daily reports and propose at most one human-reviewed initiative.",
+    )
+    weekly_evolution.add_argument("--reports-dir", default="/mnt/d/ODIN_LOCAL/reports")
+    weekly_evolution.add_argument("--output-dir", default="/mnt/d/ODIN_LOCAL/reports")
     dashboard = subparsers.add_parser("dashboard", help="Run the read-only A2 dashboard.")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", default=8765, type=int)
@@ -338,6 +353,19 @@ def main(argv: list[str] | None = None) -> int:
         result = write_operational_report(output_dir=args.output_dir)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "daily-supervisor":
+        result = write_daily_supervisor_report(output_dir=args.output_dir)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "OK" and result["execution_allowed"] is False else 1
+
+    if args.command == "weekly-evolution-gate":
+        result = write_weekly_evolution_report(
+            reports_dir=args.reports_dir,
+            output_dir=args.output_dir,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] in {"OK", "BLOCKED"} and result["execution_allowed"] is False else 1
 
     if args.command == "smoke":
         result = run_runtime_smoke()

@@ -34,9 +34,9 @@ class PublicDashboardTests(unittest.TestCase):
         page = DashboardRoutes().cockpit_html()
 
         self.assertIn("/data/public", page)
-        self.assertIn("Public data freshness", page)
-        self.assertIn("MT5 preparation", page)
-        self.assertIn("Observer", page)
+        self.assertIn("SHADOW INTELLIGENCE", page)
+        self.assertIn("MT5 DEMO", page)
+        self.assertIn("read-only", page)
         self.assertNotIn("POST", page)
 
     def test_dashboard_rejects_non_local_binding(self):

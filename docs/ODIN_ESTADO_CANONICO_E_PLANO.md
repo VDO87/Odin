@@ -1191,3 +1191,24 @@ SUPERVISIONADO
 e só depois aumentar a autonomia de forma controlada.
 
 **Primeiro terminar a máquina. Depois ensinar a máquina a pensar melhor.**
+
+---
+
+# 23. SUPERVISÃO E EVOLUÇÃO CONTROLADA (2026-08-22)
+
+O ciclo posterior ao RC está documentado em
+`docs/ODIN_SUPERVISION_AND_EVOLUTION_LOOP.md`. É local, manual e baseado em
+evidência: Daily Supervisor, score Hermes-versus-reality e Weekly Evolution
+Gate geram relatórios em `D:\ODIN_LOCAL\reports`, mas não criam agendamentos,
+serviços, alterações automáticas nem autoridade financeira.
+
+O n8n foi avaliado apenas documentalmente/inventário local. Não está
+instalado; qualquer instalação, timer, daemon, credencial ou integração Notion
+requer aprovação humana explícita. Hermes/n8n continuam subordinados a
+Risk/Treasury e aos gates determinísticos.
+
+```text
+safe_to_trade=false
+real_trading=false
+execution_allowed=false
+```
