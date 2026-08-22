@@ -1,11 +1,12 @@
 # ODIN DEMO EXECUTION RC1 — ACCEPTANCE REPORT
 
-Current verdict: **ODIN DEMO EXECUTION RC1 — NOT READY**
+Current verdict: **ODIN DEMO EXECUTION RC1 — WAITING FOR MARKET SESSION**
 
-Reason: the full offline acceptance is green, but the required live Stage 0
-could not reach `order_check` while the Forex market was closed. The system
-correctly blocked on terminal trade state, stale data and excessive closing
-spread. The CANARY has not been authorized or executed.
+Reason: the full offline acceptance is green and the controlled DEMO scenario
+reaches `CANARY READY — HUMAN CONFIRMATION REQUIRED` without broker submission.
+The live Stage 0 remains paused on two external prerequisites: manual terminal
+Algo/Auto Trading permission and a valid open EURUSD market session. The CANARY
+has not been authorized or executed.
 
 ## Baseline and checkpoints
 
@@ -21,6 +22,7 @@ spread. The CANARY has not been authorized or executed.
 - Stage 0 launcher: `9303278`
 - Stage 0 diagnostics: `8ff08ad`
 - Scoped security sentinels: `090712a`
+- Controlled CANARY pre-flight evidence: `3418d8b`
 - Automatic merge: not performed.
 
 ## Definition of Done matrix
@@ -45,7 +47,7 @@ spread. The CANARY has not been authorized or executed.
 | Hermes financially read-only | PASS | Component sentinels and full suite |
 | n8n financially read-only | PASS | Policy forbids financial authority; n8n not installed or added |
 | Secret redaction | PASS | Redaction tests and sanitized MT5/ledger outputs |
-| Live Stage 0 | BLOCKED | Market closed: stale tick, excessive spread and terminal trading unavailable |
+| Live Stage 0 | WAITING | External terminal permission and valid EURUSD market session are pending |
 | First CANARY | NOT STARTED | Separate human confirmation required after green Stage 0 |
 
 ## Automated acceptance evidence
@@ -86,20 +88,47 @@ The live probe proved:
 - no broker submission call.
 
 It rejected the proposal before `order_check` because the last tick was stale,
-the closing spread exceeded the RC1 limit and the terminal reported trading not
-allowed during the closed session. This is the required fail-closed result, but
-it does not satisfy the Stage 0 acceptance criterion.
+the closing spread exceeded the RC1 limit and the terminal-level trading
+permission was false. These are separate gates: market reopening can restore
+symbol mode, freshness and spread, but ODIN will still require the external
+terminal permission to be explicitly true. This is the required fail-closed
+result, but it does not satisfy the Stage 0 acceptance criterion.
+
+## External stop condition
+
+`MARKET_SESSION_REQUIRED` is accepted as the current external stop condition.
+No further dry-run or retry is permitted while either prerequisite is missing.
+
+### A. MT5 terminal
+
+- The operator manually authorizes Algo/Auto Trading in the verified DEMO
+  terminal.
+- `terminal_trade_allowed=true` must be observed.
+- ODIN does not change this terminal setting automatically.
+
+### B. EURUSD
+
+- market open;
+- `symbol_trade_mode` compatible with trading;
+- ticks FRESH;
+- spread within the RC1 limit.
 
 ## Remaining acceptance action
 
-Repeat the exact command in `docs/ODIN_DEMO_CANARY_PREFLIGHT.md` once EURUSD is
-open and producing fresh ticks. If Stage 0 becomes green, update both reports,
-run the focused acceptance gates, and stop at:
+Only after both external prerequisites are satisfied, run exactly once:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu-ODIN\home\odin\projects\odin\scripts\windows\Invoke-ODIN-MT5-Demo-DryRun.ps1"
+```
+
+If Stage 0 becomes green, update both reports and stop at:
 
 `ODIN DEMO EXECUTION RC1 — CANARY READY — HUMAN CONFIRMATION REQUIRED`
 
 Do not call the broker submission boundary until a new explicit human
 confirmation is tied to that exact proposal and DEMO account fingerprint.
+The expected pre-confirmation evidence remains
+`broker_submission_called=false`.
 
 ## Guardrails
 

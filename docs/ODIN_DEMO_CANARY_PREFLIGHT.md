@@ -1,6 +1,6 @@
 # ODIN DEMO CANARY PRE-FLIGHT
 
-Status: **BLOCKED — MARKET SESSION REQUIRED**
+Status: **ODIN DEMO EXECUTION RC1 — WAITING FOR MARKET SESSION**
 
 Evidence captured: `2026-08-22T15:31:18Z`
 
@@ -28,7 +28,7 @@ repository control remains disarmed with `canary_authorized=false`.
 | RISK REASONS | `stale_data`, `stale_data_threshold_exceeded`, `excessive_spread` |
 | DATA FRESHNESS | STALE; 59,539 seconds at the final probe |
 | RECONCILIATION | RECONCILED |
-| TERMINAL TRADE STATE | `live_terminal_trading_not_allowed` while Forex market was closed |
+| TERMINAL TRADE STATE | `live_terminal_trading_not_allowed`; terminal-level permission is external and separate from market session |
 | ORDER CHECK | NOT REACHED; blocked correctly before broker validation |
 | REAL_TRADING | false |
 | SAFE_TO_TRADE | false |
@@ -51,9 +51,29 @@ password or account identifier was printed or persisted in this report.
   session was closed and market evidence was stale.
 - Broker submission called: false.
 
+## External prerequisites pending
+
+### A. MT5 terminal permission
+
+The operator must manually authorize Algo/Auto Trading in the already verified
+MT5 DEMO terminal. Before resuming, `terminal_trade_allowed` must be `true`.
+ODIN must not change this terminal setting automatically.
+
+### B. EURUSD market session
+
+EURUSD must simultaneously have:
+
+- an open market session;
+- `symbol_trade_mode` compatible with trading;
+- FRESH ticks within the RC1 freshness limit;
+- spread within the documented RC1 limit.
+
+`MARKET_SESSION_REQUIRED` is an accepted external stop condition. Do not run
+another dry-run while the market is closed, and do not retry automatically.
+
 ## Exact resume command
 
-Run once while EURUSD is open and producing fresh ticks:
+Run once only after both external prerequisites above are satisfied:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu-ODIN\home\odin\projects\odin\scripts\windows\Invoke-ODIN-MT5-Demo-DryRun.ps1"
@@ -63,3 +83,9 @@ Acceptance requires `status=DRY_RUN_VALIDATED`, `risk_status=ALLOW_DEMO`,
 `data_freshness=FRESH`, `reconciliation=RECONCILED` and an accepted
 `order_check`. Even after that result, the process must stop for a new,
 proposal-specific human CANARY confirmation.
+
+The next intended state is:
+
+`CANARY READY — HUMAN CONFIRMATION REQUIRED`
+
+with `broker_submission_called=false`.
