@@ -12,7 +12,8 @@ from odin.adapters.mt5.demo_execution_adapter import (
     submit_demo_canary,
 )
 from odin.contracts.demo_execution import CanaryAuthorization, DemoAccountEvidence, TradeProposal
-from odin.trading.demo_execution_gate import account_fingerprint
+from odin.risk.demo_execution import evaluate_demo_risk
+from odin.trading.demo_execution_gate import account_fingerprint, evaluate_demo_execution_gate
 from odin.trading.demo_execution_service import run_demo_canary, run_demo_dry_run
 from odin.trading.demo_reconciliation import reconcile_broker_truth, recovery_gate
 from odin.trading.execution_ledger import (
@@ -314,6 +315,24 @@ def test_disconnect_then_reconnect_requires_fresh_identity_check() -> None:
     mt5.terminal["connected"] = True
     reconnected = perform_order_check(mt5, proposal(), evidence(), dry_gate())
     assert reconnected["status"] == "ORDER_CHECKED"
+    assert mt5.check_calls == 1
+    assert mt5.send_calls == 0
+
+
+def test_terminal_trade_permission_is_independent_and_blocks_until_enabled() -> None:
+    mt5 = FakeMT5()
+    mt5.terminal["trade_allowed"] = False
+
+    blocked = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+
+    assert blocked["status"] == "HARD_BLOCK"
+    assert "live_terminal_trading_not_allowed" in blocked["reason_codes"]
+    assert mt5.check_calls == 0
+    assert mt5.send_calls == 0
+
+    mt5.terminal["trade_allowed"] = True
+    allowed = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+    assert allowed["status"] == "ORDER_CHECKED"
     assert mt5.check_calls == 1
     assert mt5.send_calls == 0
 
@@ -623,3 +642,102 @@ def test_response_lost_requires_reconciliation_and_never_retries(tmp_path: Path)
     assert result["status"] == "RECONCILIATION_BLOCK"
     assert mt5.send_calls == 1
     assert result["new_executions_enabled"] is False
+
+
+def test_controlled_green_preflight_is_canary_ready_but_never_submits(tmp_path: Path) -> None:
+    mt5 = FakeMT5()
+    prop = proposal()
+    ev = evidence(
+        account_mode="DEMO",
+        broker="OANDA TMS Brokers S.A.",
+        server="OANDATMS-MT5",
+        data_fresh=True,
+        data_age_seconds=2,
+        reconciliation_status="RECONCILED",
+        kill_switch_engaged=False,
+        spread=0.00010,
+    )
+    risk_result = evaluate_demo_risk(prop, ev)
+
+    dry_run = run_demo_dry_run(
+        mt5,
+        proposal=prop,
+        evidence=ev,
+        risk_result=risk_result,
+        ledger_path=tmp_path / "execution.jsonl",
+        now_utc=NOW,
+    )
+    awaiting_human = evaluate_demo_execution_gate(
+        prop,
+        ev,
+        risk_result,
+        duplicate_detected=False,
+        now_utc=NOW,
+    )
+    synthetic_canary_proof = evaluate_demo_execution_gate(
+        prop,
+        ev,
+        risk_result,
+        duplicate_detected=False,
+        canary_authorization=authorization(),
+        now_utc=NOW,
+    )
+    preflight = {
+        "status": "CANARY READY — HUMAN CONFIRMATION REQUIRED",
+        "broker_submission_called": mt5.send_calls > 0,
+    }
+
+    assert risk_result["status"] == "ALLOW_DEMO"
+    assert dry_run["status"] == "DRY_RUN_VALIDATED"
+    assert awaiting_human["status"] == "DRY_RUN_READY"
+    assert awaiting_human["reason_codes"] == ["human_canary_confirmation_required"]
+    assert synthetic_canary_proof["status"] == "CANARY_READY"
+    assert preflight["status"] == "CANARY READY — HUMAN CONFIRMATION REQUIRED"
+    assert preflight["broker_submission_called"] is False
+    assert mt5.check_calls == 1
+    assert mt5.send_calls == 0
+    assert dry_run["real_trading"] is False
+
+
+@pytest.mark.parametrize(
+    ("ev_changes", "risk_override", "expected_status", "expected_reason"),
+    [
+        ({"account_mode": "REAL"}, None, "HARD_BLOCK", "account_not_proven_demo"),
+        ({"account_mode": "UNKNOWN"}, None, "HARD_BLOCK", "account_not_proven_demo"),
+        ({"server": "WRONG"}, None, "HARD_BLOCK", "server_identity_mismatch"),
+        ({"data_fresh": False}, None, "BLOCK", "stale_data"),
+        ({"spread": 0.00031}, None, "BLOCK", "risk_not_allow_demo"),
+        (
+            {"reconciliation_status": "MISMATCH"},
+            None,
+            "BLOCK",
+            "reconciliation_not_ok",
+        ),
+        ({}, {"status": "BLOCK", "risk_approved": False}, "BLOCK", "risk_not_allow_demo"),
+        ({"kill_switch_engaged": True}, None, "BLOCK", "kill_switch_engaged"),
+    ],
+)
+def test_canary_preflight_block_matrix_never_reaches_broker_submission(
+    ev_changes: dict[str, object],
+    risk_override: dict[str, object] | None,
+    expected_status: str,
+    expected_reason: str,
+) -> None:
+    mt5 = FakeMT5()
+    prop = proposal()
+    ev = evidence(**ev_changes)
+    risk_result = risk_override or evaluate_demo_risk(prop, ev)
+
+    result = evaluate_demo_execution_gate(
+        prop,
+        ev,
+        risk_result,
+        duplicate_detected=False,
+        now_utc=NOW,
+    )
+
+    assert result["status"] == expected_status
+    assert expected_reason in result["reason_codes"]
+    assert result["order_send_allowed"] is False
+    assert result["real_trading"] is False
+    assert mt5.send_calls == 0
