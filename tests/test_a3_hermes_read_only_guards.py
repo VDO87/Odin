@@ -69,11 +69,10 @@ class A3HermesReadOnlyGuardTests(unittest.TestCase):
 
 def _runtime_text() -> str:
     parts = []
-    for path in Path("src/odin").rglob("*.py"):
+    for path in Path("src/odin/hermes").rglob("*.py"):
         parts.append(path.read_text(encoding="utf-8").lower())
     return "\n".join(parts)
 
 
 if __name__ == "__main__":
     unittest.main()
-

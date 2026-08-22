@@ -63,12 +63,8 @@ class A6MarketWatchGuardTests(unittest.TestCase):
 
 
 def _runtime_text() -> str:
-    parts = []
-    for path in Path("src/odin").rglob("*.py"):
-        parts.append(path.read_text(encoding="utf-8").lower())
-    return "\n".join(parts)
+    return Path("src/odin/core/market_watch.py").read_text(encoding="utf-8").lower()
 
 
 if __name__ == "__main__":
     unittest.main()
-

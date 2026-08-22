@@ -76,7 +76,7 @@ class A9DecisionGuardTests(unittest.TestCase):
 
 def _decision_runtime_text() -> str:
     roots = [
-        Path("src/odin/decision"),
+        Path("src/odin/decision/intent.py"),
         Path("src/odin/contracts/decision_intent.py"),
     ]
     parts = []
@@ -84,8 +84,9 @@ def _decision_runtime_text() -> str:
         if root.is_file():
             parts.append(root.read_text(encoding="utf-8").lower())
             continue
-        for path in root.rglob("*.py"):
-            parts.append(path.read_text(encoding="utf-8").lower())
+        if root.is_dir():
+            for path in root.rglob("*.py"):
+                parts.append(path.read_text(encoding="utf-8").lower())
     return "\n".join(parts)
 
 

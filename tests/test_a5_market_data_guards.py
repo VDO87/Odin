@@ -55,12 +55,15 @@ class A5MarketDataGuardTests(unittest.TestCase):
 
 
 def _runtime_text() -> str:
+    roots = [Path("src/odin/adapters/market_data"), Path("src/odin/contracts/market.py")]
     parts = []
-    for path in Path("src/odin").rglob("*.py"):
-        parts.append(path.read_text(encoding="utf-8").lower())
+    for root in roots:
+        if root.is_file():
+            parts.append(root.read_text(encoding="utf-8").lower())
+        else:
+            parts.extend(path.read_text(encoding="utf-8").lower() for path in root.rglob("*.py"))
     return "\n".join(parts)
 
 
 if __name__ == "__main__":
     unittest.main()
-

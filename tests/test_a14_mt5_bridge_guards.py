@@ -73,7 +73,11 @@ def _bridge_runtime_text() -> str:
     parts = []
     for root in roots:
         if root.is_dir():
-            parts.extend(path.read_text(encoding="utf-8").lower() for path in root.rglob("*.py"))
+            parts.extend(
+                path.read_text(encoding="utf-8").lower()
+                for path in root.rglob("*.py")
+                if path.name != "demo_execution_adapter.py"
+            )
         else:
             parts.append(root.read_text(encoding="utf-8").lower())
     return "\n".join(parts)

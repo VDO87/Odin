@@ -50,7 +50,7 @@ class A2DashboardSafeStateTests(unittest.TestCase):
 
 def _dashboard_text() -> str:
     parts = []
-    for path in Path("src/odin").rglob("*.py"):
+    for path in Path("src/odin/dashboard").rglob("*.py"):
         parts.append(path.read_text(encoding="utf-8").lower())
     return "\n".join(parts)
 

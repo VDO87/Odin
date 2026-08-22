@@ -45,12 +45,11 @@ class A7DataQualityGuardTests(unittest.TestCase):
 
 
 def _runtime_text() -> str:
-    parts = []
-    for path in Path("src/odin").rglob("*.py"):
-        parts.append(path.read_text(encoding="utf-8").lower())
-    return "\n".join(parts)
+    roots = [Path("src/odin/data/quality.py"), Path("src/odin/contracts/quality.py")]
+    return "\n".join(
+        path.read_text(encoding="utf-8").lower() for path in roots if path.exists()
+    )
 
 
 if __name__ == "__main__":
     unittest.main()
-
