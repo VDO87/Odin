@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from odin.adapters.mt5.demo_execution_adapter import (
     perform_order_check,
     read_broker_execution_state,
@@ -95,6 +97,7 @@ class FakeMT5:
                 {
                     "ticket": 30,
                     "symbol": request["symbol"],
+                    "type": request["type"],
                     "volume": request["volume"],
                     "price_open": request["price"],
                     "sl": request["sl"],
@@ -256,6 +259,65 @@ def test_order_check_classifies_rejection_and_unknown_result_without_retry() -> 
     assert mt5.send_calls == 0
 
 
+@pytest.mark.parametrize(
+    ("retcode_name", "reason"),
+    [
+        ("TRADE_RETCODE_REJECT", "order_rejected"),
+        ("TRADE_RETCODE_INVALID_VOLUME", "invalid_volume"),
+        ("TRADE_RETCODE_INVALID_STOPS", "invalid_stops"),
+        ("TRADE_RETCODE_NO_MONEY", "insufficient_margin"),
+        ("TRADE_RETCODE_MARKET_CLOSED", "market_closed"),
+        ("TRADE_RETCODE_REQUOTE", "requote"),
+        ("TRADE_RETCODE_PRICE_CHANGED", "price_changed"),
+        ("TRADE_RETCODE_TIMEOUT", "timeout"),
+        ("TRADE_RETCODE_INVALID_FILL", "filling_mode_error"),
+    ],
+)
+def test_order_check_classifies_all_known_mt5_failures_once(
+    retcode_name: str, reason: str
+) -> None:
+    mt5 = FakeMT5()
+    mt5.check_result = {"retcode": getattr(mt5, retcode_name), "comment": "fixture"}
+
+    result = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+
+    assert result["status"] == "BLOCKED"
+    assert result["reason"] == reason
+    assert result["retry_allowed"] is False
+    assert mt5.check_calls == 1
+    assert mt5.send_calls == 0
+
+
+def test_bad_price_and_filling_mode_block_before_order_check() -> None:
+    mt5 = FakeMT5()
+    mt5.tick["ask"] = 0.0
+    bad_price = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+    assert bad_price["reason"] == "bad_price"
+    assert mt5.check_calls == 0
+
+    mt5.tick["ask"] = 1.10000
+    mt5.symbol["filling_mode"] = None
+    bad_filling = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+    assert bad_filling["reason"] == "filling_mode_error"
+    assert mt5.check_calls == 0
+    assert mt5.send_calls == 0
+
+
+def test_disconnect_then_reconnect_requires_fresh_identity_check() -> None:
+    mt5 = FakeMT5()
+    mt5.terminal["connected"] = False
+    disconnected = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+    assert disconnected["status"] == "HARD_BLOCK"
+    assert "live_terminal_disconnected" in disconnected["reason_codes"]
+    assert mt5.check_calls == 0
+
+    mt5.terminal["connected"] = True
+    reconnected = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+    assert reconnected["status"] == "ORDER_CHECKED"
+    assert mt5.check_calls == 1
+    assert mt5.send_calls == 0
+
+
 def test_canary_adapter_refuses_missing_gate_or_check() -> None:
     mt5 = FakeMT5()
     result = submit_demo_canary(
@@ -275,6 +337,25 @@ def test_synthetic_canary_calls_fake_send_once_and_requires_reconciliation() -> 
     assert result["requires_reconciliation"] is True
     assert result["retry_allowed"] is False
     assert result["real_trading"] is False
+    assert mt5.send_calls == 1
+
+
+def test_synthetic_canary_rejection_is_classified_without_retry() -> None:
+    mt5 = FakeMT5()
+    mt5.send_result = {
+        "retcode": mt5.TRADE_RETCODE_NO_MONEY,
+        "comment": "fixture",
+    }
+    checked = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+
+    result = submit_demo_canary(
+        mt5, proposal(), evidence(), canary_gate(), checked, reservation()
+    )
+
+    assert result["status"] == "REJECTED"
+    assert result["reason"] == "insufficient_margin"
+    assert result["retry_allowed"] is False
+    assert result["requires_reconciliation"] is True
     assert mt5.send_calls == 1
 
 
@@ -388,6 +469,7 @@ def test_filled_position_reconciles_all_protection_fields(tmp_path: Path) -> Non
     position = {
         "ticket": 30,
         "symbol": "EURUSD",
+        "type": 0,
         "volume": 0.01,
         "price_open": 1.1,
         "sl": 1.099,
@@ -402,6 +484,60 @@ def test_filled_position_reconciles_all_protection_fields(tmp_path: Path) -> Non
     )
     assert mismatch["status"] == "RECONCILIATION_BLOCK"
     assert "stop_loss" in mismatch["details"]
+
+    position["sl"] = 1.099
+    position["type"] = 1
+    wrong_side = reconcile_broker_truth(
+        ledger_path=path, broker_positions=[position], broker_orders=[]
+    )
+    assert wrong_side["status"] == "RECONCILIATION_BLOCK"
+    assert "side" in wrong_side["details"]
+
+
+def test_restart_after_submit_reconciles_broker_order_before_new_work(tmp_path: Path) -> None:
+    path = tmp_path / "execution.jsonl"
+    append_execution_event(
+        path=path,
+        proposal=proposal(),
+        evidence=evidence(),
+        risk_result=risk(),
+        execution_status="SUBMITTED",
+        reconciliation_status="PENDING",
+        ticket=20,
+    )
+    broker_order = {
+        "ticket": 20,
+        "symbol": "EURUSD",
+        "type": 0,
+        "sl": 1.099,
+        "tp": 1.102,
+    }
+
+    recovered = recovery_gate(
+        ledger_path=path,
+        broker_positions=[],
+        broker_orders=[broker_order],
+        terminal_connected=True,
+    )
+
+    assert recovered["status"] == "RECONCILED"
+    assert recovered["recovery_completed"] is True
+    assert recovered["broker_is_source_of_truth"] is True
+
+
+def test_incomplete_ledger_blocks_restart_recovery(tmp_path: Path) -> None:
+    path = tmp_path / "execution.jsonl"
+    path.write_text('{"sequence":', encoding="utf-8")
+
+    result = recovery_gate(
+        ledger_path=path,
+        broker_positions=[],
+        broker_orders=[],
+        terminal_connected=True,
+    )
+
+    assert result["status"] == "RECONCILIATION_BLOCK"
+    assert result["reason"] == "execution_ledger_invalid"
 
 
 def test_dry_run_service_checks_broker_and_never_sends(tmp_path: Path) -> None:
@@ -422,6 +558,23 @@ def test_dry_run_service_checks_broker_and_never_sends(tmp_path: Path) -> None:
     ledger = read_execution_ledger(path)
     assert ledger["status"] == "OK"
     assert ledger["records_count"] == 3
+
+
+def test_dry_run_service_blocks_risk_before_order_check(tmp_path: Path) -> None:
+    mt5 = FakeMT5()
+    result = run_demo_dry_run(
+        mt5,
+        proposal=proposal(),
+        evidence=evidence(),
+        risk_result={"status": "BLOCK", "risk_approved": False},
+        ledger_path=tmp_path / "execution.jsonl",
+        now_utc=NOW,
+    )
+
+    assert result["status"] == "BLOCKED"
+    assert result["reason"] == "demo_gate_blocked"
+    assert mt5.check_calls == 0
+    assert mt5.send_calls == 0
 
 
 def test_synthetic_canary_is_one_shot_and_stops_after_reconciliation(tmp_path: Path) -> None:

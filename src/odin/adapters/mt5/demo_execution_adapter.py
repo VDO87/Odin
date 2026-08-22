@@ -103,7 +103,7 @@ def submit_demo_canary(
     status = _submission_status(mt5, retcode)
     return {
         "status": status,
-        "reason": "broker_result_received",
+        "reason": _submission_reason(mt5, retcode),
         "order_send_result": sanitized,
         "request": _sanitize_request(request),
         "retry_allowed": False,
@@ -210,6 +210,14 @@ def _submission_status(mt5: Any, retcode: object) -> str:
     if retcode == getattr(mt5, "TRADE_RETCODE_PLACED", 10008):
         return "SUBMITTED"
     return "REJECTED"
+
+
+def _submission_reason(mt5: Any, retcode: object) -> str:
+    if retcode == getattr(mt5, "TRADE_RETCODE_DONE", 10009):
+        return "filled"
+    if retcode == getattr(mt5, "TRADE_RETCODE_PLACED", 10008):
+        return "placed"
+    return _classify_retcode(mt5, retcode)
 
 
 def _classify_retcode(mt5: Any, retcode: object, *, check: bool = False) -> str:

@@ -94,12 +94,21 @@ def _find_identifier(
 def _position_mismatches(local: dict[str, object], broker: dict[str, object]) -> list[str]:
     checks = (
         ("symbol", local.get("symbol"), broker.get("symbol")),
+        ("side", local.get("side"), _broker_side(broker.get("type"))),
         ("volume", local.get("executed_volume"), broker.get("volume")),
         ("entry", local.get("executed_price"), broker.get("price_open", broker.get("price"))),
         ("stop_loss", local.get("stop_loss"), broker.get("sl")),
         ("take_profit", local.get("take_profit"), broker.get("tp")),
     )
     return [name for name, expected, observed in checks if expected is not None and expected != observed]
+
+
+def _broker_side(value: object) -> object:
+    if value in {0, "BUY"}:
+        return "BUY"
+    if value in {1, "SELL"}:
+        return "SELL"
+    return value
 
 
 def _blocked(reason: str, *, details: list[str] | None = None) -> dict[str, object]:

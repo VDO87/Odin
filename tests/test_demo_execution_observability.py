@@ -98,6 +98,31 @@ def test_tampered_execution_ledger_is_visible_as_anomaly(tmp_path) -> None:
     assert result["execution_allowed"] is False
 
 
+def test_supervision_analyzes_stale_execution_and_margin_anomaly(tmp_path) -> None:
+    ledger = tmp_path / "ledger.jsonl"
+    record = {
+        "sequence": 1,
+        "previous_record_hash": "GENESIS",
+        "proposal_id": "p1",
+        "execution_status": "FILLED",
+        "risk_result": {"status": "ALLOW_DEMO", "risk_approved": True},
+        "freshness": "STALE",
+        "stop_loss": 1.09,
+        "take_profit": 1.11,
+        "requested_volume": 0.01,
+        "order_check_result": {"margin": -1.0},
+    }
+    canonical = json.dumps(record, sort_keys=True, separators=(",", ":"))
+    record["record_hash"] = hashlib.sha256(canonical.encode()).hexdigest()
+    ledger.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    result = analyze_execution_ledger(ledger)
+
+    assert result["status"] == "DEGRADED"
+    assert "execution_with_stale_data" in result["anomalies"]
+    assert "margin_anomaly" in result["anomalies"]
+
+
 def test_dashboard_route_is_read_only_and_paths_are_injectable(tmp_path) -> None:
     mt5_state = tmp_path / "mt5.json"
     _write_mt5_state(mt5_state)
@@ -130,4 +155,3 @@ def test_tradedesk_and_cockpit_show_demo_execution_without_broker_controls() -> 
     assert "/trading/demo-execution" in cockpit
     for page in (tradedesk, cockpit):
         assert "order_send" not in page
-

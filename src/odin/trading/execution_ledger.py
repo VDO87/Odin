@@ -60,6 +60,9 @@ def append_execution_event(
         "proposal_id": proposal.proposal_id,
         "timestamp": proposal.timestamp_utc,
         "strategy_version": proposal.strategy_version,
+        "market_data_hash": proposal.market_data_hash,
+        "data_quality": proposal.data_quality,
+        "freshness": proposal.freshness,
         "account_mode": "DEMO",
         "broker": evidence.broker,
         "server": evidence.server,
@@ -141,6 +144,8 @@ def analyze_execution_ledger(path: str | Path) -> dict[str, object]:
             not isinstance(risk, dict) or risk.get("risk_approved") is not True
         ):
             anomalies.append("execution_without_risk_approval")
+        if status in {"SUBMITTED", "FILLED"} and record.get("freshness") != "FRESH":
+            anomalies.append("execution_with_stale_data")
         if status in {"SUBMITTED", "FILLED"} and (
             record.get("stop_loss") is None or record.get("take_profit") is None
         ):
@@ -152,6 +157,11 @@ def analyze_execution_ledger(path: str | Path) -> dict[str, object]:
             anomalies.append("unexpected_slippage")
         if record.get("requested_volume") not in {None, 0.01}:
             anomalies.append("wrong_volume")
+        order_check = record.get("order_check_result")
+        if isinstance(order_check, dict):
+            margin = order_check.get("margin")
+            if isinstance(margin, (int, float)) and margin < 0:
+                anomalies.append("margin_anomaly")
     if any(count > 1 for count in attempts.values()):
         anomalies.append("duplicate_submission")
     realized = 0.0
