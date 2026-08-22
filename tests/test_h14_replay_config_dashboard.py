@@ -20,7 +20,7 @@ class ReplayConfigDashboardTests(unittest.TestCase):
     def test_tradedesk_has_replay_only_preferences_and_cockpit_stays_read_only(self):
         routes = DashboardRoutes()
         self.assertIn("/trading/replay/config", routes.tradedesk_html())
-        self.assertIn("Replay preferences", routes.tradedesk_html())
+        self.assertIn("preferências de replay", routes.tradedesk_html())
         self.assertNotIn("POST", routes.cockpit_html())
 
 

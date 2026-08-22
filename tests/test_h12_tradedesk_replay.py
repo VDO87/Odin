@@ -21,20 +21,20 @@ class TradeDeskReplayTests(unittest.TestCase):
         self.assertIn(result["public_data"]["status"], {"OK", "BLOCKED", "WARNING"})
         self.assertIs(result["execution_allowed"], False)
 
-    def test_dashboard_exposes_replay_endpoint_and_separates_cockpit(self):
+    def test_dashboard_exposes_replay_endpoint_and_separates_human_and_technical_views(self):
         routes = DashboardRoutes()
         status, payload = routes.serve("/trading/replay")
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["component"], "trading_replay")
         self.assertIn("ODIN TradeDesk", routes.tradedesk_html())
-        self.assertIn("Technical cockpit", routes.tradedesk_html())
-        self.assertIn("MT5 DEMO open positions", routes.tradedesk_html())
-        self.assertIn("Current terminal observation", routes.tradedesk_html())
-        self.assertIn("Hermes local diagnostic", routes.tradedesk_html())
-        self.assertIn("MT5 DEMO observation audit", routes.tradedesk_html())
-        self.assertIn("Latest shadow observation", routes.tradedesk_html())
-        self.assertIn("mt5Currency", routes.tradedesk_html())
+        self.assertIn("Visão Geral", routes.tradedesk_html())
+        self.assertIn("Shadow / Aprendizagem", routes.tradedesk_html())
+        self.assertIn("Performance", routes.tradedesk_html())
+        self.assertIn('href=\"/cockpit\"', routes.tradedesk_html())
+        self.assertIn("MT5 DEMO · read-only", routes.tradedesk_html())
+        self.assertIn("EXECUTION BLOCKED", routes.tradedesk_html())
+        self.assertIn("Detalhes técnicos", routes.tradedesk_html())
         self.assertIn("ODIN Cockpit", routes.cockpit_html())
         self.assertIs(payload["real_trading"], False)
 
