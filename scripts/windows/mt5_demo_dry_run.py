@@ -42,14 +42,29 @@ def main() -> int:
             return _finish(_blocked("mt5_preflight_evidence_missing"))
         expected_login = os.environ["ODIN_RC1_EXPECTED_LOGIN"]
         expected_server = os.environ["ODIN_RC1_EXPECTED_SERVER"]
-        if not _identity_is_exact(
+        expected_terminal_info_path = str(Path(terminal_path).parent)
+        identity_reasons = _identity_blocks(
             account=account,
             terminal=terminal,
-            terminal_path=terminal_path,
+            expected_terminal_info_path=expected_terminal_info_path,
             expected_login=expected_login,
             expected_server=expected_server,
-        ):
-            return _finish(_blocked("account_identity_hard_block", status="HARD_BLOCK"))
+        )
+        if identity_reasons:
+            return _finish(
+                _blocked(
+                    "account_identity_hard_block",
+                    status="HARD_BLOCK",
+                    reason_codes=identity_reasons,
+                    public_evidence={
+                        "observed_broker": account.get("company"),
+                        "observed_server": account.get("server"),
+                        "expected_server": expected_server,
+                        "observed_terminal_path": terminal.get("path"),
+                        "expected_terminal_path": expected_terminal_info_path,
+                    },
+                )
+            )
         positions_value = mt5.positions_get()
         orders_value = mt5.orders_get()
         if positions_value is None or orders_value is None:
@@ -72,7 +87,7 @@ def main() -> int:
             positions=positions,
             orders=orders,
             recovery=recovery,
-            terminal_path=terminal_path,
+            expected_terminal_info_path=expected_terminal_info_path,
             expected_login=expected_login,
             expected_server=expected_server,
             control=control,
@@ -109,24 +124,28 @@ def _load_control(path: Path) -> dict[str, object] | None:
     return value if all(value.get(key) == expected for key, expected in required.items()) else None
 
 
-def _identity_is_exact(
+def _identity_blocks(
     *,
     account: dict[str, object],
     terminal: dict[str, object],
-    terminal_path: str,
+    expected_terminal_info_path: str,
     expected_login: str,
     expected_server: str,
-) -> bool:
-    return all(
+) -> list[str]:
+    reasons: list[str] = []
+    checks = (
+        (account.get("trade_mode") != mt5.ACCOUNT_TRADE_MODE_DEMO, "account_not_demo"),
+        (account.get("company") != EXPECTED_BROKER, "broker_mismatch"),
+        (account.get("server") != expected_server, "server_mismatch"),
+        (str(account.get("login", "")) != expected_login, "login_mismatch"),
         (
-            account.get("trade_mode") == mt5.ACCOUNT_TRADE_MODE_DEMO,
-            account.get("company") == EXPECTED_BROKER,
-            account.get("server") == expected_server,
-            str(account.get("login", "")) == expected_login,
-            str(terminal.get("path", "")).casefold() == terminal_path.casefold(),
-            terminal.get("connected") is True,
-        )
+            str(terminal.get("path", "")).casefold() != expected_terminal_info_path.casefold(),
+            "terminal_path_mismatch",
+        ),
+        (terminal.get("connected") is not True, "terminal_disconnected"),
     )
+    reasons.extend(reason for failed, reason in checks if failed)
+    return reasons
 
 
 def _proposal(
@@ -180,7 +199,7 @@ def _evidence(
     positions: list[dict[str, object]],
     orders: list[dict[str, object]],
     recovery: dict[str, object],
-    terminal_path: str,
+    expected_terminal_info_path: str,
     expected_login: str,
     expected_server: str,
     control: dict[str, object],
@@ -196,7 +215,7 @@ def _evidence(
     trade_mode = symbol.get("trade_mode")
     disabled = getattr(mt5, "SYMBOL_TRADE_MODE_DISABLED", 0)
     return DemoAccountEvidence(
-        expected_terminal_path=terminal_path,
+        expected_terminal_path=expected_terminal_info_path,
         terminal_path=str(terminal.get("path", "")),
         expected_broker=EXPECTED_BROKER,
         broker=str(account.get("company", "")),
@@ -256,9 +275,15 @@ def _public_result(
     account: dict[str, object],
     terminal: dict[str, object],
 ) -> dict[str, object]:
+    service_evidence = _mapping(result.get("evidence"))
     return {
         "status": result.get("status", "BLOCKED"),
         "reason": result.get("reason"),
+        "service_evidence": {
+            "status": service_evidence.get("status"),
+            "reason": service_evidence.get("reason"),
+            "reason_codes": service_evidence.get("reason_codes", []),
+        },
         "account": "DEMO",
         "broker": evidence.broker,
         "server": evidence.server,
@@ -300,6 +325,8 @@ def _blocked(
     *,
     status: str = "BLOCKED",
     last_error: dict[str, object] | None = None,
+    reason_codes: list[str] | None = None,
+    public_evidence: dict[str, object] | None = None,
 ) -> dict[str, object]:
     result: dict[str, object] = {
         "status": status,
@@ -311,6 +338,10 @@ def _blocked(
     }
     if last_error is not None:
         result["last_error"] = last_error
+    if reason_codes is not None:
+        result["reason_codes"] = reason_codes
+    if public_evidence is not None:
+        result["public_evidence"] = public_evidence
     return result
 
 

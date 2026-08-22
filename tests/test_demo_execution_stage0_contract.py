@@ -30,6 +30,8 @@ def test_stage0_probe_is_dry_run_only_and_fail_closed() -> None:
     assert '"real_trading": False' in probe
     assert '"execution_allowed": False' in probe
     assert '"canary_confirmation_required": True' in probe
+    assert '"login_mismatch"' in probe
+    assert '"terminal_path_mismatch"' in probe
 
 
 def test_stage0_control_is_permanently_disarmed_in_repo() -> None:
