@@ -207,7 +207,12 @@ def _evidence(
 ) -> DemoAccountEvidence:
     now = datetime.now(UTC)
     tick_time = tick.get("time")
-    market_time = assess_market_timestamp(tick_time, now_utc=now)
+    market_time = assess_market_timestamp(
+        tick_time,
+        now_utc=now,
+        broker=str(account.get("company", "")),
+        server=str(account.get("server", "")),
+    )
     age = int(market_time.age_seconds) if market_time.age_seconds == market_time.age_seconds else -1
     balance = _number(account.get("balance"))
     equity = _number(account.get("equity"))
@@ -260,6 +265,12 @@ def _evidence(
         mt5_tick_time_utc=market_time.tick_time_utc,
         odin_now_raw=market_time.now_raw,
         odin_now_utc=market_time.now_utc,
+        broker_server_time=market_time.broker_server_time,
+        normalized_event_time_utc=market_time.normalized_event_time_utc,
+        normalization_method=market_time.normalization_method,
+        observed_server_offset_seconds=market_time.observed_server_offset_seconds,
+        normalization_confidence=market_time.normalization_confidence,
+        market_time_source_profile=market_time.source_profile,
     )
 
 
@@ -316,10 +327,18 @@ def _public_result(
         "odin_now_utc": evidence.odin_now_utc,
         "calculated_age_seconds": evidence.data_age_seconds,
         "market_time_reason_codes": list(evidence.market_time_reason_codes),
+        "broker_timestamp_raw": evidence.mt5_tick_time_raw,
+        "broker_server_time": evidence.broker_server_time,
+        "normalized_event_time_utc": evidence.normalized_event_time_utc,
+        "normalization_method": evidence.normalization_method,
+        "observed_server_offset_seconds": evidence.observed_server_offset_seconds,
+        "normalization_confidence": evidence.normalization_confidence,
+        "market_time_source_profile": evidence.market_time_source_profile,
         "timezone_assumptions": {
-            "mt5_tick_time": "Unix epoch seconds interpreted as UTC; no broker offset is guessed",
+            "mt5_tick_time": "raw broker/server wall-clock epoch preserved for audit",
             "odin_now": "timezone-aware UTC",
             "allowed_future_clock_skew_seconds": 2,
+            "normalization": "exact broker/server profile only; unknown or unexpected offset blocks",
         },
         "reconciliation": evidence.reconciliation_status,
         "order_check": _mapping(_mapping(result.get("order_check")).get("order_check_result")),

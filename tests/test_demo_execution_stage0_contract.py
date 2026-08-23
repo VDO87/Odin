@@ -30,6 +30,9 @@ def test_stage0_probe_is_dry_run_only_and_fail_closed() -> None:
     assert '"mt5_tick_time_raw"' in probe
     assert '"odin_now_utc"' in probe
     assert '"market_time_reason_codes"' in probe
+    assert '"broker_timestamp_raw"' in probe
+    assert '"normalized_event_time_utc"' in probe
+    assert '"normalization_method"' in probe
     assert "order_send" not in probe
     assert '"real_trading": False' in probe
     assert '"execution_allowed": False' in probe

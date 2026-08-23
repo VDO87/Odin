@@ -88,6 +88,12 @@ class DemoAccountEvidence:
     mt5_tick_time_utc: str | None = None
     odin_now_raw: str | None = None
     odin_now_utc: str | None = None
+    broker_server_time: str | None = None
+    normalized_event_time_utc: str | None = None
+    normalization_method: str = "NONE"
+    observed_server_offset_seconds: int | None = None
+    normalization_confidence: str = "NONE"
+    market_time_source_profile: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
