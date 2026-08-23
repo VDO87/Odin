@@ -56,8 +56,10 @@ supervised observation window. It enforces a maximum of five trades, six
 hours, 60-second cycle spacing, 360 cycles and two repeated identical risk
 failures. It preserves `NO_TRADE` as a valid outcome, classifies REAL, UNKNOWN
 and identity mismatch as `HARD_BLOCK`, validates spread price/points
-consistency, writes the four required reports and always stops at
-`CANARY_READY_HUMAN_CONFIRMATION_REQUIRED` with broker action disabled.
+consistency, writes the four required reports and stops at `STAGE0_READY` with
+broker action disabled. Only the separate Stage 0 may then perform one
+`order_check`; a successful Stage 0 can establish
+`CANARY READY — HUMAN CONFIRMATION REQUIRED`.
 
 The controller has no MetaTrader import and cannot call `order_check` or
 `order_send`; the separately human-gated execution service remains the only

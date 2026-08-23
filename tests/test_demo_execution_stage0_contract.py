@@ -47,3 +47,29 @@ def test_stage0_control_is_permanently_disarmed_in_repo() -> None:
     assert '"safe_to_trade": false' in control
     assert '"real_trading": false' in control
     assert '"execution_allowed": false' in control
+
+
+def test_live_soak_preflight_is_read_only_and_uses_exact_oanda_terminal() -> None:
+    launcher = (
+        ROOT / "scripts/windows/Invoke-ODIN-MT5-Demo-Live-Soak-Preflight.ps1"
+    ).read_text(encoding="utf-8")
+    probe = (ROOT / "scripts/windows/mt5_demo_live_soak_preflight.py").read_text(
+        encoding="utf-8"
+    )
+    assert r"C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe" in launcher
+    assert "ODIN_OANDA_ACCOUNT_MODE" in launcher
+    assert "ODIN_OANDA_LOGIN" in launcher
+    assert "ODIN_OANDA_SERVER" in launcher
+    assert "ODIN_OANDA_PASSWORD" not in launcher
+    assert "run_bounded_precanary_soak" in probe
+    assert "mt5.initialize" in probe
+    assert "mt5.account_info" in probe
+    assert "mt5.terminal_info" in probe
+    assert "mt5.symbol_info" in probe
+    assert "mt5.symbol_info_tick" in probe
+    assert "mt5.positions_get" in probe
+    assert "mt5.orders_get" in probe
+    assert "mt5.shutdown" in probe
+    assert "order_send" not in probe
+    assert "order_check" not in probe
+    assert '"broker_submission_called": False' in probe

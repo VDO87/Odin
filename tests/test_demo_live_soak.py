@@ -87,10 +87,10 @@ def test_identity_mismatch_hard_blocks(change: dict[str, object], reason: str) -
     assert result.broker_action_allowed is False
 
 
-def test_ready_cycle_stops_for_specific_human_canary_confirmation() -> None:
+def test_ready_cycle_stops_before_the_single_stage0_order_check() -> None:
     result = evaluate_precanary_cycle(evidence())
-    assert result.status == "CANARY_READY_HUMAN_CONFIRMATION_REQUIRED"
-    assert result.action == "STOP_BEFORE_CANARY"
+    assert result.status == "STAGE0_READY"
+    assert result.action == "RUN_STAGE0_ONCE"
     assert result.stop is True
     assert result.broker_action_allowed is False
 
@@ -169,7 +169,7 @@ def test_bounded_loop_waits_once_then_stops_at_canary_ready(tmp_path) -> None:
         sleeper=sleeps.append,
     )
 
-    assert result["status"] == "CANARY_READY_HUMAN_CONFIRMATION_REQUIRED"
+    assert result["status"] == "STAGE0_READY"
     assert result["broker_submission_called"] is False
     assert result["safe_to_trade"] is False
     assert result["real_trading"] is False

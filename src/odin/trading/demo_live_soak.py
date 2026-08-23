@@ -295,9 +295,9 @@ def evaluate_precanary_cycle(evidence: SoakCycleEvidence) -> SoakCycleDecision:
             stop=False,
         )
     return SoakCycleDecision(
-        status="CANARY_READY_HUMAN_CONFIRMATION_REQUIRED",
-        reason_codes=("human_canary_confirmation_required",),
-        action="STOP_BEFORE_CANARY",
+        status="STAGE0_READY",
+        reason_codes=("order_check_required_before_canary",),
+        action="RUN_STAGE0_ONCE",
         stop=True,
     )
 
