@@ -18,6 +18,7 @@ from odin.contracts.demo_execution import DemoAccountEvidence, TradeProposal  # 
 from odin.risk.demo_execution import evaluate_demo_risk  # noqa: E402
 from odin.trading.demo_execution_service import run_demo_dry_run  # noqa: E402
 from odin.trading.demo_reconciliation import recovery_gate  # noqa: E402
+from odin.trading.market_time import assess_market_timestamp  # noqa: E402
 
 
 EXPECTED_BROKER = "OANDA TMS Brokers S.A."
@@ -204,9 +205,10 @@ def _evidence(
     expected_server: str,
     control: dict[str, object],
 ) -> DemoAccountEvidence:
-    now = datetime.now(UTC).timestamp()
+    now = datetime.now(UTC)
     tick_time = tick.get("time")
-    age = int(now - float(tick_time)) if isinstance(tick_time, (int, float)) else -1
+    market_time = assess_market_timestamp(tick_time, now_utc=now)
+    age = int(market_time.age_seconds) if market_time.age_seconds == market_time.age_seconds else -1
     balance = _number(account.get("balance"))
     equity = _number(account.get("equity"))
     drawdown = max(0.0, (balance - equity) / balance * 100) if balance > 0 else 100.0
@@ -232,7 +234,7 @@ def _evidence(
         ),
         market_open=trade_mode != disabled and bid > 0 and ask > bid,
         symbol=SYMBOL,
-        data_fresh=0 <= age <= 60,
+        data_fresh=market_time.status == "FRESH",
         data_age_seconds=age,
         reconciliation_status=str(recovery.get("status", "RECONCILIATION_BLOCK")),
         kill_switch_engaged=control.get("kill_switch_engaged") is True,
@@ -251,6 +253,13 @@ def _evidence(
         trade_tick_size=_number(symbol.get("trade_tick_size")),
         trade_tick_value_loss=_number(symbol.get("trade_tick_value_loss")),
         fallback_used=False,
+        market_time_status=market_time.status,
+        market_time_reason_codes=market_time.reason_codes,
+        mt5_tick_time_raw=market_time.tick_time_raw,
+        mt5_tick_time_msc_raw=_integer(tick.get("time_msc")) or None,
+        mt5_tick_time_utc=market_time.tick_time_utc,
+        odin_now_raw=market_time.now_raw,
+        odin_now_utc=market_time.now_utc,
     )
 
 
@@ -298,8 +307,20 @@ def _public_result(
         "max_loss_estimated": risk.get("estimated_max_loss"),
         "risk_status": risk.get("status"),
         "risk_reason_codes": risk.get("reason_codes"),
-        "data_freshness": "FRESH" if evidence.data_fresh else "STALE",
+        "data_freshness": evidence.market_time_status,
         "data_age_seconds": evidence.data_age_seconds,
+        "mt5_tick_time_raw": evidence.mt5_tick_time_raw,
+        "mt5_tick_time_msc_raw": evidence.mt5_tick_time_msc_raw,
+        "mt5_tick_time_utc": evidence.mt5_tick_time_utc,
+        "odin_now_raw": evidence.odin_now_raw,
+        "odin_now_utc": evidence.odin_now_utc,
+        "calculated_age_seconds": evidence.data_age_seconds,
+        "market_time_reason_codes": list(evidence.market_time_reason_codes),
+        "timezone_assumptions": {
+            "mt5_tick_time": "Unix epoch seconds interpreted as UTC; no broker offset is guessed",
+            "odin_now": "timezone-aware UTC",
+            "allowed_future_clock_skew_seconds": 2,
+        },
         "reconciliation": evidence.reconciliation_status,
         "order_check": _mapping(_mapping(result.get("order_check")).get("order_check_result")),
         "proposal_id": proposal.proposal_id,

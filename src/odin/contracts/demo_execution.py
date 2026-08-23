@@ -39,6 +39,7 @@ class DemoRiskLimits:
     minimum_free_margin: float = 1_000.0
     max_spread: float = 0.00030
     stale_data_threshold_seconds: int = 60
+    allowed_future_clock_skew_seconds: int = 2
     maximum_order_retries: int = 1
     maximum_execution_slippage_points: int = 20
 
@@ -80,6 +81,13 @@ class DemoAccountEvidence:
     trade_tick_size: float
     trade_tick_value_loss: float
     fallback_used: bool = False
+    market_time_status: str = "FRESH"
+    market_time_reason_codes: tuple[str, ...] = ()
+    mt5_tick_time_raw: float | None = None
+    mt5_tick_time_msc_raw: int | None = None
+    mt5_tick_time_utc: str | None = None
+    odin_now_raw: str | None = None
+    odin_now_utc: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)

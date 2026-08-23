@@ -123,13 +123,19 @@ def _operational_blocks(
         (proposal.symbol != "EURUSD" or evidence.symbol != "EURUSD", "symbol_not_authorized"),
         (proposal.side not in {"BUY", "SELL"}, "side_not_authorized"),
         (proposal.data_quality != "VALID", "proposal_bad_data"),
-        (proposal.freshness != "FRESH" or not evidence.data_fresh, "stale_data"),
-        (evidence.data_age_seconds > limits.stale_data_threshold_seconds, "stale_data_threshold_exceeded"),
         (evidence.open_positions >= limits.max_simultaneous_positions, "position_limit_reached"),
         (evidence.active_orders >= limits.max_simultaneous_orders, "order_limit_reached"),
         (evidence.free_margin < limits.minimum_free_margin, "minimum_free_margin_not_met"),
     )
     reasons.extend(reason for failed, reason in checks if failed)
+    if evidence.market_time_status == "BLOCKED":
+        reasons.extend(evidence.market_time_reason_codes or ("future_market_timestamp",))
+    elif proposal.freshness != "FRESH" or not evidence.data_fresh:
+        reasons.append("stale_data")
+    if evidence.data_age_seconds < -limits.allowed_future_clock_skew_seconds:
+        reasons.extend(("future_market_timestamp", "clock_skew_detected"))
+    elif evidence.data_age_seconds > limits.stale_data_threshold_seconds:
+        reasons.append("stale_data_threshold_exceeded")
     try:
         expiry = datetime.fromisoformat(proposal.expiry.replace("Z", "+00:00")).astimezone(UTC)
     except ValueError:
@@ -138,7 +144,7 @@ def _operational_blocks(
         if expiry <= now:
             reasons.append("proposal_expired")
     reasons.extend(_volume_and_stops_blocks(proposal, evidence, limits))
-    return reasons
+    return list(dict.fromkeys(reasons))
 
 
 def _volume_and_stops_blocks(

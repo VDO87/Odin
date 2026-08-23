@@ -28,9 +28,13 @@ def evaluate_demo_risk(
         reasons.append("symbol_not_authorized")
     if proposal.data_quality != "VALID":
         reasons.append("bad_data")
-    if proposal.freshness != "FRESH" or not evidence.data_fresh:
+    if evidence.market_time_status == "BLOCKED":
+        reasons.extend(evidence.market_time_reason_codes or ("future_market_timestamp",))
+    elif proposal.freshness != "FRESH" or not evidence.data_fresh:
         reasons.append("stale_data")
-    if evidence.data_age_seconds < 0 or evidence.data_age_seconds > policy.stale_data_threshold_seconds:
+    if evidence.data_age_seconds < -policy.allowed_future_clock_skew_seconds:
+        reasons.extend(("future_market_timestamp", "clock_skew_detected"))
+    elif evidence.data_age_seconds > policy.stale_data_threshold_seconds:
         reasons.append("stale_data_threshold_exceeded")
     if evidence.spread > policy.max_spread:
         reasons.append("excessive_spread")
@@ -50,6 +54,7 @@ def evaluate_demo_risk(
         reasons.append("risk_estimate_unavailable")
     elif loss > policy.max_risk_per_trade:
         reasons.append("max_risk_per_trade_exceeded")
+    reasons = list(dict.fromkeys(reasons))
     status = "KILL" if evidence.kill_switch_engaged else "BLOCK" if reasons else "ALLOW_DEMO"
     return {
         "status": status,
