@@ -49,6 +49,20 @@ requires a later market session and manual terminal authorization by the
 operator; it remains subject to all identity, reconciliation, Risk and
 idempotency gates.
 
+## Bounded pre-canary controller
+
+`odin.trading.demo_live_soak` provides the missing non-MT5 controller for the
+supervised observation window. It enforces a maximum of five trades, six
+hours, 60-second cycle spacing, 360 cycles and two repeated identical risk
+failures. It preserves `NO_TRADE` as a valid outcome, classifies REAL, UNKNOWN
+and identity mismatch as `HARD_BLOCK`, validates spread price/points
+consistency, writes the four required reports and always stops at
+`CANARY_READY_HUMAN_CONFIRMATION_REQUIRED` with broker action disabled.
+
+The controller has no MetaTrader import and cannot call `order_check` or
+`order_send`; the separately human-gated execution service remains the only
+possible execution boundary.
+
 ```text
 ODIN DEMO LIVE SOAK RC1 — NOT READY
 broker_submission_called=false
