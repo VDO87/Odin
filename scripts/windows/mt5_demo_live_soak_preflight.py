@@ -24,7 +24,7 @@ from odin.trading.demo_reconciliation import recovery_gate  # noqa: E402
 from odin.trading.execution_ledger import submission_already_attempted  # noqa: E402
 
 
-SYMBOL = "EURUSD"
+BROKER_SYMBOL = "EURUSD.pro"
 
 
 def main() -> int:
@@ -39,8 +39,8 @@ def main() -> int:
             return _finish(_blocked("demo_execution_control_invalid"))
         account = stage0._mapping(mt5.account_info())
         terminal = stage0._mapping(mt5.terminal_info())
-        symbol = stage0._mapping(mt5.symbol_info(SYMBOL))
-        tick = stage0._mapping(mt5.symbol_info_tick(SYMBOL))
+        symbol = stage0._mapping(mt5.symbol_info(BROKER_SYMBOL))
+        tick = stage0._mapping(mt5.symbol_info_tick(BROKER_SYMBOL))
         if not all((account, terminal, symbol, tick)):
             return _finish(_blocked("mt5_preflight_evidence_missing"))
         positions_value = mt5.positions_get()
@@ -123,6 +123,7 @@ def _cycle_evidence(
         account_trade_allowed=account.get("trade_allowed") is True,
         account_trade_expert=account.get("trade_expert") is True,
         symbol=str(execution_evidence.symbol),
+        broker_symbol=str(execution_evidence.broker_symbol),
         trade_mode=stage0._integer(symbol.get("trade_mode")),
         data_fresh=bool(execution_evidence.data_fresh),
         time_normalization_valid=execution_evidence.market_time_status != "BLOCKED",

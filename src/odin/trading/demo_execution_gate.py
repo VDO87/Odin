@@ -14,7 +14,15 @@ from odin.contracts.demo_execution import (
 
 
 def account_fingerprint(evidence: DemoAccountEvidence) -> str:
-    identity = "|".join((evidence.terminal_path, evidence.broker, evidence.server, evidence.login))
+    identity = "|".join(
+        (
+            evidence.terminal_path,
+            evidence.broker,
+            evidence.server,
+            evidence.login,
+            evidence.broker_symbol,
+        )
+    )
     return hashlib.sha256(identity.encode()).hexdigest()
 
 
@@ -92,6 +100,11 @@ def _identity_blocks(evidence: DemoAccountEvidence) -> list[str]:
         ("broker", evidence.expected_broker, evidence.broker),
         ("server", evidence.expected_server, evidence.server),
         ("login", evidence.expected_login, evidence.login),
+        (
+            "broker_symbol",
+            evidence.expected_broker_symbol,
+            evidence.broker_symbol,
+        ),
     )
     for name, expected, observed in identity:
         if not expected or not observed or expected != observed:

@@ -80,6 +80,8 @@ class DemoAccountEvidence:
     stops_level_points: int
     trade_tick_size: float
     trade_tick_value_loss: float
+    expected_broker_symbol: str
+    broker_symbol: str
     fallback_used: bool = False
     market_time_status: str = "FRESH"
     market_time_reason_codes: tuple[str, ...] = ()

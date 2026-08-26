@@ -71,6 +71,8 @@ def evidence(**changes: object) -> DemoAccountEvidence:
         stops_level_points=10,
         trade_tick_size=0.00001,
         trade_tick_value_loss=1.0,
+        expected_broker_symbol="EURUSD.pro",
+        broker_symbol="EURUSD.pro",
     )
     return replace(value, **changes)
 
@@ -160,6 +162,7 @@ def test_account_not_proven_demo_is_hard_block(account_mode: str) -> None:
         {"broker": "Unexpected"},
         {"server": "Unexpected"},
         {"login": "999"},
+        {"broker_symbol": "EURUSD"},
         {"fallback_used": True},
     ],
 )

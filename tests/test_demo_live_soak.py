@@ -27,6 +27,7 @@ def evidence(**changes: object) -> SoakCycleEvidence:
         account_trade_allowed=True,
         account_trade_expert=True,
         symbol="EURUSD",
+        broker_symbol="EURUSD.pro",
         trade_mode=4,
         data_fresh=True,
         time_normalization_valid=True,
@@ -78,6 +79,7 @@ def test_current_external_stop_conditions_block_without_broker_action() -> None:
         ({"broker": "Other"}, "broker_identity_hard_block"),
         ({"server": "Other"}, "server_identity_hard_block"),
         ({"terminal_path": r"D:\ODIN_LOCAL\mt5"}, "terminal_identity_hard_block"),
+        ({"broker_symbol": "EURUSD"}, "broker_symbol_identity_hard_block"),
     ],
 )
 def test_identity_mismatch_hard_blocks(change: dict[str, object], reason: str) -> None:

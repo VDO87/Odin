@@ -19,6 +19,7 @@ EXPECTED_BROKER = "OANDA TMS Brokers S.A."
 EXPECTED_SERVER = "OANDATMS-MT5"
 EXPECTED_TERMINAL = r"C:\Program Files\OANDA TMS MT5 Terminal"
 EXPECTED_SYMBOL = "EURUSD"
+EXPECTED_BROKER_SYMBOL = "EURUSD.pro"
 KNOWN_EXECUTION_ERRORS = frozenset(
     {
         "DISCONNECTED",
@@ -55,6 +56,7 @@ _IDENTITY_HARD_BLOCKS = frozenset(
         "broker_identity_hard_block",
         "server_identity_hard_block",
         "terminal_identity_hard_block",
+        "broker_symbol_identity_hard_block",
     }
 )
 
@@ -92,6 +94,7 @@ class SoakCycleEvidence:
     account_trade_allowed: bool
     account_trade_expert: bool
     symbol: str
+    broker_symbol: str
     trade_mode: int
     data_fresh: bool
     time_normalization_valid: bool
@@ -218,6 +221,8 @@ def evaluate_precanary_cycle(evidence: SoakCycleEvidence) -> SoakCycleDecision:
         reasons.append("account_expert_trade_not_allowed")
     if evidence.symbol != EXPECTED_SYMBOL:
         reasons.append("symbol_not_authorized")
+    if evidence.broker_symbol != EXPECTED_BROKER_SYMBOL:
+        reasons.append("broker_symbol_identity_hard_block")
     if evidence.trade_mode == 0:
         reasons.append("market_disabled")
     elif evidence.trade_mode != 4:

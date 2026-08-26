@@ -67,6 +67,7 @@ def append_execution_event(
         "broker": evidence.broker,
         "server": evidence.server,
         "symbol": proposal.symbol,
+        "broker_symbol": evidence.broker_symbol,
         "side": proposal.side,
         "requested_volume": proposal.volume,
         "executed_volume": executed_volume,

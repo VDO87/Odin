@@ -44,6 +44,7 @@ class FakeMT5:
     TRADE_RETCODE_PRICE_CHANGED = 10020
     TRADE_RETCODE_TIMEOUT = 10012
     TRADE_RETCODE_INVALID_FILL = 10030
+    SYMBOL_TRADE_MODE_DISABLED = 0
 
     def __init__(self) -> None:
         self.account = {
@@ -51,6 +52,8 @@ class FakeMT5:
             "company": "OANDA TMS Brokers S.A.",
             "server": "OANDATMS-MT5",
             "login": 123456,
+            "trade_allowed": True,
+            "trade_expert": True,
         }
         self.terminal = {
             "path": r"D:\ODIN_LOCAL\mt5\terminal64.exe",
@@ -58,7 +61,12 @@ class FakeMT5:
             "trade_allowed": True,
             "tradeapi_disabled": False,
         }
-        self.symbol = {"point": 0.00001, "filling_mode": 1}
+        self.symbol = {
+            "name": "EURUSD.pro",
+            "point": 0.00001,
+            "filling_mode": 1,
+            "trade_mode": 4,
+        }
         self.tick = {"ask": 1.10000, "bid": 1.09998}
         self.check_result: object = {"retcode": 0, "comment": "Done", "margin": 1.0}
         self.send_result: object = {
@@ -82,10 +90,10 @@ class FakeMT5:
         return self.terminal
 
     def symbol_info(self, symbol: str) -> object:
-        return self.symbol if symbol == "EURUSD" else None
+        return self.symbol if symbol == "EURUSD.pro" else None
 
     def symbol_info_tick(self, symbol: str) -> object:
-        return self.tick if symbol == "EURUSD" else None
+        return self.tick if symbol == "EURUSD.pro" else None
 
     def order_check(self, request: dict[str, object]) -> object:
         self.check_calls += 1
@@ -172,6 +180,8 @@ def evidence(**changes: object) -> DemoAccountEvidence:
         10,
         0.00001,
         1.0,
+        "EURUSD.pro",
+        "EURUSD.pro",
     )
     return replace(value, **changes)
 
@@ -396,7 +406,9 @@ def test_canary_adapter_requires_atomic_reservation() -> None:
 
 def test_broker_execution_state_is_read_only_and_identity_guarded() -> None:
     mt5 = FakeMT5()
-    mt5.positions = [{"ticket": 1, "symbol": "EURUSD", "volume": 0.01, "password": "hidden"}]
+    mt5.positions = [
+        {"ticket": 1, "symbol": "EURUSD.pro", "volume": 0.01, "password": "hidden"}
+    ]
     result = read_broker_execution_state(mt5, evidence())
     assert result["status"] == "OK"
     assert result["positions"][0]["ticket"] == 1
@@ -460,7 +472,7 @@ def test_recovery_uses_broker_truth_and_blocks_orphans_and_mismatch(tmp_path: Pa
     assert clean["status"] == "RECONCILED"
     orphan = reconcile_broker_truth(
         ledger_path=path,
-        broker_positions=[{"ticket": 99, "symbol": "EURUSD"}],
+        broker_positions=[{"ticket": 99, "symbol": "EURUSD.pro"}],
         broker_orders=[],
     )
     assert orphan["status"] == "RECONCILIATION_BLOCK"
@@ -487,7 +499,7 @@ def test_filled_position_reconciles_all_protection_fields(tmp_path: Path) -> Non
     )
     position = {
         "ticket": 30,
-        "symbol": "EURUSD",
+        "symbol": "EURUSD.pro",
         "type": 0,
         "volume": 0.01,
         "price_open": 1.1,
@@ -526,7 +538,7 @@ def test_restart_after_submit_reconciles_broker_order_before_new_work(tmp_path: 
     )
     broker_order = {
         "ticket": 20,
-        "symbol": "EURUSD",
+        "symbol": "EURUSD.pro",
         "type": 0,
         "sl": 1.099,
         "tp": 1.102,

@@ -140,7 +140,8 @@ def read_broker_execution_state(mt5: Any, evidence: DemoAccountEvidence) -> dict
 def _live_identity_blocks(mt5: Any, evidence: DemoAccountEvidence) -> list[str]:
     account = _as_mapping(mt5.account_info())
     terminal = _as_mapping(mt5.terminal_info())
-    if not account or not terminal:
+    symbol = _as_mapping(mt5.symbol_info(evidence.broker_symbol))
+    if not account or not terminal or not symbol:
         return ["live_account_or_terminal_unavailable"]
     reasons: list[str] = []
     demo_mode = getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", 0)
@@ -159,6 +160,12 @@ def _live_identity_blocks(mt5: Any, evidence: DemoAccountEvidence) -> list[str]:
         reasons.append("live_terminal_disconnected")
     if terminal.get("trade_allowed") is not True or terminal.get("tradeapi_disabled") is True:
         reasons.append("live_terminal_trading_not_allowed")
+    if account.get("trade_allowed") is not True or account.get("trade_expert") is not True:
+        reasons.append("live_account_trading_not_allowed")
+    if symbol.get("name") != evidence.broker_symbol:
+        reasons.append("live_broker_symbol_identity_mismatch")
+    if symbol.get("trade_mode") == getattr(mt5, "SYMBOL_TRADE_MODE_DISABLED", 0):
+        reasons.append("live_broker_symbol_not_tradable")
     return reasons
 
 
@@ -168,8 +175,8 @@ def _build_request(
     evidence: DemoAccountEvidence,
     limits: DemoRiskLimits,
 ) -> dict[str, object]:
-    symbol_info = _as_mapping(mt5.symbol_info(proposal.symbol))
-    tick = _as_mapping(mt5.symbol_info_tick(proposal.symbol))
+    symbol_info = _as_mapping(mt5.symbol_info(evidence.broker_symbol))
+    tick = _as_mapping(mt5.symbol_info_tick(evidence.broker_symbol))
     if not symbol_info or not tick:
         return _blocked("symbol_or_tick_unavailable")
     expected_side = getattr(mt5, "ORDER_TYPE_BUY", 0) if proposal.side == "BUY" else getattr(mt5, "ORDER_TYPE_SELL", 1)
@@ -189,7 +196,7 @@ def _build_request(
     magic = int(hashlib.sha256(proposal.proposal_id.encode()).hexdigest()[:8], 16)
     request = {
         "action": getattr(mt5, "TRADE_ACTION_DEAL"),
-        "symbol": proposal.symbol,
+        "symbol": evidence.broker_symbol,
         "volume": proposal.volume,
         "type": expected_side,
         "price": round(float(price), evidence.digits),

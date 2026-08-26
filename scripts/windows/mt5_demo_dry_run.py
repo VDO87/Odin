@@ -22,7 +22,8 @@ from odin.trading.market_time import assess_market_timestamp  # noqa: E402
 
 
 EXPECTED_BROKER = "OANDA TMS Brokers S.A."
-SYMBOL = "EURUSD"
+CANONICAL_SYMBOL = "EURUSD"
+BROKER_SYMBOL = "EURUSD.pro"
 
 
 def main() -> int:
@@ -37,8 +38,8 @@ def main() -> int:
             return _finish(_blocked("demo_execution_control_invalid"))
         account = _mapping(mt5.account_info())
         terminal = _mapping(mt5.terminal_info())
-        symbol = _mapping(mt5.symbol_info(SYMBOL))
-        tick = _mapping(mt5.symbol_info_tick(SYMBOL))
+        symbol = _mapping(mt5.symbol_info(BROKER_SYMBOL))
+        tick = _mapping(mt5.symbol_info_tick(BROKER_SYMBOL))
         if not all((account, terminal, symbol, tick)):
             return _finish(_blocked("mt5_preflight_evidence_missing"))
         expected_login = os.environ["ODIN_RC1_EXPECTED_LOGIN"]
@@ -115,7 +116,8 @@ def _load_control(path: Path) -> dict[str, object] | None:
         return None
     required = {
         "mode": "DEMO_EXECUTION_RC1",
-        "allowed_symbol": SYMBOL,
+        "allowed_symbol": CANONICAL_SYMBOL,
+        "broker_symbol": BROKER_SYMBOL,
         "kill_switch_engaged": False,
         "canary_authorized": False,
         "safe_to_trade": False,
@@ -160,7 +162,7 @@ def _proposal(
     stop_loss = round(entry - distance_points * point, digits)
     take_profit = round(entry + distance_points * point * 2, digits)
     market_payload = {
-        "symbol": SYMBOL,
+        "symbol": BROKER_SYMBOL,
         "bid": tick.get("bid"),
         "ask": tick.get("ask"),
         "time": tick.get("time"),
@@ -175,7 +177,7 @@ def _proposal(
         proposal_id=proposal_id,
         decision_id="rc1-stage0-technical-dry-run",
         timestamp_utc=now.isoformat(),
-        symbol=SYMBOL,
+        symbol=CANONICAL_SYMBOL,
         side="BUY",
         volume=_number(control.get("fixed_volume")),
         entry_reference=entry,
@@ -238,7 +240,7 @@ def _evidence(
             and account.get("trade_allowed") is True
         ),
         market_open=trade_mode != disabled and bid > 0 and ask > bid,
-        symbol=SYMBOL,
+        symbol=CANONICAL_SYMBOL,
         data_fresh=market_time.status == "FRESH",
         data_age_seconds=age,
         reconciliation_status=str(recovery.get("status", "RECONCILIATION_BLOCK")),
@@ -257,6 +259,8 @@ def _evidence(
         stops_level_points=_integer(symbol.get("trade_stops_level")),
         trade_tick_size=_number(symbol.get("trade_tick_size")),
         trade_tick_value_loss=_number(symbol.get("trade_tick_value_loss")),
+        expected_broker_symbol=BROKER_SYMBOL,
+        broker_symbol=str(symbol.get("name", "")),
         fallback_used=False,
         market_time_status=market_time.status,
         market_time_reason_codes=market_time.reason_codes,

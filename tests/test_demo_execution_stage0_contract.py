@@ -44,6 +44,8 @@ def test_stage0_probe_is_dry_run_only_and_fail_closed() -> None:
 def test_stage0_control_is_permanently_disarmed_in_repo() -> None:
     control = (ROOT / "config/demo_execution_rc1.json").read_text(encoding="utf-8")
     assert '"canary_authorized": false' in control
+    assert '"allowed_symbol": "EURUSD"' in control
+    assert '"broker_symbol": "EURUSD.pro"' in control
     assert '"safe_to_trade": false' in control
     assert '"real_trading": false' in control
     assert '"execution_allowed": false' in control
@@ -70,6 +72,7 @@ def test_live_soak_preflight_is_read_only_and_uses_exact_oanda_terminal() -> Non
     assert "mt5.positions_get" in probe
     assert "mt5.orders_get" in probe
     assert "mt5.shutdown" in probe
+    assert 'BROKER_SYMBOL = "EURUSD.pro"' in probe
     assert "order_send" not in probe
     assert "order_check" not in probe
     assert '"broker_submission_called": False' in probe

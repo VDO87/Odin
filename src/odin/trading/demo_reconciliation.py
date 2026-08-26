@@ -34,7 +34,10 @@ def reconcile_broker_truth(
         matched_order = _find_identifier(broker_orders, known_ticket, "ticket", "order")
         if matched_position is None and known_position is None:
             symbol_matches = [
-                item for item in broker_positions if item.get("symbol") == latest.get("symbol")
+                item
+                for item in broker_positions
+                if item.get("symbol")
+                == latest.get("broker_symbol", latest.get("symbol"))
             ]
             matched_position = symbol_matches[0] if len(symbol_matches) == 1 else None
         if not matched_position and not matched_order:
@@ -93,7 +96,11 @@ def _find_identifier(
 
 def _position_mismatches(local: dict[str, object], broker: dict[str, object]) -> list[str]:
     checks = (
-        ("symbol", local.get("symbol"), broker.get("symbol")),
+        (
+            "symbol",
+            local.get("broker_symbol", local.get("symbol")),
+            broker.get("symbol"),
+        ),
         ("side", local.get("side"), _broker_side(broker.get("type"))),
         ("volume", local.get("executed_volume"), broker.get("volume")),
         ("entry", local.get("executed_price"), broker.get("price_open", broker.get("price"))),
