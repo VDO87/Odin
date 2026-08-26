@@ -31,6 +31,9 @@ class FakeMT5:
     ACCOUNT_TRADE_MODE_DEMO = 0
     ORDER_TYPE_BUY = 0
     ORDER_TYPE_SELL = 1
+    ORDER_FILLING_FOK = 0
+    ORDER_FILLING_IOC = 1
+    ORDER_FILLING_RETURN = 2
     ORDER_TIME_GTC = 0
     TRADE_ACTION_DEAL = 1
     TRADE_RETCODE_PLACED = 10008
@@ -45,6 +48,7 @@ class FakeMT5:
     TRADE_RETCODE_TIMEOUT = 10012
     TRADE_RETCODE_INVALID_FILL = 10030
     SYMBOL_TRADE_MODE_DISABLED = 0
+    SYMBOL_TRADE_EXECUTION_MARKET = 2
 
     def __init__(self) -> None:
         self.account = {
@@ -65,6 +69,7 @@ class FakeMT5:
             "name": "EURUSD.pro",
             "point": 0.00001,
             "filling_mode": 1,
+            "trade_exemode": self.SYMBOL_TRADE_EXECUTION_MARKET,
             "trade_mode": 4,
         }
         self.tick = {"ask": 1.10000, "bid": 1.09998}
@@ -237,6 +242,7 @@ def test_order_check_uses_live_demo_identity_and_never_sends() -> None:
     result = perform_order_check(mt5, proposal(), evidence(), dry_gate())
     assert result["status"] == "ORDER_CHECKED"
     assert result["accepted"] is True
+    assert result["request"]["type_filling"] == mt5.ORDER_FILLING_FOK
     assert mt5.check_calls == 1
     assert mt5.send_calls == 0
     assert result["real_trading"] is False
@@ -310,6 +316,42 @@ def test_bad_price_and_filling_mode_block_before_order_check() -> None:
     mt5.symbol["filling_mode"] = None
     bad_filling = perform_order_check(mt5, proposal(), evidence(), dry_gate())
     assert bad_filling["reason"] == "filling_mode_error"
+    assert mt5.check_calls == 0
+    assert mt5.send_calls == 0
+
+
+@pytest.mark.parametrize(
+    ("symbol_flags", "execution_mode", "expected_order_mode"),
+    [
+        (1, 2, FakeMT5.ORDER_FILLING_FOK),
+        (2, 2, FakeMT5.ORDER_FILLING_IOC),
+        (3, 2, FakeMT5.ORDER_FILLING_FOK),
+        (0, 1, FakeMT5.ORDER_FILLING_RETURN),
+    ],
+)
+def test_symbol_filling_flags_are_mapped_to_order_filling_enum(
+    symbol_flags: int, execution_mode: int, expected_order_mode: int
+) -> None:
+    mt5 = FakeMT5()
+    mt5.symbol["filling_mode"] = symbol_flags
+    mt5.symbol["trade_exemode"] = execution_mode
+
+    result = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+
+    assert result["status"] == "ORDER_CHECKED"
+    assert result["request"]["type_filling"] == expected_order_mode
+    assert mt5.check_calls == 1
+    assert mt5.send_calls == 0
+
+
+def test_market_execution_without_documented_filling_flag_blocks() -> None:
+    mt5 = FakeMT5()
+    mt5.symbol["filling_mode"] = 0
+
+    result = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+
+    assert result["status"] == "BLOCKED"
+    assert result["reason"] == "filling_mode_error"
     assert mt5.check_calls == 0
     assert mt5.send_calls == 0
 

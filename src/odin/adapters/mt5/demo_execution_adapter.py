@@ -190,8 +190,8 @@ def _build_request(
     slippage_points = abs(float(price) - proposal.entry_reference) / float(point)
     if slippage_points > limits.maximum_execution_slippage_points:
         return _blocked("price_changed")
-    filling_mode = symbol_info.get("filling_mode")
-    if not isinstance(filling_mode, int):
+    filling_mode = _select_order_filling_mode(mt5, symbol_info)
+    if filling_mode is None:
         return _blocked("filling_mode_error")
     magic = int(hashlib.sha256(proposal.proposal_id.encode()).hexdigest()[:8], 16)
     request = {
@@ -209,6 +209,29 @@ def _build_request(
         "type_filling": filling_mode,
     }
     return {"status": "OK", "request": request}
+
+
+def _select_order_filling_mode(
+    mt5: Any, symbol_info: dict[str, object]
+) -> int | None:
+    """Map SYMBOL_FILLING_MODE flags to an ORDER_FILLING_* request value."""
+    raw_flags = symbol_info.get("filling_mode")
+    execution_mode = symbol_info.get("trade_exemode")
+    if not isinstance(raw_flags, int) or not isinstance(execution_mode, int):
+        return None
+
+    # MetaTrader documents SYMBOL_FILLING_MODE as a bitmask: FOK=1, IOC=2.
+    # ORDER_FILLING_* is a separate enum: FOK=0, IOC=1, RETURN=2. Prefer
+    # FOK when available so a bounded canary cannot be partially filled.
+    if raw_flags & 1:
+        return int(getattr(mt5, "ORDER_FILLING_FOK", 0))
+    if raw_flags & 2:
+        return int(getattr(mt5, "ORDER_FILLING_IOC", 1))
+
+    market_execution = int(getattr(mt5, "SYMBOL_TRADE_EXECUTION_MARKET", 2))
+    if execution_mode != market_execution:
+        return int(getattr(mt5, "ORDER_FILLING_RETURN", 2))
+    return None
 
 
 def _submission_status(mt5: Any, retcode: object) -> str:
