@@ -7,7 +7,9 @@ import pytest
 from odin.trading.demo_live_soak import (
     SoakCycleEvidence,
     SoakLimits,
+    evaluate_postcanary_cycle,
     evaluate_precanary_cycle,
+    run_bounded_postcanary_soak,
     run_bounded_precanary_soak,
 )
 
@@ -112,6 +114,31 @@ def test_reconciled_open_position_is_monitor_only() -> None:
     assert result.status == "POSITION_OPEN_MONITOR_ONLY"
     assert result.action == "OBSERVE_AND_RECONCILE"
     assert result.stop is False
+
+
+def test_postcanary_historical_submission_is_monitor_only() -> None:
+    result = evaluate_postcanary_cycle(
+        evidence(position_count=1, broker_submission_called=True)
+    )
+    assert result.status == "POSITION_OPEN_MONITOR_ONLY"
+    assert result.action == "OBSERVE_AND_RECONCILE"
+    assert result.stop is False
+    assert result.broker_action_allowed is False
+
+
+def test_postcanary_stops_for_close_reconciliation_without_new_action() -> None:
+    result = evaluate_postcanary_cycle(
+        evidence(
+            position_count=0,
+            proposal_available=False,
+            no_trade=True,
+            broker_submission_called=True,
+        )
+    )
+    assert result.status == "CANARY_POSITION_CLOSED"
+    assert result.action == "RECONCILE_CLOSE"
+    assert result.stop is True
+    assert result.broker_action_allowed is False
 
 
 def test_unexpected_submission_and_unknown_execution_state_stop() -> None:
@@ -239,3 +266,54 @@ def test_repeated_no_trade_is_not_misclassified_as_failure(tmp_path) -> None:
     )
     assert result["status"] == "SOAK_CYCLE_LIMIT_COMPLETE_PRE_CANARY"
     assert result["broker_submission_called"] is False
+
+
+def test_postcanary_loop_monitors_then_stops_at_position_close(tmp_path) -> None:
+    observations = [
+        evidence(
+            position_count=1,
+            proposal_available=False,
+            no_trade=True,
+            floating_pnl=-0.1,
+        ),
+        evidence(
+            position_count=0,
+            proposal_available=False,
+            no_trade=True,
+            floating_pnl=0.0,
+        ),
+    ]
+    sleeps: list[float] = []
+    ticks = iter(
+        (
+            NOW,
+            NOW,
+            NOW + timedelta(minutes=1),
+            NOW + timedelta(minutes=1),
+        )
+    )
+
+    result = run_bounded_postcanary_soak(
+        observe=lambda index: observations[index - 1],
+        report_dir=tmp_path,
+        limits=SoakLimits(max_cycles=2),
+        git_checkpoint="post-canary-checkpoint",
+        started_at_utc=NOW.isoformat(),
+        self_repairs=3,
+        clock=lambda: next(ticks),
+        sleeper=sleeps.append,
+    )
+
+    assert result["status"] == "CANARY_POSITION_CLOSED"
+    assert result["mode"] == "POST_CANARY_MONITOR_ONLY"
+    assert result["broker_submission_called"] is True
+    assert result["safe_to_trade"] is False
+    assert result["real_trading"] is False
+    assert result["execution_allowed"] is False
+    assert sleeps == [60.0]
+    metrics = result["metrics"]
+    assert isinstance(metrics, dict)
+    assert metrics["cycles"] == 2
+    assert metrics["orders_submitted"] == 1
+    assert metrics["orders_filled"] == 1
+    assert metrics["self_repairs"] == 3

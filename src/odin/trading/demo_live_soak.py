@@ -114,6 +114,7 @@ class SoakCycleEvidence:
     proposal_duplicate: bool
     proposal_available: bool
     no_trade: bool
+    identity_reason_codes: tuple[str, ...] = ()
     broker_submission_called: bool = False
     execution_error: str | None = None
     order_filled: bool = False
@@ -201,6 +202,9 @@ class SoakMetrics:
 def evaluate_precanary_cycle(evidence: SoakCycleEvidence) -> SoakCycleDecision:
     """Evaluate one cycle and fail closed before any possible broker action."""
     reasons: list[str] = []
+    if evidence.identity_reason_codes:
+        reasons.append("account_identity_hard_block")
+        reasons.extend(evidence.identity_reason_codes)
     if evidence.broker_submission_called:
         reasons.append("unexpected_broker_submission")
     if evidence.account_mode != "DEMO":
@@ -307,6 +311,35 @@ def evaluate_precanary_cycle(evidence: SoakCycleEvidence) -> SoakCycleDecision:
     )
 
 
+def evaluate_postcanary_cycle(evidence: SoakCycleEvidence) -> SoakCycleDecision:
+    """Observe one confirmed CANARY position without allowing another action."""
+    decision = evaluate_precanary_cycle(
+        replace(evidence, broker_submission_called=False)
+    )
+    if decision.stop:
+        return replace(
+            decision,
+            status=(
+                decision.status
+                if decision.status == "HARD_BLOCK"
+                else "STOPPED_POST_CANARY"
+            ),
+        )
+    if evidence.position_count == 1:
+        return SoakCycleDecision(
+            status="POSITION_OPEN_MONITOR_ONLY",
+            reason_codes=("existing_reconciled_canary_position",),
+            action="OBSERVE_AND_RECONCILE",
+            stop=False,
+        )
+    return SoakCycleDecision(
+        status="CANARY_POSITION_CLOSED",
+        reason_codes=("position_no_longer_open",),
+        action="RECONCILE_CLOSE",
+        stop=True,
+    )
+
+
 def run_bounded_precanary_soak(
     *,
     observe: Callable[[int], SoakCycleEvidence],
@@ -390,6 +423,92 @@ def run_bounded_precanary_soak(
     return snapshot
 
 
+def run_bounded_postcanary_soak(
+    *,
+    observe: Callable[[int], SoakCycleEvidence],
+    report_dir: str | Path,
+    limits: SoakLimits | None = None,
+    git_checkpoint: str = "UNCOMMITTED",
+    started_at_utc: str | None = None,
+    self_repairs: int = 0,
+    clock: Callable[[], datetime] | None = None,
+    sleeper: Callable[[float], None] | None = None,
+) -> dict[str, object]:
+    """Monitor one confirmed CANARY; this function cannot submit or retry."""
+    policy = limits or SoakLimits()
+    now = clock or (lambda: datetime.now(UTC))
+    wait = sleeper or time.sleep
+    started = (
+        _aware_utc(datetime.fromisoformat(started_at_utc.replace("Z", "+00:00")))
+        if started_at_utc is not None
+        else _aware_utc(now())
+    )
+    metrics = SoakMetrics(
+        started_at_utc=started.isoformat(),
+        status="RUNNING_POST_CANARY",
+        trade_proposals=1,
+        orders_submitted=1,
+        orders_filled=1,
+        self_repairs=self_repairs,
+    )
+    last_evidence: SoakCycleEvidence | None = None
+    last_decision: SoakCycleDecision | None = None
+
+    for cycle_number in range(1, policy.max_cycles + 1):
+        current = _aware_utc(now())
+        if (current - started).total_seconds() >= policy.max_duration_seconds:
+            metrics.status = "SOAK_WINDOW_COMPLETE_POST_CANARY"
+            metrics.ended_at_utc = current.isoformat()
+            break
+        try:
+            evidence = observe(cycle_number)
+            decision = evaluate_postcanary_cycle(evidence)
+        except Exception:  # fail closed without leaking exception content
+            metrics.exceptions += 1
+            decision = SoakCycleDecision(
+                status="STOPPED_POST_CANARY",
+                reason_codes=("observation_exception",),
+                action="SAFE_STOP",
+                stop=True,
+            )
+            evidence = None
+
+        metrics.cycles += 1
+        if evidence is not None:
+            last_evidence = evidence
+            _update_metrics(metrics, evidence, decision)
+        last_decision = decision
+        metrics.status = decision.status
+        metrics.stop_reason_codes = list(decision.reason_codes) if decision.stop else []
+        metrics.ended_at_utc = _aware_utc(now()).isoformat()
+        snapshot = _snapshot(
+            metrics,
+            last_evidence,
+            last_decision,
+            policy,
+            git_checkpoint,
+            mode="POST_CANARY_MONITOR_ONLY",
+        )
+        write_live_soak_reports(report_dir=report_dir, snapshot=snapshot)
+        if decision.stop:
+            return snapshot
+        wait(float(policy.cycle_interval_seconds))
+    else:
+        metrics.status = "SOAK_CYCLE_LIMIT_COMPLETE_POST_CANARY"
+        metrics.ended_at_utc = _aware_utc(now()).isoformat()
+
+    snapshot = _snapshot(
+        metrics,
+        last_evidence,
+        last_decision,
+        policy,
+        git_checkpoint,
+        mode="POST_CANARY_MONITOR_ONLY",
+    )
+    write_live_soak_reports(report_dir=report_dir, snapshot=snapshot)
+    return snapshot
+
+
 def write_live_soak_reports(*, report_dir: str | Path, snapshot: dict[str, object]) -> None:
     """Persist the four required sanitized RC1 reports."""
     destination = Path(report_dir)
@@ -450,7 +569,12 @@ def _update_metrics(
 ) -> None:
     if evidence.data_fresh:
         metrics.fresh_data_cycles += 1
-    if decision.status in {"HARD_BLOCK", "STOPPED_PRE_CANARY", "RISK_BLOCK"}:
+    if decision.status in {
+        "HARD_BLOCK",
+        "STOPPED_PRE_CANARY",
+        "STOPPED_POST_CANARY",
+        "RISK_BLOCK",
+    }:
         metrics.blocked_cycles += 1
     if decision.status == "NO_TRADE":
         metrics.no_trade_count += 1
@@ -492,11 +616,12 @@ def _snapshot(
     decision: SoakCycleDecision | None,
     limits: SoakLimits,
     git_checkpoint: str,
+    mode: str = "PRE_CANARY_SUPERVISED_ONLY",
 ) -> dict[str, object]:
     return {
         "schema": "odin.demo_live_soak/v1",
         "status": metrics.status,
-        "mode": "PRE_CANARY_SUPERVISED_ONLY",
+        "mode": mode,
         "limits": asdict(limits),
         "metrics": metrics.to_dict(),
         "last_evidence": asdict(evidence) if evidence else None,

@@ -68,3 +68,23 @@ def test_only_isolated_adapter_contains_submission_call() -> None:
 
     assert len(calls) == 1
     assert calls[0][0] == ROOT / "src/odin/adapters/mt5/demo_execution_adapter.py"
+
+
+def test_postcanary_soak_launcher_and_probe_are_read_only_and_bounded() -> None:
+    launcher = (
+        ROOT / "scripts/windows/Invoke-ODIN-MT5-Demo-PostCanary-Soak.ps1"
+    ).read_text(encoding="utf-8")
+    probe_path = ROOT / "scripts/windows/mt5_demo_post_canary_soak.py"
+    probe = probe_path.read_text(encoding="utf-8")
+
+    assert "ValidateRange(1, 360)" in launcher
+    assert "ValidateRange(30, 300)" in launcher
+    assert "ODIN_OANDA_PASSWORD" not in launcher
+    assert "run_bounded_postcanary_soak" in probe
+    assert "mt5.initialize" in probe
+    assert "mt5.account_info" in probe
+    assert "mt5.positions_get" in probe
+    assert "mt5.orders_get" in probe
+    assert "mt5.shutdown" in probe
+    assert _attribute_calls(probe_path, "order_send") == []
+    assert _attribute_calls(probe_path, "order_check") == []
