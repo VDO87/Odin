@@ -61,15 +61,15 @@ new broker actions remain disabled.
 
 Latest full suite, without exclusions:
 
-- collected: 764;
-- passed: 764;
+- collected: 768;
+- passed: 768;
 - failed: 0;
 - skipped: 0;
 - subtests: 42 passed;
-- pytest duration: 564.45 seconds (`0:09:24`);
-- wall duration: 565.94 seconds;
+- pytest duration: 538.58 seconds (`0:08:58`);
+- wall duration: 540.11 seconds;
 - file descriptor soft limit: 8192;
-- maximum RSS: 253,660 KB.
+- maximum RSS: 258,244 KB.
 
 Additional gates:
 
@@ -78,7 +78,7 @@ Additional gates:
 - legacy and global financial sentinels: 64 passed;
 - Stage 0 contract plus core execution regressions: 69 passed;
 - Ruff: `ruff check .` passed;
-- mypy directed scope: 9 RC1 source files passed with no issues;
+- mypy directed scope: 10 RC1 source files passed with no issues;
 - `git diff --check`: passed.
 
 ## Live Stage 0 result
