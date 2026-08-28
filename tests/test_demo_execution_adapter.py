@@ -18,7 +18,9 @@ from odin.trading.demo_execution_gate import account_fingerprint, evaluate_demo_
 from odin.trading.demo_execution_service import run_demo_canary, run_demo_dry_run
 from odin.trading.demo_reconciliation import reconcile_broker_truth, recovery_gate
 from odin.trading.execution_ledger import (
+    analyze_execution_ledger,
     append_execution_event,
+    confirm_execution_reconciliation,
     read_execution_ledger,
     reserve_submission,
     submission_already_attempted,
@@ -686,6 +688,20 @@ def test_synthetic_canary_is_one_shot_and_stops_after_reconciliation(tmp_path: P
     assert result["order_send_called"] is True
     assert result["new_executions_enabled"] is False
     assert mt5.send_calls == 1
+    ledger = read_execution_ledger(path)
+    assert ledger["status"] == "OK"
+    assert ledger["records_count"] == 3
+    assert ledger["latest"]["execution_status"] == "RECONCILED"
+    assert ledger["latest"]["reconciliation_status"] == "RECONCILED"
+    assert analyze_execution_ledger(path)["status"] == "OK"
+    already = confirm_execution_reconciliation(
+        path=path,
+        proposal_id=proposal().proposal_id,
+        reconciliation_result=result["reconciliation"],
+    )
+    assert already["status"] == "ALREADY_RECONCILED"
+    assert already["appended"] is False
+    assert read_execution_ledger(path)["records_count"] == 3
     repeated = run_demo_canary(
         mt5,
         proposal=proposal(),

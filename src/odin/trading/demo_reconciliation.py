@@ -20,7 +20,7 @@ def reconcile_broker_truth(
     latest = ledger.get("latest")
     known_active = (
         isinstance(latest, dict)
-        and latest.get("execution_status") in {"SUBMITTED", "FILLED"}
+        and latest.get("execution_status") in {"SUBMITTED", "FILLED", "RECONCILED"}
     )
     known_ticket = latest.get("ticket") if isinstance(latest, dict) else None
     known_position = latest.get("position_id") if isinstance(latest, dict) else None

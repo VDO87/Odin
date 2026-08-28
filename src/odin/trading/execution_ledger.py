@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import hashlib
 import json
 import os
@@ -21,6 +22,7 @@ EXECUTION_STATES = {
     "REJECTED",
     "CANCELLED",
     "CLOSED",
+    "RECONCILED",
     "RECONCILIATION_BLOCK",
 }
 _SUBMISSION_STATES = {"SUBMITTED", "FILLED", "REJECTED", "CANCELLED", "CLOSED"}
@@ -198,9 +200,89 @@ def reserve_submission(path: str | Path, proposal_id: str) -> dict[str, object]:
     return {"status": "RESERVED", "reserved": True, "proposal_hash": digest}
 
 
+def confirm_execution_reconciliation(
+    *,
+    path: str | Path,
+    proposal_id: str,
+    reconciliation_result: dict[str, object],
+) -> dict[str, object]:
+    """Append one idempotent final event after broker truth is reconciled."""
+    target = Path(path)
+    verified = read_execution_ledger(target)
+    if verified["status"] != "OK":
+        return _reconciliation_confirmation_block("execution_ledger_invalid")
+    latest = verified.get("latest")
+    if not isinstance(latest, dict) or latest.get("proposal_id") != proposal_id:
+        return _reconciliation_confirmation_block("reconciliation_proposal_mismatch")
+    if (
+        latest.get("execution_status") == "RECONCILED"
+        and latest.get("reconciliation_status") == "RECONCILED"
+    ):
+        return {
+            "status": "ALREADY_RECONCILED",
+            "appended": False,
+            "record": latest,
+            "execution_allowed": False,
+            "safe_to_trade": False,
+            "real_trading": False,
+        }
+    if (
+        latest.get("execution_status") not in {"SUBMITTED", "FILLED"}
+        or latest.get("reconciliation_status") != "PENDING"
+    ):
+        return _reconciliation_confirmation_block("execution_not_pending_reconciliation")
+    if (
+        reconciliation_result.get("status") != "RECONCILED"
+        or reconciliation_result.get("broker_is_source_of_truth") is not True
+    ):
+        return _reconciliation_confirmation_block("broker_truth_not_reconciled")
+    sequence = latest.get("sequence")
+    if not isinstance(sequence, int):
+        return _reconciliation_confirmation_block("execution_ledger_sequence_invalid")
+
+    record = dict(latest)
+    record.pop("record_hash", None)
+    record.update(
+        {
+            "sequence": sequence + 1,
+            "previous_record_hash": str(latest.get("record_hash", "")),
+            "git_commit": current_commit(),
+            "execution_status": "RECONCILED",
+            "reconciliation_status": "RECONCILED",
+            "reconciled_at_utc": datetime.now(UTC).isoformat(),
+            "execution_allowed": False,
+            "safe_to_trade": False,
+            "real_trading": False,
+        }
+    )
+    sanitized = redact_for_audit(record)
+    sanitized["record_hash"] = _record_hash(sanitized)
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(sanitized, sort_keys=True) + "\n")
+    return {
+        "status": "RECONCILED",
+        "appended": True,
+        "record": sanitized,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
+
+
 def _reservation_path(ledger_path: Path, proposal_id: str) -> Path:
     name = hashlib.sha256(proposal_id.encode()).hexdigest()
     return ledger_path.parent / ".execution_reservations" / f"{name}.json"
+
+
+def _reconciliation_confirmation_block(reason: str) -> dict[str, object]:
+    return {
+        "status": "BLOCKED",
+        "reason": reason,
+        "appended": False,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
 
 
 def _read_records(path: Path) -> list[dict[str, object]]:

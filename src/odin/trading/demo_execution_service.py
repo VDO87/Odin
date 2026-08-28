@@ -23,6 +23,7 @@ from odin.trading.demo_execution_gate import evaluate_demo_execution_gate
 from odin.trading.demo_reconciliation import recovery_gate
 from odin.trading.execution_ledger import (
     append_execution_event,
+    confirm_execution_reconciliation,
     reserve_submission,
     submission_already_attempted,
 )
@@ -225,10 +226,25 @@ def run_demo_canary(
         return _reconciliation_block(
             str(reconciled.get("reason")), submitted, order_send_called=True
         )
+    ledger_reconciliation = confirm_execution_reconciliation(
+        path=ledger_path,
+        proposal_id=proposal.proposal_id,
+        reconciliation_result=reconciled,
+    )
+    if ledger_reconciliation["status"] not in {
+        "RECONCILED",
+        "ALREADY_RECONCILED",
+    }:
+        return _reconciliation_block(
+            "ledger_reconciliation_persistence_failed",
+            submitted,
+            order_send_called=True,
+        )
     return {
         "status": "CANARY_SUBMITTED_AND_RECONCILED",
         "submission": submitted,
         "reconciliation": reconciled,
+        "ledger_reconciliation": ledger_reconciliation,
         "order_send_called": True,
         "new_executions_enabled": False,
         "execution_allowed": False,
