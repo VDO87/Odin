@@ -693,6 +693,7 @@ def test_synthetic_canary_is_one_shot_and_stops_after_reconciliation(tmp_path: P
     assert ledger["records_count"] == 3
     assert ledger["latest"]["execution_status"] == "RECONCILED"
     assert ledger["latest"]["reconciliation_status"] == "RECONCILED"
+    assert ledger["latest"]["position_id"] == 30
     assert analyze_execution_ledger(path)["status"] == "OK"
     already = confirm_execution_reconciliation(
         path=path,

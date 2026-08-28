@@ -226,10 +226,16 @@ def run_demo_canary(
         return _reconciliation_block(
             str(reconciled.get("reason")), submitted, order_send_called=True
         )
+    position_id = None
+    if len(after_positions) == 1:
+        position_id = _integer(after_positions[0], "identifier") or _integer(
+            after_positions[0], "ticket"
+        )
     ledger_reconciliation = confirm_execution_reconciliation(
         path=ledger_path,
         proposal_id=proposal.proposal_id,
         reconciliation_result=reconciled,
+        position_id=position_id,
     )
     if ledger_reconciliation["status"] not in {
         "RECONCILED",

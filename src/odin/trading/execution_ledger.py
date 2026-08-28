@@ -205,6 +205,7 @@ def confirm_execution_reconciliation(
     path: str | Path,
     proposal_id: str,
     reconciliation_result: dict[str, object],
+    position_id: int | None = None,
 ) -> dict[str, object]:
     """Append one idempotent final event after broker truth is reconciled."""
     target = Path(path)
@@ -214,9 +215,22 @@ def confirm_execution_reconciliation(
     latest = verified.get("latest")
     if not isinstance(latest, dict) or latest.get("proposal_id") != proposal_id:
         return _reconciliation_confirmation_block("reconciliation_proposal_mismatch")
-    if (
+    already_reconciled = (
         latest.get("execution_status") == "RECONCILED"
         and latest.get("reconciliation_status") == "RECONCILED"
+    )
+    current_position_id = latest.get("position_id")
+    if position_id is not None and position_id <= 0:
+        return _reconciliation_confirmation_block("broker_position_id_invalid")
+    if (
+        already_reconciled
+        and current_position_id is not None
+        and position_id is not None
+        and current_position_id != position_id
+    ):
+        return _reconciliation_confirmation_block("broker_position_id_mismatch")
+    if already_reconciled and (
+        position_id is None or current_position_id == position_id
     ):
         return {
             "status": "ALREADY_RECONCILED",
@@ -226,7 +240,7 @@ def confirm_execution_reconciliation(
             "safe_to_trade": False,
             "real_trading": False,
         }
-    if (
+    if not already_reconciled and (
         latest.get("execution_status") not in {"SUBMITTED", "FILLED"}
         or latest.get("reconciliation_status") != "PENDING"
     ):
@@ -255,6 +269,8 @@ def confirm_execution_reconciliation(
             "real_trading": False,
         }
     )
+    if position_id is not None:
+        record["position_id"] = position_id
     sanitized = redact_for_audit(record)
     sanitized["record_hash"] = _record_hash(sanitized)
     with target.open("a", encoding="utf-8") as handle:
