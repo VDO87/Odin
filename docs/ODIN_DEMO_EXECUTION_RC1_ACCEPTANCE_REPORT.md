@@ -1,11 +1,11 @@
 # ODIN DEMO EXECUTION RC1 — ACCEPTANCE REPORT
 
-Current verdict: **ODIN DEMO EXECUTION RC1 — CANARY READY — HUMAN CONFIRMATION REQUIRED**
+Current verdict: **ODIN DEMO EXECUTION RC1 — CANARY EXECUTED — POST-CANARY SOAK ACTIVE**
 
-Reason: offline acceptance is green and live Stage 0 completed with fresh
-market data, `ALLOW_DEMO`, `RECONCILED` and an accepted broker `order_check`.
-The live result remains pre-submission: the CANARY has not been authorized or
-executed and `broker_submission_called=false`.
+Reason: explicit human confirmation authorized one DEMO CANARY. It filled at
+0.01 lot, reconciled against broker truth and consumed the one-shot marker.
+Exactly one protected DEMO position is now under read-only bounded monitoring;
+new broker actions remain disabled.
 
 ## Baseline and checkpoints
 
@@ -24,6 +24,11 @@ executed and `broker_submission_called=false`.
 - Controlled CANARY pre-flight evidence: `3418d8b`
 - Canonical `EURUSD` to OANDA `EURUSD.pro` mapping: `b45401e`
 - MT5 filling flags to order policy correction: `b37c017`
+- Human-gated CANARY runner: `6d8eb5b`
+- Final reconciliation persistence: `43a5367`
+- Broker position identifier linkage: `3b2b8b3`
+- Read-only post-CANARY monitor: `6ec4215`
+- Factual monitor reporting: `77f0ed5`
 - Automatic merge: not performed.
 
 ## Definition of Done matrix
@@ -35,7 +40,7 @@ executed and `broker_submission_called=false`.
 | REAL/UNKNOWN account hard block | PASS | Parametrized gate and live-adapter tests |
 | Risk Engine mandatory | PASS | `ALLOW_DEMO/BLOCK/KILL`; conservative documented limits |
 | Demo Execution Gate | PASS | DEMO-only dry-run and one-shot CANARY scopes; global flags remain false |
-| `order_check` integration | PASS | Live `order_check` accepted with retcode `0` and comment `Done`; no submission |
+| `order_check` integration | PASS | Live Stage 0 and CANARY checks accepted before the single submission |
 | Submission isolated | PASS | AST sentinel proves one isolated broker submission call in the authorized adapter |
 | Human CANARY gate | PASS | Repo control is disarmed; short, proposal/account-bound authorization required |
 | Idempotency | PASS | Atomic proposal reservation, one-shot CANARY marker and duplicate tests |
@@ -49,26 +54,27 @@ executed and `broker_submission_called=false`.
 | n8n financially read-only | PASS | Policy forbids financial authority; n8n not installed or added |
 | Secret redaction | PASS | Redaction tests and sanitized MT5/ledger outputs |
 | Live Stage 0 | PASS | `DRY_RUN_VALIDATED`; FRESH data, `ALLOW_DEMO`, `RECONCILED`, accepted `order_check` |
-| First CANARY | WAITING | Separate proposal-specific human confirmation is required; no submission made |
+| First CANARY | PASS | Human-confirmed BUY 0.01 lot filled once, reconciled and linked to the ledger |
+| Post-CANARY soak | ACTIVE | Read-only monitor, 60 s interval, maximum 360 cycles/6 h, no new broker action |
 
 ## Automated acceptance evidence
 
-Full suite, without exclusions:
+Latest full suite, without exclusions:
 
-- collected: 711;
-- passed: 711;
+- collected: 764;
+- passed: 764;
 - failed: 0;
 - skipped: 0;
-- subtests: not separately reported by the installed pytest plugin set; any
-  `unittest.subTest` activity is included in the 711 collected items;
-- pytest duration: 653.17 seconds (`0:10:53`);
-- wall duration: `0:10:55.07`;
+- subtests: 42 passed;
+- pytest duration: 564.45 seconds (`0:09:24`);
+- wall duration: 565.94 seconds;
 - file descriptor soft limit: 8192;
-- maximum RSS: 249,364 KB.
+- maximum RSS: 253,660 KB.
 
 Additional gates:
 
-- focused DEMO execution matrix: 72 passed;
+- focused DEMO execution and security matrix: 99 passed;
+- post-CANARY monitor matrix: 70 passed;
 - legacy and global financial sentinels: 64 passed;
 - Stage 0 contract plus core execution regressions: 69 passed;
 - Ruff: `ruff check .` passed;
@@ -102,16 +108,38 @@ partial CANARY fills and blocks unknown Market Execution modes. Focused proof:
 95 tests passed, Ruff passed, mypy passed and `git diff --check` passed before
 checkpoint `b37c017`.
 
-## Mandatory human stop
+## Live CANARY result
 
-Stage 0 is complete. Do not repeat it and do not call the isolated broker
-submission boundary until a new explicit human confirmation is bound to one
-CANARY proposal and the verified DEMO account fingerprint. Any expired proposal
-must be replaced and revalidated; authorization cannot be reused.
+The human-confirmed one-shot at `2026-08-28T09:14:46Z` produced:
+
+- proposal `rc1-canary-55d3609121062f574b92`;
+- decision `rc1-canary-human-confirmed`;
+- canonical symbol `EURUSD`, broker symbol `EURUSD.pro`;
+- BUY 0.01 lot;
+- requested and executed price 1.16437; slippage 0 points;
+- SL 1.16337; TP 1.16637;
+- `TRADE_RETCODE_DONE` (`10009`), submission status `FILLED`;
+- order/position id `151407246`, deal `105358964`;
+- maximum loss estimate EUR 0.86;
+- broker and Execution Ledger reconciliation `RECONCILED`;
+- CANARY report SHA-256
+  `74f891b5c7b7fa707e176855e58cee207f4e7a40836d13da7676dbd1ef115d18`;
+- one-shot marker present; no retry or second submission path enabled.
+
+The first post-CANARY monitor cycle observed one reconciled position, zero
+pending orders, FRESH data, spread 8 points and `broker_action_allowed=false`.
+The bounded monitor runs under PID `5368` and stops on position closure, any
+stop condition, 360 cycles or 6 hours, whichever comes first.
+
+## Mandatory post-CANARY stop
+
+Do not open a second position while the CANARY is open. The next allowed work
+is observation, closure reconciliation, report completion and recovery
+validation. SMALL BATCH is not active.
 
 Current state:
 
-`ODIN DEMO EXECUTION RC1 — CANARY READY — HUMAN CONFIRMATION REQUIRED`
+`ODIN DEMO EXECUTION RC1 — CANARY EXECUTED — POST-CANARY SOAK ACTIVE`
 
 ## Guardrails
 
@@ -121,4 +149,5 @@ real_trading=false
 execution_allowed=false
 ```
 
-No DEMO order and no REAL order were executed during this RC1 acceptance run.
+Exactly one DEMO order and zero REAL orders were executed during this RC1 run.
+The global flags remain false and no new DEMO execution is enabled.

@@ -1,11 +1,13 @@
 # ODIN DEMO CANARY PRE-FLIGHT
 
-Status: **ODIN DEMO EXECUTION RC1 — CANARY READY — HUMAN CONFIRMATION REQUIRED**
+Status: **ODIN DEMO EXECUTION RC1 — CANARY EXECUTED AND RECONCILED**
 
-Evidence captured: `2026-08-26T15:04:55Z`
+CANARY evidence captured: `2026-08-28T09:14:46Z`
 
-This is a supervised pre-flight only. No DEMO or REAL order was sent. The
-repository control remains disarmed with `canary_authorized=false`.
+The reviewed pre-flight was followed by explicit human confirmation for one
+DEMO CANARY. The repository control remains disarmed with
+`canary_authorized=false`; authority was short-lived, proposal-specific and
+consumed once.
 
 ## Pre-flight
 
@@ -19,10 +21,11 @@ repository control remains disarmed with `canary_authorized=false`.
 | BALANCE | EUR 50,000.00 DEMO |
 | EQUITY | EUR 50,000.00 DEMO |
 | SYMBOL | EURUSD |
-| SIDE | BUY, technical Stage 0 proposal only |
+| SIDE | BUY, one confirmed CANARY |
 | VOLUME | 0.01 lot |
-| SL | 1.16372 |
-| TP | 1.16672 |
+| REQUESTED / EXECUTED PRICE | 1.16437 / 1.16437 |
+| SL | 1.16337 |
+| TP | 1.16637 |
 | MAX LOSS ESTIMATED | EUR 0.86 DEMO |
 | RISK STATUS | ALLOW_DEMO |
 | RISK REASONS | none |
@@ -33,8 +36,8 @@ repository control remains disarmed with `canary_authorized=false`.
 | REAL_TRADING | false |
 | SAFE_TO_TRADE | false |
 | EXECUTION_ALLOWED | false |
-| DEMO_EXECUTION | ready; pre-submission only |
-| HUMAN CANARY CONFIRMATION | required now; not granted |
+| DEMO_EXECUTION | one-shot consumed; new execution disabled |
+| HUMAN CANARY CONFIRMATION | explicitly granted and consumed for one proposal |
 
 The requested executable, DEMO account mode, broker, server and configured
 login all matched. No password or account identifier was printed or persisted
@@ -50,19 +53,29 @@ in this report.
   reconciliation `RECONCILED`, `order_check` accepted.
 - Broker submission called: false.
 
-## Mandatory human stop
+## CANARY outcome
 
-All Stage 0 prerequisites are satisfied. The observed Stage 0 proposal was a
-short-lived dry-run proposal; it does not itself authorize submission. Before
-the first CANARY, ODIN must create and revalidate exactly one current proposal,
-bind a short-lived one-shot authorization to that proposal and the verified
-DEMO account fingerprint, and receive explicit human confirmation.
+- Proposal: `rc1-canary-55d3609121062f574b92`
+- Decision: `rc1-canary-human-confirmed`
+- Submission: `FILLED`, retcode `10009`
+- Order/position id: `151407246`
+- Deal: `105358964`
+- Executed volume: 0.01 lot
+- Slippage: 0 points
+- Broker reconciliation: `RECONCILED`
+- Execution Ledger: hash chain valid; final state `RECONCILED`
+- Raw report: `D:\ODIN_LOCAL\reports\demo-execution\canary-one-shot.json`
+- Raw report SHA-256:
+  `74f891b5c7b7fa707e176855e58cee207f4e7a40836d13da7676dbd1ef115d18`
+- One-shot attempt marker: present
+- New broker submission allowed: false
 
-Do not repeat Stage 0 merely to keep a proposal alive. Do not call
-`mt5.order_send` without the separate confirmation.
+The open position has its required SL/TP and is monitored read-only. Do not
+open a second position. Closure, P/L and close reason remain pending.
 
 The next intended state is:
 
-`CANARY READY — HUMAN CONFIRMATION REQUIRED`
+`CANARY EXECUTED — POST-CANARY SOAK ACTIVE`
 
-with `broker_submission_called=false`.
+with exactly one historical `broker_submission_called=true` and no new broker
+action enabled.
