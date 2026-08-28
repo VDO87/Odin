@@ -88,16 +88,22 @@ def submit_demo_canary(
     ):
         gate_reasons.append("submission_not_atomically_reserved")
     if gate_reasons:
-        return _blocked("canary_gate_invalid", reason_codes=gate_reasons)
+        return {
+            **_blocked("canary_gate_invalid", reason_codes=gate_reasons),
+            "order_send_called": False,
+        }
     identity_reasons = _live_identity_blocks(mt5, evidence)
     if identity_reasons:
-        return _hard_block(identity_reasons)
+        return {**_hard_block(identity_reasons), "order_send_called": False}
     request = checked.get("request")
     if not isinstance(request, dict):
-        return _blocked("checked_request_missing")
+        return {**_blocked("checked_request_missing"), "order_send_called": False}
     result = mt5.order_send(request)
     if result is None:
-        return _blocked("order_send_unknown_result", last_error=_last_error(mt5))
+        return {
+            **_blocked("order_send_unknown_result", last_error=_last_error(mt5)),
+            "order_send_called": True,
+        }
     sanitized = _sanitize_result(result)
     retcode = sanitized.get("retcode")
     status = _submission_status(mt5, retcode)
@@ -108,6 +114,7 @@ def submit_demo_canary(
         "request": _sanitize_request(request),
         "retry_allowed": False,
         "requires_reconciliation": True,
+        "order_send_called": True,
         "execution_allowed_scope": "DEMO_CANARY_ONE_SHOT",
         "execution_allowed": False,
         "safe_to_trade": False,

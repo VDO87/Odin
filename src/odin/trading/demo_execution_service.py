@@ -175,6 +175,12 @@ def run_demo_canary(
     submitted = submit_demo_canary(
         mt5, proposal, evidence, gate, checked, reservation
     )
+    order_send_called = submitted.get("order_send_called") is True
+    if not order_send_called:
+        return {
+            **_service_block("broker_submission_blocked", submitted),
+            "canary_attempt_consumed": True,
+        }
     broker_result = _dict_or_none(submitted.get("order_send_result"))
     attempted_status = str(submitted.get("status"))
     ledger_status = attempted_status if attempted_status in {"FILLED", "SUBMITTED", "REJECTED"} else "SUBMITTED"
@@ -193,7 +199,9 @@ def run_demo_canary(
     )
     after = read_broker_execution_state(mt5, evidence)
     if after["status"] != "OK":
-        return _reconciliation_block("post_submit_snapshot_unavailable", submitted)
+        return _reconciliation_block(
+            "post_submit_snapshot_unavailable", submitted, order_send_called=True
+        )
     after_positions = after.get("positions")
     after_orders = after.get("orders")
     assert isinstance(after_positions, list) and isinstance(after_orders, list)
@@ -214,11 +222,14 @@ def run_demo_canary(
             order_check_result=_dict_or_none(checked.get("order_check_result")),
             order_send_result=broker_result,
         )
-        return _reconciliation_block(str(reconciled.get("reason")), submitted)
+        return _reconciliation_block(
+            str(reconciled.get("reason")), submitted, order_send_called=True
+        )
     return {
         "status": "CANARY_SUBMITTED_AND_RECONCILED",
         "submission": submitted,
         "reconciliation": reconciled,
+        "order_send_called": True,
         "new_executions_enabled": False,
         "execution_allowed": False,
         "safe_to_trade": False,
@@ -254,11 +265,17 @@ def _service_block(reason: str, evidence: object | None = None) -> dict[str, obj
     }
 
 
-def _reconciliation_block(reason: str, submission: dict[str, object]) -> dict[str, object]:
+def _reconciliation_block(
+    reason: str,
+    submission: dict[str, object],
+    *,
+    order_send_called: bool,
+) -> dict[str, object]:
     return {
         "status": "RECONCILIATION_BLOCK",
         "reason": reason,
         "submission": submission,
+        "order_send_called": order_send_called,
         "new_executions_enabled": False,
         "execution_allowed": False,
         "safe_to_trade": False,

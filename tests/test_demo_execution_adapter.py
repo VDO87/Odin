@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from odin.trading import demo_execution_service
 from odin.adapters.mt5.demo_execution_adapter import (
     perform_order_check,
     read_broker_execution_state,
@@ -395,6 +396,7 @@ def test_canary_adapter_refuses_missing_gate_or_check() -> None:
         mt5, proposal(), evidence(), dry_gate(), {"status": "BLOCKED"}, reservation()
     )
     assert result["status"] == "BLOCKED"
+    assert result["order_send_called"] is False
     assert mt5.send_calls == 0
 
 
@@ -406,6 +408,7 @@ def test_synthetic_canary_calls_fake_send_once_and_requires_reconciliation() -> 
     )
     assert result["status"] == "FILLED"
     assert result["requires_reconciliation"] is True
+    assert result["order_send_called"] is True
     assert result["retry_allowed"] is False
     assert result["real_trading"] is False
     assert mt5.send_calls == 1
@@ -425,6 +428,7 @@ def test_synthetic_canary_rejection_is_classified_without_retry() -> None:
 
     assert result["status"] == "REJECTED"
     assert result["reason"] == "insufficient_margin"
+    assert result["order_send_called"] is True
     assert result["retry_allowed"] is False
     assert result["requires_reconciliation"] is True
     assert mt5.send_calls == 1
@@ -443,6 +447,21 @@ def test_canary_adapter_requires_atomic_reservation() -> None:
     )
     assert result["status"] == "BLOCKED"
     assert "submission_not_atomically_reserved" in result["reason_codes"]
+    assert result["order_send_called"] is False
+    assert mt5.send_calls == 0
+
+
+def test_identity_change_after_check_blocks_before_submission() -> None:
+    mt5 = FakeMT5()
+    checked = perform_order_check(mt5, proposal(), evidence(), dry_gate())
+    mt5.account["trade_mode"] = 2
+
+    result = submit_demo_canary(
+        mt5, proposal(), evidence(), canary_gate(), checked, reservation()
+    )
+
+    assert result["status"] == "HARD_BLOCK"
+    assert result["order_send_called"] is False
     assert mt5.send_calls == 0
 
 
@@ -664,6 +683,7 @@ def test_synthetic_canary_is_one_shot_and_stops_after_reconciliation(tmp_path: P
         now_utc=NOW,
     )
     assert result["status"] == "CANARY_SUBMITTED_AND_RECONCILED"
+    assert result["order_send_called"] is True
     assert result["new_executions_enabled"] is False
     assert mt5.send_calls == 1
     repeated = run_demo_canary(
@@ -694,8 +714,43 @@ def test_response_lost_requires_reconciliation_and_never_retries(tmp_path: Path)
         now_utc=NOW,
     )
     assert result["status"] == "RECONCILIATION_BLOCK"
+    assert result["order_send_called"] is True
     assert mt5.send_calls == 1
     assert result["new_executions_enabled"] is False
+
+
+def test_submission_boundary_block_consumes_one_shot_without_false_call_claim(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mt5 = FakeMT5()
+    path = tmp_path / "execution.jsonl"
+
+    def blocked_submission(*args: object, **kwargs: object) -> dict[str, object]:
+        return {
+            "status": "HARD_BLOCK",
+            "reason": "identity_changed",
+            "order_send_called": False,
+        }
+
+    monkeypatch.setattr(
+        demo_execution_service, "submit_demo_canary", blocked_submission
+    )
+    result = run_demo_canary(
+        mt5,
+        proposal=proposal(),
+        evidence=evidence(),
+        risk_result=risk(),
+        authorization=authorization(),
+        ledger_path=path,
+        now_utc=NOW,
+    )
+
+    assert result["status"] == "BLOCKED"
+    assert result["reason"] == "broker_submission_blocked"
+    assert result["canary_attempt_consumed"] is True
+    assert result["order_send_called"] is False
+    assert (tmp_path / ".demo_canary_attempted.json").exists()
+    assert mt5.send_calls == 0
 
 
 def test_controlled_green_preflight_is_canary_ready_but_never_submits(tmp_path: Path) -> None:
