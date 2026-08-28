@@ -538,7 +538,7 @@ def write_live_soak_reports(*, report_dir: str | Path, snapshot: dict[str, objec
         f"- observed_at_utc: `{evidence.get('observed_at_utc', 'UNAVAILABLE')}`\n"
         f"- status: `{decision.get('status', 'UNAVAILABLE')}`\n"
         f"- evidence: `{decision.get('reason_codes', [])}`\n"
-        "- impact: broker execution remained disabled\n"
+        "- impact: no new broker action was allowed during this observation\n"
         "- root cause: see reason codes and preserved cycle evidence\n"
         "- fix: none unless separately validated as technical and reversible\n"
         "- tests: bounded controller validation required before checkpoint\n"
