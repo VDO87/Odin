@@ -214,6 +214,7 @@ def test_dashboard_exposes_state_and_operator_controls_without_broker_capability
 
     assert status == 200
     assert payload["supervisor"]["state"] == "MONITOR_ONLY"
+    assert payload["heartbeat"]["started_at_utc"] == NOW.isoformat()
     assert payload["financial"]["balance"] == 50_000.0
     assert payload["market"]["logical_symbol"] == "EURUSD"
     assert payload["market"]["spread_pips"] == 1.2

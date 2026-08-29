@@ -264,6 +264,7 @@ def autonomous_demo_dashboard_state(
         "heartbeat": {
             "state": heartbeat.get("state", "UNAVAILABLE"),
             "cycle": heartbeat.get("cycle"),
+            "started_at_utc": heartbeat.get("started_at_utc"),
             "heartbeat_at_utc": heartbeat.get("heartbeat_at_utc"),
             "next_check_at_utc": heartbeat.get("next_check_at_utc"),
             "age_seconds": heartbeat_age,
