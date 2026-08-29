@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -238,7 +239,86 @@ def test_local_runtime_bootstrap_is_non_financial_and_uses_versioned_sources() -
     assert "ODIN_RC2_WINDOWS_SCRIPTS" in source
     assert "ODIN_RC1_REPO_SRC" in source
     assert "rc2_installed_runtime_root_mismatch" in source
-    assert "runpy.run_path" in source
+    assert "RESTART_DELAYS_SECONDS = (5, 30, 60)" in source
+    assert "SUPERVISOR_RESTART_SCHEDULED" in source
+    assert "SUPERVISOR_RESTART_BUDGET_EXHAUSTED" in source
+    assert "broker_submission_called" in source
+
+
+def test_local_runtime_watchdog_restarts_once_then_preserves_clean_exit() -> None:
+    bootstrap = ROOT / "scripts/windows/mt5_autonomous_demo_bootstrap.py"
+    specification = importlib.util.spec_from_file_location("rc2_bootstrap", bootstrap)
+    assert specification is not None and specification.loader is not None
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    return_codes = iter((-1, 0))
+    processes: list[object] = []
+    sleeps: list[float] = []
+    events: list[dict[str, object]] = []
+
+    class Process:
+        def __init__(self, return_code: int) -> None:
+            self.pid = 100 + len(processes)
+            self.return_code = return_code
+
+        def wait(self) -> int:
+            return self.return_code
+
+    def popen(_command: list[str], **_kwargs: object) -> Process:
+        process = Process(next(return_codes))
+        processes.append(process)
+        return process
+
+    result = module._supervise(
+        ["python", "supervisor.py"],
+        popen=popen,
+        sleep=sleeps.append,
+        record=events.append,
+    )
+
+    assert result == 0
+    assert len(processes) == 2
+    assert sleeps == [5]
+    assert [event["event"] for event in events] == [
+        "SUPERVISOR_RESTART_SCHEDULED",
+        "SUPERVISOR_EXITED_CLEANLY",
+    ]
+    assert all(event["broker_submission_called"] is False for event in events)
+
+
+def test_local_runtime_watchdog_exhausts_bounded_restart_budget() -> None:
+    bootstrap = ROOT / "scripts/windows/mt5_autonomous_demo_bootstrap.py"
+    specification = importlib.util.spec_from_file_location("rc2_bootstrap_exhausted", bootstrap)
+    assert specification is not None and specification.loader is not None
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    processes: list[object] = []
+    sleeps: list[float] = []
+    events: list[dict[str, object]] = []
+
+    class Process:
+        pid = 200
+
+        @staticmethod
+        def wait() -> int:
+            return 17
+
+    def popen(_command: list[str], **_kwargs: object) -> Process:
+        process = Process()
+        processes.append(process)
+        return process
+
+    result = module._supervise(
+        ["python", "supervisor.py"],
+        popen=popen,
+        sleep=sleeps.append,
+        record=events.append,
+    )
+
+    assert result == 17
+    assert len(processes) == 4
+    assert sleeps == [5, 30, 60]
+    assert events[-1]["event"] == "SUPERVISOR_RESTART_BUDGET_EXHAUSTED"
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:

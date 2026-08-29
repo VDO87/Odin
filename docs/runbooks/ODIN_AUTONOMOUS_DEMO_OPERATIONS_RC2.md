@@ -46,8 +46,11 @@ bootstrap Python local, instalado numa pasta imutável identificada pelo
 checkpoint em `D:\ODIN_LOCAL\runtime\autonomous-demo`. O bundle contém apenas
 `src/odin` e `scripts/windows`, com inventário SHA-256; não copia `.env` nem
 credenciais. A configuração canónica continua a ser lida do repositório WSL.
-Não existe wrapper CMD/PowerShell no caminho persistente, pelo que o Task
-Scheduler continua a controlar o processo real sem deixar supervisor órfão.
+Não existe wrapper CMD/PowerShell no caminho persistente. O Task Scheduler
+controla um bootstrap Python mínimo, e este mantém um único supervisor filho
+protegido pelo mutex. Se o filho terminar com erro, o bootstrap faz no máximo
+três relançamentos bounded após 5 s, 30 s e 60 s; depois termina fail-closed e
+regista `SUPERVISOR_RESTART_BUDGET_EXHAUSTED`, sem loop infinito.
 
 Parar a tarefa pausa o supervisor, não fecha posições no broker. Se existir uma
 posição DEMO, MT5 continua com SL/TP no broker; na retoma, MT5 é source of truth e

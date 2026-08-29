@@ -291,6 +291,12 @@ Branch: `feature/autonomous-demo-operations-rc2`
   observações Windows/WSL. Ollama já foi confirmado `true`; o runtime manteve
   quatro ciclos em `WAITING_MARKET`, probe `OK` em 1.125--4.250 ms, resource
   `WARNING`, zero exposição e guardrails `false` durante o diagnóstico.
+- Um crash controlado do processo da ação revelou que `RestartCount=3` não é
+  acionado por esse exit: eventos 198/199 registaram retorno `0xFFFFFFFF` como
+  conclusão da tarefa, que ficou `Ready`. O runtime foi restaurado manualmente
+  uma vez, sem exposição. O bootstrap passou por isso a supervisionar um único
+  filho real, com relançamentos bounded 5/30/60 s e ledger watchdog disarmado;
+  quatro falhas consecutivas esgotam o orçamento e terminam fail-closed.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
