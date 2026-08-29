@@ -15,10 +15,11 @@
 - Logs: `D:\ODIN_LOCAL\logs\autonomous-demo`
 - Hermes triggers: `D:\ODIN_LOCAL\runtime\hermes_analysis_events.jsonl`
 - Hermes claims: `D:\ODIN_LOCAL\runtime\hermes_claims.jsonl`
-- Resource probe Windows: `Get-ODIN-Autonomous-Demo-Resources.ps1`; o supervisor
-  acrescenta WSL/FD/memória/processos através de um subprobe isolado com timeout
-  de 10 s. O Cockpit mostra o gate e a telemetria disponível. Temperatura
-  observada >=80 °C pausa execução; timeout do subprobe também bloqueia.
+- Resource probe Windows: `get_odin_autonomous_demo_resources.py`, processo
+  stdlib isolado com timeout de 45 s; o supervisor acrescenta WSL/FD/memória/
+  processos através de um subprobe separado com timeout de 10 s. O Cockpit
+  mostra o gate e a telemetria disponível. Temperatura observada >=80 °C pausa
+  execução; timeout de qualquer probe também bloqueia.
 
 ## Controlos seguros
 

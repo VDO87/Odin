@@ -259,6 +259,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   inventário SHA-256 e manifesto disarmado, enquanto `.env`, configuração e Git
   permanecem na fonte canónica WSL. A tarefa conserva um único processo Python
   rastreável através de um bootstrap local sem capacidade financeira.
+- O primeiro arranque do bundle local publicou heartbeat e completou três ciclos
+  no mesmo PID/checkpoint, mas o probe PowerShell filho excedeu 45 s em todos os
+  ciclos e manteve `EXECUTION_PAUSED`. O timeout não foi aumentado.
+- O probe Windows foi substituído por um subprocesso Python stdlib isolado. Usa
+  `GetSystemTimes`, `GlobalMemoryStatusEx`, `GetProcessHandleCount`, espaço em
+  disco, `nvidia-smi` bounded e verifica o mutex singleton já adquirido; WSL
+  continua num subprobe separado. A primeira medição real terminou em 1.484 ms,
+  reportou GPU a 39 °C, RAM/disco suficientes e uma instância lógica. Telemetria
+  ausente ou timeout continuam a produzir BLOCK.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

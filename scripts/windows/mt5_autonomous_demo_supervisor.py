@@ -84,7 +84,7 @@ BROKER_SYMBOL = "EURUSD.pro"
 AUTHORIZED_TERMINAL = r"C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe"
 EXCLUDED_TERMINAL = r"D:\ODIN_LOCAL\mt5\terminal64.exe"
 INSTALLED_RESOURCE_PROBE = (
-    r"D:\ODIN_LOCAL\runtime\Get-ODIN-Autonomous-Demo-Resources.ps1"
+    r"D:\ODIN_LOCAL\runtime\get_odin_autonomous_demo_resources.py"
 )
 MUTEX_NAME = "Local\\ODIN_AUTONOMOUS_DEMO_RC2_SUPERVISOR"
 ERROR_ALREADY_EXISTS = 183
@@ -313,7 +313,7 @@ def _bootstrap_runtime_environment() -> None:
             rationalization,
             report_root / "ODIN_RUNTIME_RATIONALIZATION_REPORT.md",
         )
-    resource_probe_source = _WINDOWS_SCRIPTS / "Get-ODIN-Autonomous-Demo-Resources.ps1"
+    resource_probe_source = _WINDOWS_SCRIPTS / "get_odin_autonomous_demo_resources.py"
     resource_probe_target = Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])
     if not resource_probe_source.is_file():
         raise RuntimeError("rc2_resource_probe_source_unavailable")
@@ -1047,16 +1047,12 @@ def _resource_gate() -> dict[str, object]:
     try:
         completed = subprocess.run(
             [
-                "powershell.exe",
-                "-NoLogo",
-                "-NoProfile",
-                "-NonInteractive",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
+                sys.executable,
                 str(script),
-                "-SupervisorProcessId",
+                "--supervisor-process-id",
                 str(os.getpid()),
+                "--root",
+                r"D:\ODIN_LOCAL",
             ],
             check=False,
             capture_output=True,

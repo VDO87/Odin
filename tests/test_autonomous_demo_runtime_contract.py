@@ -66,6 +66,9 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert 'incident_type="RESOURCE_GUARD_BLOCK"' in source
     assert 'observation["resources"] = _resource_gate()' in source
     assert 'Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])' in source
+    assert "get_odin_autonomous_demo_resources.py" in source
+    assert 'sys.executable,' in source
+    assert '"--supervisor-process-id"' in source
     assert '"resource_probe_timeout"' in source
     assert '"resource_probe_invalid_json"' in source
     assert "RESOURCE_PROBE_TIMEOUT_SECONDS = 45" in source
@@ -203,10 +206,18 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     resource_probe = (
         ROOT / "scripts/windows/Get-ODIN-Autonomous-Demo-Resources.ps1"
     ).read_text(encoding="utf-8")
+    python_resource_probe = ROOT / "scripts/windows/get_odin_autonomous_demo_resources.py"
     supervisor_source = (
         ROOT / "scripts/windows/mt5_autonomous_demo_supervisor.py"
     ).read_text(encoding="utf-8")
     assert "wsl.exe" not in resource_probe
+    assert _attribute_calls(python_resource_probe, "order_send") == []
+    python_probe_source = python_resource_probe.read_text(encoding="utf-8")
+    assert "GlobalMemoryStatusEx" in python_probe_source
+    assert "GetSystemTimes" in python_probe_source
+    assert "OpenMutexW" in python_probe_source
+    assert 'timeout=20' in python_probe_source
+    assert 'timeout=5' in python_probe_source
     assert "ulimit -n; ps -e --no-headers | wc -l; free -b" in supervisor_source
 
 
