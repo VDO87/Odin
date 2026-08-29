@@ -72,6 +72,10 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "timeout=RESOURCE_PROBE_TIMEOUT_SECONDS" in source
     assert "WSL_RESOURCE_PROBE_TIMEOUT_SECONDS = 10" in source
     assert "parse_wsl_resource_snapshot" in source
+    assert 'incident_type="DASHBOARD_RECOVERY"' in source
+    assert "dashboard_restarted_by_bounded_launcher" in source
+    assert "DASHBOARD_UNAVAILABLE" in source
+    assert "DASHBOARD_RUNNING" in source
     assert "_bootstrap_runtime_environment()" in source
     assert "_VENV_SITE_PACKAGES" in source
 

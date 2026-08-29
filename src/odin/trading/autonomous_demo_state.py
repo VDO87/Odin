@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 import hashlib
 import json
 from pathlib import Path
-from typing import Mapping
+from typing import Iterable, Mapping
 
 
 ALLOWED_STATES = frozenset(
@@ -143,6 +143,10 @@ def append_incident(
     evidence: Mapping[str, object],
     repair_attempts: int = 0,
     successful_fix: str = "",
+    repair_files: Iterable[str] = (),
+    repair_tests: Iterable[str] = (),
+    state_before: str = "",
+    state_after: str = "",
     checkpoint: str = "",
     regression_status: str = "NEW",
     now_utc: datetime | None = None,
@@ -179,6 +183,14 @@ def append_incident(
             max(0, int(repair_attempts)),
         ),
         "successful_fix": successful_fix or str(latest.get("successful_fix", "")),
+        "repair_files": _safe_string_list(repair_files)
+        or _safe_string_list(latest.get("repair_files", [])),
+        "repair_tests": _safe_string_list(repair_tests)
+        or _safe_string_list(latest.get("repair_tests", [])),
+        "state_before": _safe_scalar(state_before)
+        or _safe_scalar(latest.get("state_before", "")),
+        "state_after": _safe_scalar(state_after)
+        or _safe_scalar(latest.get("state_after", "")),
         "checkpoint": checkpoint or str(latest.get("checkpoint", "")),
         "regression_status": regression_status,
         **GLOBAL_GUARDRAILS,
@@ -377,6 +389,20 @@ def _parse_utc(value: object) -> datetime | None:
 
 def _nonnegative_int(value: object) -> int:
     return max(0, int(value)) if isinstance(value, (int, float)) else 0
+
+
+def _safe_string_list(value: object) -> list[str]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    return [safe for item in value if (safe := _safe_scalar(item))][:20]
+
+
+def _safe_scalar(value: object) -> str:
+    if not isinstance(value, (str, int, float, bool)):
+        return ""
+    text = str(value).strip().replace("\r", " ").replace("\n", " ")
+    forbidden = ("password", "token", "secret", "credential")
+    return "REDACTED" if any(part in text.casefold() for part in forbidden) else text[:500]
 
 
 def _content_hash(value: Mapping[str, object]) -> str:

@@ -165,9 +165,24 @@ def _write_repairs(path: Path, incidents: list[dict[str, object]]) -> None:
     if not repairs:
         lines.append("No autonomous code repair has been applied by the runtime.")
     for item in repairs:
-        lines.append(
-            f"- {item.get('last_seen', 'UNKNOWN')} | {item.get('successful_fix')} | "
-            f"checkpoint={item.get('checkpoint', 'UNAVAILABLE')}"
+        repair_files = _string_list(item.get("repair_files"))
+        repair_tests = _string_list(item.get("repair_tests"))
+        lines.extend(
+            [
+                f"## {item.get('last_seen', 'UNKNOWN')} — {item.get('successful_fix')}",
+                "",
+                f"- Incident: {item.get('incident_type', 'UNKNOWN')} / "
+                f"{item.get('component', 'UNKNOWN')} / {item.get('error_code', 'UNKNOWN')}",
+                f"- Evidence hash: {item.get('evidence_hash', 'UNAVAILABLE')}",
+                f"- Root cause: {item.get('root_cause', 'UNKNOWN')}",
+                f"- Repair attempts: {item.get('repair_attempts', 0)}",
+                f"- Files: {', '.join(repair_files) if repair_files else 'NOT_RECORDED'}",
+                f"- Tests: {', '.join(repair_tests) if repair_tests else 'NOT_RECORDED'}",
+                f"- State before: {item.get('state_before') or 'NOT_RECORDED'}",
+                f"- State after: {item.get('state_after') or 'NOT_RECORDED'}",
+                f"- Checkpoint: {item.get('checkpoint', 'UNAVAILABLE')}",
+                "",
+            ]
         )
     _atomic_text(path, "\n".join(lines) + "\n")
 

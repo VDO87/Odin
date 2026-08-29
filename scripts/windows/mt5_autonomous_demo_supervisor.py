@@ -890,8 +890,9 @@ def _daily_trade_summary() -> dict[str, object]:
 
 
 def _ensure_dashboard() -> str:
+    health_url = "http://127.0.0.1:8765/health"
     try:
-        with urlopen("http://127.0.0.1:8765/health", timeout=3) as response:
+        with urlopen(health_url, timeout=3) as response:
             if response.status == 200:
                 return "RUNNING"
     except OSError:
@@ -916,7 +917,34 @@ def _ensure_dashboard() -> str:
         )
     except (OSError, subprocess.TimeoutExpired):
         return "RECOVERY_FAILED"
-    return "RESTART_REQUESTED" if completed.returncode == 0 else "RECOVERY_FAILED"
+    recovered = completed.returncode == 0
+    try:
+        append_incident(
+            os.environ["ODIN_RC2_INCIDENTS_PATH"],
+            incident_type="DASHBOARD_RECOVERY",
+            component="tradedesk_cockpit",
+            error_code="dashboard_healthcheck_failed",
+            root_cause="dashboard_process_unavailable",
+            evidence={
+                "health_url": health_url,
+                "launcher_returncode": completed.returncode,
+            },
+            repair_attempts=1,
+            successful_fix="dashboard_restarted_by_bounded_launcher" if recovered else "",
+            repair_files=[launcher],
+            repair_tests=[
+                f"GET {health_url} returned HTTP 200 after launcher"
+                if recovered
+                else f"bounded dashboard launcher returned {completed.returncode}"
+            ],
+            state_before="DASHBOARD_UNAVAILABLE",
+            state_after="DASHBOARD_RUNNING" if recovered else "DASHBOARD_RECOVERY_FAILED",
+            checkpoint=os.environ.get("ODIN_RC2_CHECKPOINT", ""),
+            regression_status="RESOLVED" if recovered else "NEW",
+        )
+    except (KeyError, OSError, ValueError):
+        return "RESTARTED_REPORTING_DEGRADED" if recovered else "RECOVERY_FAILED"
+    return "RESTART_REQUESTED" if recovered else "RECOVERY_FAILED"
 
 
 def _recent_candles() -> list[dict[str, object]]:

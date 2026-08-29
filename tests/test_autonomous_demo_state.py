@@ -75,13 +75,25 @@ def test_heartbeat_and_incident_memory_are_non_secret(tmp_path: Path) -> None:
         error_code="-10005",
         root_cause="ipc_timeout",
         evidence={"server": "OANDATMS-MT5", "token": "must disappear"},
+        repair_attempts=1,
+        successful_fix="bounded_reconnect",
+        repair_files=["scripts/reconnect.py", "token-secret.txt"],
+        repair_tests=["test_reconnect", "credential probe"],
+        state_before="RECOVERING",
+        state_after="MONITOR_ONLY",
         now_utc=NOW,
     )
 
     assert heartbeat["state"] == "WAITING_MARKET"
     assert heartbeat["execution_allowed"] is False
     assert len(incident["fingerprint"]) == 64
+    assert incident["repair_files"] == ["scripts/reconnect.py", "REDACTED"]
+    assert incident["repair_tests"] == ["test_reconnect", "REDACTED"]
+    assert incident["state_before"] == "RECOVERING"
+    assert incident["state_after"] == "MONITOR_ONLY"
     assert "must disappear" not in (tmp_path / "incidents.jsonl").read_text()
+    assert "token-secret" not in (tmp_path / "incidents.jsonl").read_text()
+    assert "credential probe" not in (tmp_path / "incidents.jsonl").read_text()
 
 
 def test_incident_fingerprint_accumulates_occurrences_without_new_diagnosis(

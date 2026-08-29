@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from odin.reporting.autonomous_demo_reports import update_autonomous_demo_reports
-from odin.trading.autonomous_demo_state import build_supervisor_state
+from odin.trading.autonomous_demo_state import append_incident, build_supervisor_state
 
 
 NOW = datetime(2026, 8, 31, 8, tzinfo=UTC)
@@ -56,6 +56,23 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
         + "\n",
         encoding="utf-8",
     )
+    append_incident(
+        runtime / "incidents.jsonl",
+        incident_type="DASHBOARD_RECOVERY",
+        component="tradedesk_cockpit",
+        error_code="dashboard_healthcheck_failed",
+        root_cause="dashboard_process_unavailable",
+        evidence={"health_status": "unavailable"},
+        repair_attempts=1,
+        successful_fix="dashboard_restarted_by_bounded_launcher",
+        repair_files=["scripts/windows/Start-ODIN-Dashboard-Persistent.ps1"],
+        repair_tests=["GET /health = 200"],
+        state_before="DASHBOARD_UNAVAILABLE",
+        state_after="DASHBOARD_RUNNING",
+        checkpoint="abc1234",
+        regression_status="RESOLVED",
+        now_utc=NOW,
+    )
     kwargs = {
         "report_root": reports,
         "supervisor_state": _state(),
@@ -82,7 +99,15 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
     assert (reports / "ODIN_AUTONOMOUS_DEMO_STATUS.md").exists()
     assert (reports / "ODIN_AUTONOMOUS_DEMO_TRADES.jsonl").exists()
     assert (reports / "ODIN_AUTONOMOUS_DEMO_INCIDENTS.md").exists()
-    assert (reports / "ODIN_AUTONOMOUS_DEMO_REPAIRS.md").exists()
+    repairs = (reports / "ODIN_AUTONOMOUS_DEMO_REPAIRS.md").read_text()
+    assert "dashboard_restarted_by_bounded_launcher" in repairs
+    assert "Evidence hash:" in repairs
+    assert "Repair attempts: 1" in repairs
+    assert "Start-ODIN-Dashboard-Persistent.ps1" in repairs
+    assert "GET /health = 200" in repairs
+    assert "State before: DASHBOARD_UNAVAILABLE" in repairs
+    assert "State after: DASHBOARD_RUNNING" in repairs
+    assert "Checkpoint: abc1234" in repairs
 
 
 def test_hermes_claim_is_scored_once_per_unchanged_context(tmp_path: Path) -> None:
