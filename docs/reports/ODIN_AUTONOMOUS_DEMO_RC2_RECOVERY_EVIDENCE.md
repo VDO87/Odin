@@ -108,6 +108,25 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - A alteração é exclusivamente read-only e de apresentação; não adiciona
   endpoints de controlo nem capacidade financeira.
 
+### Repairs auditáveis e deduplicados
+
+- O checkpoint `8e29e0b` passou a guardar, para cada repair novo, evidence hash,
+  root cause, tentativas, ficheiros, testes, estado antes/depois e checkpoint.
+  O auto-restart bounded do dashboard gera o mesmo registo estruturado.
+- O checkpoint `8687728` adicionou anotações append-only: enriquecem um
+  fingerprint histórico sem reescrever o ledger, aumentar `occurrences` ou
+  alterar `last_seen`. O relatório usa apenas o registo mais recente de cada
+  fingerprint.
+- Antes das anotações foi preservado
+  `D:\ODIN_LOCAL\reports\recovery\autonomous_demo_incidents_before_repair_annotations_20260829T155328Z.jsonl`
+  com SHA-256
+  `d25b2fe63477003e1a0b3653fffb882a13f8ea6226f6ceae97453e66bf90cb9b`.
+- O relatório vivo final contém seis repairs únicos; todos os seis têm evidence
+  hash, ficheiros, testes e estados antes/depois. `NOT_RECORDED=0`.
+- O checkpoint `2a93d4e` distingue automaticamente `NEW`, `RECURRING` e
+  `REGRESSION`; uma ocorrência posterior a um fix deixa de ser classificada
+  incorretamente como nova.
+
 ### Restart do WSL
 
 - Pré-condições: zero posições, zero ordens, mercado stale e nenhuma submissão.

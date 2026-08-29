@@ -80,6 +80,9 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `06d4023` — contrato Hermes reduzido a uma claim factual por trigger.
 - `7fa5ccd` — uptime, ciclo, próximo check, branch/checkpoint e último repair
   visíveis no painel Supervisor do TradeDesk.
+- `8e29e0b` — repairs completos e auto-restart do dashboard auditável.
+- `8687728` — anotação append-only e relatório deduplicado por fingerprint.
+- `2a93d4e` — regressões posteriores a um fix classificadas como `REGRESSION`.
 
 ## Próximos gates
 
