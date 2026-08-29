@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 from pathlib import Path
 
@@ -62,6 +63,9 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "current_request_id != previous_request_id" in source
     assert 'incident_type="RESOURCE_GUARD_BLOCK"' in source
     assert 'observation["resources"] = _resource_gate()' in source
+    assert 'Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])' in source
+    assert '"resource_probe_timeout"' in source
+    assert '"resource_probe_invalid_json"' in source
     assert "_bootstrap_runtime_environment()" in source
     assert "_VENV_SITE_PACKAGES" in source
 
@@ -92,6 +96,41 @@ def test_resource_block_pauses_execution_before_any_decision() -> None:
     assert reasons == ["thermal_guardrail_exceeded"]
 
 
+def test_resource_probe_failure_diagnostic_is_bounded_and_never_stores_raw_output() -> None:
+    supervisor = ROOT / "scripts/windows/mt5_autonomous_demo_supervisor.py"
+    tree = ast.parse(supervisor.read_text(encoding="utf-8"))
+    diagnostic = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_resource_probe_failure"
+    )
+
+    class Clock:
+        @staticmethod
+        def monotonic() -> float:
+            return 12.25
+
+    namespace = {"hashlib": hashlib, "time": Clock}
+    exec(
+        compile(ast.Module(body=[diagnostic], type_ignores=[]), str(supervisor), "exec"),
+        namespace,
+    )
+    result = namespace["_resource_probe_failure"](
+        "resource_probe_exit_nonzero",
+        started=10.0,
+        exit_code=1,
+        output="sensitive diagnostic must not persist",
+    )
+
+    assert result["probe_status"] == "BLOCKED"
+    assert result["probe_error_code"] == "resource_probe_exit_nonzero"
+    assert result["probe_duration_ms"] == 2250
+    assert result["probe_exit_code"] == 1
+    assert result["probe_output_bytes"] == 37
+    assert len(result["probe_output_sha256"]) == 64
+    assert "sensitive" not in json.dumps(result)
+
+
 def test_only_isolated_adapter_still_contains_one_order_send_call() -> None:
     calls: list[tuple[Path, int]] = []
     for root in (ROOT / "src", ROOT / "scripts"):
@@ -119,6 +158,8 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert '[string]$WorkingDirectory = "D:\\ODIN_LOCAL"' in installer
     assert "Copy-Item -LiteralPath $launcher -Destination $installedLauncher -Force" in installer
     assert "installedDashboardLauncher" in installer
+    assert "installedResourceProbe" in installer
+    assert "resourceProbeInstalledHash" in installer
     assert "New-ScheduledTaskAction -Execute $basePython" in installer
     assert '" --persistent-task"' in installer
     assert 'replace "`r?`n", "`r`n"' in installer
@@ -141,6 +182,12 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "Copy-Item -LiteralPath $rationalizationSource" in launcher
     assert "& $basePython $probe" in launcher
     assert "Start-Process -FilePath $PythonPath" not in launcher
+    assert "ODIN_RC2_RESOURCE_PROBE_PATH" in launcher
+    resource_probe = (
+        ROOT / "scripts/windows/Get-ODIN-Autonomous-Demo-Resources.ps1"
+    ).read_text(encoding="utf-8")
+    assert "ulimit -n; ps -e --no-headers | wc -l; free -b" in resource_probe
+    assert resource_probe.count("wsl.exe -d Ubuntu-ODIN") == 1
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:

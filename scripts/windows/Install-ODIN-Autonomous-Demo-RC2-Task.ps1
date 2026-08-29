@@ -8,10 +8,11 @@ param(
 $ErrorActionPreference = "Stop"
 $launcher = Join-Path $RepoRoot "scripts\windows\Start-ODIN-Autonomous-Demo-RC2.ps1"
 $dashboardLauncher = Join-Path $RepoRoot "scripts\windows\Start-ODIN-Dashboard-Persistent.ps1"
+$resourceProbe = Join-Path $RepoRoot "scripts\windows\Get-ODIN-Autonomous-Demo-Resources.ps1"
 $taskWrapper = Join-Path $RepoRoot "scripts\windows\Start-ODIN-Autonomous-Demo-RC2.cmd"
 $venvPython = Join-Path $WorkingDirectory "runtime\mt5_probe_venv\Scripts\python.exe"
 $venvConfiguration = Join-Path $WorkingDirectory "runtime\mt5_probe_venv\pyvenv.cfg"
-foreach ($requiredSource in @($launcher, $dashboardLauncher, $taskWrapper)) {
+foreach ($requiredSource in @($launcher, $dashboardLauncher, $resourceProbe, $taskWrapper)) {
     if (-not (Test-Path -LiteralPath $requiredSource)) {
         throw "ODIN RC2 launcher unavailable."
     }
@@ -31,10 +32,12 @@ if (-not (Test-Path -LiteralPath $basePython -PathType Leaf)) {
 $runtimeRoot = Join-Path $WorkingDirectory "runtime"
 $installedLauncher = Join-Path $runtimeRoot "Start-ODIN-Autonomous-Demo-RC2.ps1"
 $installedDashboardLauncher = Join-Path $runtimeRoot "Start-ODIN-Dashboard-Persistent.ps1"
+$installedResourceProbe = Join-Path $runtimeRoot "Get-ODIN-Autonomous-Demo-Resources.ps1"
 $installedTaskWrapper = Join-Path $runtimeRoot "Start-ODIN-Autonomous-Demo-RC2.cmd"
 New-Item -ItemType Directory -Force -Path $runtimeRoot | Out-Null
 Copy-Item -LiteralPath $launcher -Destination $installedLauncher -Force
 Copy-Item -LiteralPath $dashboardLauncher -Destination $installedDashboardLauncher -Force
+Copy-Item -LiteralPath $resourceProbe -Destination $installedResourceProbe -Force
 $normalizedWrapper = ([IO.File]::ReadAllText($taskWrapper) -replace "`r?`n", "`r`n")
 $wrapperBytes = [Text.Encoding]::ASCII.GetBytes($normalizedWrapper)
 [IO.File]::WriteAllBytes($installedTaskWrapper, $wrapperBytes)
@@ -42,6 +45,8 @@ $sourceHash = (Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash
 $installedHash = (Get-FileHash -LiteralPath $installedLauncher -Algorithm SHA256).Hash
 $dashboardSourceHash = (Get-FileHash -LiteralPath $dashboardLauncher -Algorithm SHA256).Hash
 $dashboardInstalledHash = (Get-FileHash -LiteralPath $installedDashboardLauncher -Algorithm SHA256).Hash
+$resourceProbeSourceHash = (Get-FileHash -LiteralPath $resourceProbe -Algorithm SHA256).Hash
+$resourceProbeInstalledHash = (Get-FileHash -LiteralPath $installedResourceProbe -Algorithm SHA256).Hash
 $sha256 = [Security.Cryptography.SHA256]::Create()
 $wrapperSourceHash = ([BitConverter]::ToString($sha256.ComputeHash($wrapperBytes))).Replace('-', '')
 $sha256.Dispose()
@@ -49,6 +54,7 @@ $wrapperInstalledHash = (Get-FileHash -LiteralPath $installedTaskWrapper -Algori
 if (
     $sourceHash -ne $installedHash -or
     $dashboardSourceHash -ne $dashboardInstalledHash -or
+    $resourceProbeSourceHash -ne $resourceProbeInstalledHash -or
     $wrapperSourceHash -ne $wrapperInstalledHash
 ) {
     throw "ODIN RC2 installed launcher hash mismatch."
@@ -91,4 +97,5 @@ Write-Output "PYTHON_RUNTIME=$basePython"
 Write-Output "INSTALLED_LAUNCHER=$installedLauncher"
 Write-Output "LAUNCHER_SHA256=$installedHash"
 Write-Output "DASHBOARD_LAUNCHER_SHA256=$dashboardInstalledHash"
+Write-Output "RESOURCE_PROBE_SHA256=$resourceProbeInstalledHash"
 Write-Output "TASK_WRAPPER_SHA256=$wrapperInstalledHash"

@@ -75,6 +75,9 @@ CANONICAL_SYMBOL = "EURUSD"
 BROKER_SYMBOL = "EURUSD.pro"
 AUTHORIZED_TERMINAL = r"C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe"
 EXCLUDED_TERMINAL = r"D:\ODIN_LOCAL\mt5\terminal64.exe"
+INSTALLED_RESOURCE_PROBE = (
+    r"D:\ODIN_LOCAL\runtime\Get-ODIN-Autonomous-Demo-Resources.ps1"
+)
 MUTEX_NAME = "Local\\ODIN_AUTONOMOUS_DEMO_RC2_SUPERVISOR"
 ERROR_ALREADY_EXISTS = 183
 STOP_REQUESTED = False
@@ -250,6 +253,7 @@ def _bootstrap_runtime_environment() -> None:
         "ODIN_RC2_DASHBOARD_LAUNCHER": (
             r"D:\ODIN_LOCAL\runtime\Start-ODIN-Dashboard-Persistent.ps1"
         ),
+        "ODIN_RC2_RESOURCE_PROBE_PATH": INSTALLED_RESOURCE_PROBE,
         "ODIN_RC2_CYCLE_SECONDS": "30",
         "ODIN_RC2_BRANCH": "feature/autonomous-demo-operations-rc2",
     }
@@ -287,6 +291,12 @@ def _bootstrap_runtime_environment() -> None:
             rationalization,
             report_root / "ODIN_RUNTIME_RATIONALIZATION_REPORT.md",
         )
+    resource_probe_source = _WINDOWS_SCRIPTS / "Get-ODIN-Autonomous-Demo-Resources.ps1"
+    resource_probe_target = Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])
+    if not resource_probe_source.is_file():
+        raise RuntimeError("rc2_resource_probe_source_unavailable")
+    resource_probe_target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(resource_probe_source, resource_probe_target)
 
 
 def _read_environment_file(path: Path) -> dict[str, str]:
@@ -982,9 +992,8 @@ def _hard_block_observation(reason: str, terminal_path: str) -> dict[str, object
 
 
 def _resource_gate() -> dict[str, object]:
-    script = Path(os.environ["ODIN_RC2_WINDOWS_SCRIPTS"]) / (
-        "Get-ODIN-Autonomous-Demo-Resources.ps1"
-    )
+    script = Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])
+    started = time.monotonic()
     try:
         completed = subprocess.run(
             [
@@ -1005,13 +1014,54 @@ def _resource_gate() -> dict[str, object]:
             timeout=20,
         )
         if completed.returncode != 0:
-            raise RuntimeError("resource_probe_failed")
-        value = json.loads(completed.stdout)
+            value = _resource_probe_failure(
+                "resource_probe_exit_nonzero",
+                started=started,
+                exit_code=completed.returncode,
+                output=completed.stderr,
+            )
+        else:
+            value = json.loads(completed.stdout)
         if not isinstance(value, dict):
             raise ValueError("resource_probe_payload_invalid")
-    except (OSError, subprocess.SubprocessError, json.JSONDecodeError, ValueError, RuntimeError):
-        value = {"probe_status": "BLOCKED"}
+    except subprocess.TimeoutExpired:
+        value = _resource_probe_failure(
+            "resource_probe_timeout",
+            started=started,
+        )
+    except json.JSONDecodeError as error:
+        value = _resource_probe_failure(
+            "resource_probe_invalid_json",
+            started=started,
+            output=error.doc,
+        )
+    except (OSError, ValueError):
+        value = _resource_probe_failure(
+            "resource_probe_invocation_failed",
+            started=started,
+        )
     return evaluate_resource_snapshot(value)
+
+
+def _resource_probe_failure(
+    error_code: str,
+    *,
+    started: float,
+    exit_code: int | None = None,
+    output: str | None = None,
+) -> dict[str, object]:
+    value: dict[str, object] = {
+        "probe_status": "BLOCKED",
+        "probe_error_code": error_code,
+        "probe_duration_ms": round((time.monotonic() - started) * 1000),
+    }
+    if exit_code is not None:
+        value["probe_exit_code"] = exit_code
+    if output:
+        encoded = output.encode("utf-8", errors="replace")
+        value["probe_output_bytes"] = len(encoded)
+        value["probe_output_sha256"] = hashlib.sha256(encoded).hexdigest()
+    return value
 
 
 def _public_event(

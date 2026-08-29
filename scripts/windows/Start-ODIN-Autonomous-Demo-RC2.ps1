@@ -24,6 +24,7 @@ $probe = Join-Path $RepoRoot "scripts\windows\mt5_autonomous_demo_supervisor.py"
 $venvRoot = Split-Path (Split-Path $PythonPath -Parent) -Parent
 $venvConfiguration = Join-Path $venvRoot "pyvenv.cfg"
 $dashboardLauncher = "D:\ODIN_LOCAL\runtime\Start-ODIN-Dashboard-Persistent.ps1"
+$resourceProbe = "D:\ODIN_LOCAL\runtime\Get-ODIN-Autonomous-Demo-Resources.ps1"
 $config = Join-Path $RepoRoot "config\demo_execution_rc2.json"
 $rationalizationSource = Join-Path $RepoRoot "docs\ODIN_RUNTIME_RATIONALIZATION_REPORT.md"
 
@@ -31,7 +32,7 @@ if ($TerminalPath -ine $ExpectedTerminal -or $TerminalPath -ieq $ExcludedTermina
     throw "ODIN RC2 terminal path is not allowlisted."
 }
 Write-StartupTrace "TERMINAL_ALLOWLIST_OK"
-foreach ($requiredPath in @($TerminalPath, $PythonPath, $venvConfiguration, $envFile, $probe, $dashboardLauncher, $config, $rationalizationSource)) {
+foreach ($requiredPath in @($TerminalPath, $PythonPath, $venvConfiguration, $envFile, $probe, $dashboardLauncher, $resourceProbe, $config, $rationalizationSource)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "ODIN RC2 prerequisite unavailable."
     }
@@ -88,6 +89,7 @@ $env:ODIN_RC2_INCIDENTS_PATH = Join-Path $StateRoot "autonomous_demo_incidents.j
 $env:ODIN_RC2_REPORT_ROOT = $ReportRoot
 $env:ODIN_RC2_HERMES_CLAIMS_PATH = "D:\ODIN_LOCAL\runtime\hermes_claims.jsonl"
 $env:ODIN_RC2_DASHBOARD_LAUNCHER = $dashboardLauncher
+$env:ODIN_RC2_RESOURCE_PROBE_PATH = $resourceProbe
 $env:ODIN_RC2_CYCLE_SECONDS = [string]$CycleSeconds
 $env:ODIN_RC2_BRANCH = "feature/autonomous-demo-operations-rc2"
 $checkpoint = (& wsl.exe -d Ubuntu-ODIN --user odin --exec git -C /home/odin/projects/odin rev-parse --short HEAD)
@@ -112,7 +114,8 @@ finally {
         'ODIN_RC2_MT5_STATE_PATH', 'ODIN_RC2_STATE_PATH', 'ODIN_RC2_HEARTBEAT_PATH',
         'ODIN_RC2_CONTROL_PATH', 'ODIN_RC2_INCIDENTS_PATH',
         'ODIN_RC2_REPORT_ROOT', 'ODIN_RC2_HERMES_CLAIMS_PATH',
-        'ODIN_RC2_DASHBOARD_LAUNCHER', 'ODIN_RC2_CYCLE_SECONDS',
+        'ODIN_RC2_DASHBOARD_LAUNCHER', 'ODIN_RC2_RESOURCE_PROBE_PATH',
+        'ODIN_RC2_CYCLE_SECONDS',
         'ODIN_RC2_BRANCH', 'ODIN_RC2_CHECKPOINT'
     ) | ForEach-Object { Remove-Item "Env:$_" -ErrorAction SilentlyContinue }
 }

@@ -65,16 +65,19 @@ $wslProcessCount = $null
 $wslMemoryTotal = $null
 $wslMemoryAvailable = $null
 if ($wslRunning) {
-    $fdValue = & wsl.exe -d Ubuntu-ODIN --user odin --exec sh -lc 'ulimit -n' 2>$null
-    if ($LASTEXITCODE -eq 0 -and "$fdValue" -match '^\d+$') {
-        $wslFdSoftLimit = [int]$fdValue
+    $wslSnapshot = @(
+        & wsl.exe -d Ubuntu-ODIN --user odin --exec sh -lc `
+            'ulimit -n; ps -e --no-headers | wc -l; free -b' 2>$null
+    )
+    if ($LASTEXITCODE -eq 0 -and $wslSnapshot.Count -ge 4) {
+        if ([string]$wslSnapshot[0] -match '^\d+$') {
+            $wslFdSoftLimit = [int]$wslSnapshot[0]
+        }
+        if ([string]$wslSnapshot[1] -match '^\s*(\d+)\s*$') {
+            $wslProcessCount = [int]$Matches[1]
+        }
     }
-    $wslProcesses = @(& wsl.exe -d Ubuntu-ODIN --user odin --exec ps -e --no-headers 2>$null)
-    if ($LASTEXITCODE -eq 0) {
-        $wslProcessCount = $wslProcesses.Count
-    }
-    $wslMemory = @(& wsl.exe -d Ubuntu-ODIN --user odin --exec free -b 2>$null)
-    $memoryLine = $wslMemory | Where-Object { $_ -match '^Mem:\s+' } | Select-Object -First 1
+    $memoryLine = $wslSnapshot | Where-Object { $_ -match '^Mem:\s+' } | Select-Object -First 1
     if ($memoryLine -and $memoryLine -match '^Mem:\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)') {
         $wslMemoryTotal = [math]::Round([double]$Matches[1] / 1MB, 0)
         $wslMemoryAvailable = [math]::Round([double]$Matches[2] / 1MB, 0)
