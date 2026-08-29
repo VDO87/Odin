@@ -68,7 +68,7 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert 'Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])' in source
     assert '"resource_probe_timeout"' in source
     assert '"resource_probe_invalid_json"' in source
-    assert "RESOURCE_PROBE_TIMEOUT_SECONDS = 45" in source
+    assert "RESOURCE_PROBE_TIMEOUT_SECONDS = 75" in source
     assert "timeout=RESOURCE_PROBE_TIMEOUT_SECONDS" in source
     assert "WSL_RESOURCE_PROBE_TIMEOUT_SECONDS = 10" in source
     assert source.count("creationflags=subprocess.CREATE_NO_WINDOW") >= 2

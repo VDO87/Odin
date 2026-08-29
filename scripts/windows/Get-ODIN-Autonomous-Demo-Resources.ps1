@@ -28,11 +28,10 @@ if ($null -ne $gpuCommand) {
     }
 }
 
-$cpuTemperatures = @(
-    Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature `
-        -ErrorAction SilentlyContinue |
-        ForEach-Object { [math]::Round(($_.CurrentTemperature / 10) - 273.15, 1) }
-)
+# This host exposes no usable MSAcpi thermal samples.  Repeating that CIM query
+# from Task Scheduler costs about ten seconds and still returns an empty set.
+# Preserve the explicit telemetry-unavailable warning without a blocking probe.
+$cpuTemperatures = @()
 $cpuLoad = (Get-CimInstance Win32_Processor |
     Measure-Object -Property LoadPercentage -Average).Average
 $computer = Get-CimInstance Win32_ComputerSystem
