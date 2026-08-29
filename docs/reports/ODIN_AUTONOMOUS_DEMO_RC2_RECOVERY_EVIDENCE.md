@@ -397,6 +397,18 @@ Branch: `feature/autonomous-demo-operations-rc2`
   do snapshot e heartbeat persistentes do supervisor RC2. Um teste de regressão
   prova que uma leitura produz apenas os dois eventos de request/response e não
   reexecuta pipelines. Testes dirigidos: `18 passed`; Ruff: PASS.
+- No deploy live, o overview passou de 11,955 s para 0,186 s e de centenas de
+  eventos para exatamente dois (`dashboard.request.received` e
+  `dashboard.state.served`). O healthcheck recorrente foi também tornado puro:
+  deixou de chamar `validate_runtime()` apenas para devolver as duas flags
+  bloqueadas. A regressão dirigida passou com `21 passed`; Ruff, mypy isolado e
+  `git diff --check`: PASS. A auditoria anterior foi movida sem perda para
+  `D:\ODIN_LOCAL\archives\dashboard-audit-20260829T2325Z`; `PRAGMA quick_check`
+  devolveu `ok` e os hashes SHA-256 preservados são
+  `F5CDF23778EE0EEE8677A453777759688AA2FB11A8723570F02B55C4BB19B502`
+  (JSONL) e
+  `6E74895948C9730955330E823A7FC65C8C0B7926E80E51B8C6B0539448FDFC95`
+  (SQLite).
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

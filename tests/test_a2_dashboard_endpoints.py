@@ -87,6 +87,12 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
             self.get_payload("/health")
 
         initialize.assert_not_called()
+        events = self.routes.logs_tail(limit=20)["lines"]
+        event_names = [event["event"] for event in events]
+        self.assertEqual(
+            event_names,
+            ["dashboard.request.received", "dashboard.state.served"],
+        )
 
     def test_operations_overview_reads_persistent_state_without_rebuilding_pipelines(self):
         autonomous = {

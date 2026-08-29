@@ -129,8 +129,12 @@ class DashboardRoutes:
         self._audit(DASHBOARD_REQUEST_RECEIVED, {"path": path})
 
         if path == "/health":
-            state = self._state()
-            payload = health_payload(state)
+            payload = health_payload(
+                {
+                    "safe_to_trade": False,
+                    "real_trading": False,
+                }
+            )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
