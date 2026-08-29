@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -22,6 +23,12 @@ from typing import Any
 from urllib.request import urlopen
 
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_WINDOWS_SCRIPTS = _REPO_ROOT / "scripts" / "windows"
+_VENV_SITE_PACKAGES = Path(r"D:\ODIN_LOCAL\runtime\mt5_probe_venv\Lib\site-packages")
+os.environ.setdefault("ODIN_RC2_REPO_SRC", str(_REPO_ROOT / "src"))
+os.environ.setdefault("ODIN_RC2_WINDOWS_SCRIPTS", str(_WINDOWS_SCRIPTS))
+sys.path.insert(0, str(_VENV_SITE_PACKAGES))
 sys.path.insert(0, os.environ["ODIN_RC2_REPO_SRC"])
 sys.path.insert(0, os.environ["ODIN_RC2_WINDOWS_SCRIPTS"])
 os.environ.setdefault("ODIN_RC1_REPO_SRC", os.environ["ODIN_RC2_REPO_SRC"])
@@ -74,6 +81,9 @@ STOP_REQUESTED = False
 
 
 def main() -> int:
+    if "--persistent-task" in sys.argv:
+        _redirect_persistent_output()
+    _bootstrap_runtime_environment()
     mutex = _acquire_single_instance()
     if mutex is None:
         print(json.dumps(_public_event("DUPLICATE_SUPERVISOR_BLOCKED")), flush=True)
@@ -203,6 +213,93 @@ def main() -> int:
     finally:
         ctypes.windll.kernel32.CloseHandle(mutex)
     return 0
+
+
+def _redirect_persistent_output() -> None:
+    log_root = Path(r"D:\ODIN_LOCAL\logs\autonomous-demo")
+    log_root.mkdir(parents=True, exist_ok=True)
+    sys.stdout = (log_root / "supervisor.stdout.log").open(
+        "a", encoding="utf-8", buffering=1
+    )
+    sys.stderr = (log_root / "supervisor.stderr.log").open(
+        "a", encoding="utf-8", buffering=1
+    )
+
+
+def _bootstrap_runtime_environment() -> None:
+    values = _read_environment_file(_REPO_ROOT / ".env")
+    mode = values.get("ODIN_OANDA_ACCOUNT_MODE", "").casefold()
+    login = values.get("ODIN_OANDA_LOGIN", "")
+    server = values.get("ODIN_OANDA_SERVER", "")
+    if mode not in {"demo", "practice"} or not login.isdigit() or server != EXPECTED_SERVER:
+        raise RuntimeError("oanda_demo_identity_configuration_invalid")
+    defaults = {
+        "ODIN_RC2_EXPECTED_LOGIN": login,
+        "ODIN_RC2_TERMINAL_PATH": AUTHORIZED_TERMINAL,
+        "ODIN_RC2_CONFIG_PATH": str(_REPO_ROOT / "config" / "demo_execution_rc2.json"),
+        "ODIN_RC2_LEDGER_PATH": r"D:\ODIN_LOCAL\runtime\demo_execution_ledger.jsonl",
+        "ODIN_RC2_DECISION_LEDGER_PATH": r"D:\ODIN_LOCAL\runtime\demo_decision_ledger.jsonl",
+        "ODIN_RC2_MT5_STATE_PATH": r"D:\ODIN_LOCAL\runtime\mt5_demo_readonly.json",
+        "ODIN_RC2_STATE_PATH": r"D:\ODIN_LOCAL\state\autonomous_demo_state.json",
+        "ODIN_RC2_HEARTBEAT_PATH": r"D:\ODIN_LOCAL\state\autonomous_demo_heartbeat.json",
+        "ODIN_RC2_CONTROL_PATH": r"D:\ODIN_LOCAL\state\autonomous_demo_control.json",
+        "ODIN_RC2_INCIDENTS_PATH": r"D:\ODIN_LOCAL\state\autonomous_demo_incidents.jsonl",
+        "ODIN_RC2_REPORT_ROOT": r"D:\ODIN_LOCAL\reports",
+        "ODIN_RC2_HERMES_CLAIMS_PATH": r"D:\ODIN_LOCAL\runtime\hermes_claims.jsonl",
+        "ODIN_RC2_DASHBOARD_LAUNCHER": (
+            r"D:\ODIN_LOCAL\runtime\Start-ODIN-Dashboard-Persistent.ps1"
+        ),
+        "ODIN_RC2_CYCLE_SECONDS": "30",
+        "ODIN_RC2_BRANCH": "feature/autonomous-demo-operations-rc2",
+    }
+    for key, value in defaults.items():
+        os.environ.setdefault(key, value)
+    checkpoint = subprocess.run(
+        [
+            "wsl.exe",
+            "-d",
+            "Ubuntu-ODIN",
+            "--user",
+            "odin",
+            "--exec",
+            "git",
+            "-C",
+            "/home/odin/projects/odin",
+            "rev-parse",
+            "--short",
+            "HEAD",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+    if checkpoint.returncode != 0 or not checkpoint.stdout.strip():
+        raise RuntimeError("rc2_checkpoint_lookup_failed")
+    os.environ["ODIN_RC2_CHECKPOINT"] = checkpoint.stdout.strip()
+    report_root = Path(os.environ["ODIN_RC2_REPORT_ROOT"])
+    report_root.mkdir(parents=True, exist_ok=True)
+    rationalization = _REPO_ROOT / "docs" / "ODIN_RUNTIME_RATIONALIZATION_REPORT.md"
+    if rationalization.is_file():
+        shutil.copyfile(
+            rationalization,
+            report_root / "ODIN_RUNTIME_RATIONALIZATION_REPORT.md",
+        )
+
+
+def _read_environment_file(path: Path) -> dict[str, str]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as error:
+        raise RuntimeError("rc2_environment_file_unavailable") from error
+    values: dict[str, str] = {}
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        values[key.strip()] = value.strip()
+    return values
 
 
 def _observe_once() -> dict[str, object]:

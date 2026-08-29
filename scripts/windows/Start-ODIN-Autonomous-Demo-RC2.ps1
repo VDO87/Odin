@@ -21,6 +21,8 @@ $LogRoot = "D:\ODIN_LOCAL\logs\autonomous-demo"
 $ReportRoot = "D:\ODIN_LOCAL\reports"
 $envFile = Join-Path $RepoRoot ".env"
 $probe = Join-Path $RepoRoot "scripts\windows\mt5_autonomous_demo_supervisor.py"
+$venvRoot = Split-Path (Split-Path $PythonPath -Parent) -Parent
+$venvConfiguration = Join-Path $venvRoot "pyvenv.cfg"
 $dashboardLauncher = "D:\ODIN_LOCAL\runtime\Start-ODIN-Dashboard-Persistent.ps1"
 $config = Join-Path $RepoRoot "config\demo_execution_rc2.json"
 $rationalizationSource = Join-Path $RepoRoot "docs\ODIN_RUNTIME_RATIONALIZATION_REPORT.md"
@@ -29,10 +31,16 @@ if ($TerminalPath -ine $ExpectedTerminal -or $TerminalPath -ieq $ExcludedTermina
     throw "ODIN RC2 terminal path is not allowlisted."
 }
 Write-StartupTrace "TERMINAL_ALLOWLIST_OK"
-foreach ($requiredPath in @($TerminalPath, $PythonPath, $envFile, $probe, $dashboardLauncher, $config, $rationalizationSource)) {
+foreach ($requiredPath in @($TerminalPath, $PythonPath, $venvConfiguration, $envFile, $probe, $dashboardLauncher, $config, $rationalizationSource)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "ODIN RC2 prerequisite unavailable."
     }
+}
+$basePythonLine = Get-Content -LiteralPath $venvConfiguration |
+    Where-Object { $_ -match '^executable\s*=\s*' } | Select-Object -First 1
+$basePython = ($basePythonLine -replace '^executable\s*=\s*', '').Trim()
+if (-not (Test-Path -LiteralPath $basePython -PathType Leaf)) {
+    throw "ODIN RC2 base Python runtime is unavailable."
 }
 Write-StartupTrace "REQUIRED_PATHS_OK"
 
@@ -93,7 +101,7 @@ try {
     $stdout = Join-Path $LogRoot "supervisor.stdout.log"
     $stderr = Join-Path $LogRoot "supervisor.stderr.log"
     Write-StartupTrace "SUPERVISOR_STARTING"
-    & $PythonPath $probe 1> $stdout 2> $stderr
+    & $basePython $probe 1> $stdout 2> $stderr
     exit $LASTEXITCODE
 }
 finally {

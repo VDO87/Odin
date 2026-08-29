@@ -62,6 +62,8 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "current_request_id != previous_request_id" in source
     assert 'incident_type="RESOURCE_GUARD_BLOCK"' in source
     assert 'observation["resources"] = _resource_gate()' in source
+    assert "_bootstrap_runtime_environment()" in source
+    assert "_VENV_SITE_PACKAGES" in source
 
 
 def test_resource_block_pauses_execution_before_any_decision() -> None:
@@ -117,7 +119,8 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert '[string]$WorkingDirectory = "D:\\ODIN_LOCAL"' in installer
     assert "Copy-Item -LiteralPath $launcher -Destination $installedLauncher -Force" in installer
     assert "installedDashboardLauncher" in installer
-    assert 'New-ScheduledTaskAction -Execute "cmd.exe"' in installer
+    assert "New-ScheduledTaskAction -Execute $basePython" in installer
+    assert '" --persistent-task"' in installer
     assert 'replace "`r?`n", "`r`n"' in installer
     wrapper = (ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.cmd").read_text(
         encoding="utf-8"
@@ -136,7 +139,7 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "wsl.exe -d Ubuntu-ODIN --user odin --exec git" in launcher
     assert "ODIN_RUNTIME_RATIONALIZATION_REPORT.md" in launcher
     assert "Copy-Item -LiteralPath $rationalizationSource" in launcher
-    assert "& $PythonPath $probe" in launcher
+    assert "& $basePython $probe" in launcher
     assert "Start-Process -FilePath $PythonPath" not in launcher
 
 
