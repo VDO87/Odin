@@ -46,6 +46,7 @@ from odin.trading.autonomous_demo_state import (  # noqa: E402
 )
 from odin.trading.autonomous_demo_resources import (  # noqa: E402
     evaluate_resource_snapshot,
+    parse_wsl_resource_snapshot,
 )
 from odin.trading.autonomous_demo_cycle import (  # noqa: E402
     build_market_bars,
@@ -84,6 +85,7 @@ INSTALLED_RESOURCE_PROBE = (
 MUTEX_NAME = "Local\\ODIN_AUTONOMOUS_DEMO_RC2_SUPERVISOR"
 ERROR_ALREADY_EXISTS = 183
 RESOURCE_PROBE_TIMEOUT_SECONDS = 45
+WSL_RESOURCE_PROBE_TIMEOUT_SECONDS = 10
 STOP_REQUESTED = False
 
 
@@ -1058,6 +1060,8 @@ def _resource_gate() -> dict[str, object]:
             value = json.loads(completed.stdout)
         if not isinstance(value, dict):
             raise ValueError("resource_probe_payload_invalid")
+        if value.get("probe_status") == "OK":
+            value.update(_wsl_resource_snapshot())
     except subprocess.TimeoutExpired:
         value = _resource_probe_failure(
             "resource_probe_timeout",
@@ -1076,6 +1080,51 @@ def _resource_gate() -> dict[str, object]:
             started=started,
         )
     return evaluate_resource_snapshot(value)
+
+
+def _wsl_resource_snapshot() -> dict[str, object]:
+    started = time.monotonic()
+    try:
+        completed = subprocess.run(
+            [
+                "wsl.exe",
+                "-d",
+                "Ubuntu-ODIN",
+                "--user",
+                "odin",
+                "--exec",
+                "sh",
+                "-lc",
+                "ulimit -n; ps -e --no-headers | wc -l; free -b",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=WSL_RESOURCE_PROBE_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "wsl_running": False,
+            "wsl_probe_error_code": "wsl_resource_probe_timeout",
+            "wsl_probe_duration_ms": round((time.monotonic() - started) * 1000),
+            "wsl_probe_timeout_seconds": WSL_RESOURCE_PROBE_TIMEOUT_SECONDS,
+        }
+    except OSError:
+        return {
+            "wsl_running": False,
+            "wsl_probe_error_code": "wsl_resource_probe_invocation_failed",
+            "wsl_probe_duration_ms": round((time.monotonic() - started) * 1000),
+        }
+    if completed.returncode != 0:
+        return {
+            "wsl_running": False,
+            "wsl_probe_error_code": "wsl_resource_probe_exit_nonzero",
+            "wsl_probe_duration_ms": round((time.monotonic() - started) * 1000),
+            "wsl_probe_exit_code": completed.returncode,
+        }
+    value = parse_wsl_resource_snapshot(completed.stdout)
+    value["wsl_probe_duration_ms"] = round((time.monotonic() - started) * 1000)
+    return value
 
 
 def _resource_probe_failure(

@@ -70,6 +70,8 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert '"resource_probe_invalid_json"' in source
     assert "RESOURCE_PROBE_TIMEOUT_SECONDS = 45" in source
     assert "timeout=RESOURCE_PROBE_TIMEOUT_SECONDS" in source
+    assert "WSL_RESOURCE_PROBE_TIMEOUT_SECONDS = 10" in source
+    assert "parse_wsl_resource_snapshot" in source
     assert "_bootstrap_runtime_environment()" in source
     assert "_VENV_SITE_PACKAGES" in source
 
@@ -190,8 +192,11 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     resource_probe = (
         ROOT / "scripts/windows/Get-ODIN-Autonomous-Demo-Resources.ps1"
     ).read_text(encoding="utf-8")
-    assert "ulimit -n; ps -e --no-headers | wc -l; free -b" in resource_probe
-    assert resource_probe.count("wsl.exe -d Ubuntu-ODIN") == 1
+    supervisor_source = (
+        ROOT / "scripts/windows/mt5_autonomous_demo_supervisor.py"
+    ).read_text(encoding="utf-8")
+    assert "wsl.exe" not in resource_probe
+    assert "ulimit -n; ps -e --no-headers | wc -l; free -b" in supervisor_source
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:

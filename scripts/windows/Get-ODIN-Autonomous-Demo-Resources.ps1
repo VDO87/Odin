@@ -54,35 +54,11 @@ $logicalSupervisors = @(
         Where-Object { -not $supervisorIds.ContainsKey([int]$_.ParentProcessId) }
 )
 
-$runningWsl = @(
-    & wsl.exe --list --running --quiet 2>$null |
-        ForEach-Object { ([string]$_).Replace([string][char]0, '').Trim() } |
-        Where-Object { $_ }
-)
-$wslRunning = $runningWsl -contains 'Ubuntu-ODIN'
+$wslRunning = $null
 $wslFdSoftLimit = $null
 $wslProcessCount = $null
 $wslMemoryTotal = $null
 $wslMemoryAvailable = $null
-if ($wslRunning) {
-    $wslSnapshot = @(
-        & wsl.exe -d Ubuntu-ODIN --user odin --exec sh -lc `
-            'ulimit -n; ps -e --no-headers | wc -l; free -b' 2>$null
-    )
-    if ($LASTEXITCODE -eq 0 -and $wslSnapshot.Count -ge 4) {
-        if ([string]$wslSnapshot[0] -match '^\d+$') {
-            $wslFdSoftLimit = [int]$wslSnapshot[0]
-        }
-        if ([string]$wslSnapshot[1] -match '^\s*(\d+)\s*$') {
-            $wslProcessCount = [int]$Matches[1]
-        }
-    }
-    $memoryLine = $wslSnapshot | Where-Object { $_ -match '^Mem:\s+' } | Select-Object -First 1
-    if ($memoryLine -and $memoryLine -match '^Mem:\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)') {
-        $wslMemoryTotal = [math]::Round([double]$Matches[1] / 1MB, 0)
-        $wslMemoryAvailable = [math]::Round([double]$Matches[2] / 1MB, 0)
-    }
-}
 
 $logBytes = @(
     Get-ChildItem -LiteralPath (Join-Path $Root 'logs') -File -Recurse -ErrorAction SilentlyContinue

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from odin.trading.autonomous_demo_resources import evaluate_resource_snapshot
+from odin.trading.autonomous_demo_resources import (
+    evaluate_resource_snapshot,
+    parse_wsl_resource_snapshot,
+)
 
 
 def _snapshot(**changes: object) -> dict[str, object]:
@@ -47,6 +50,31 @@ def test_missing_all_temperature_telemetry_blocks_without_invention() -> None:
 
     assert result["status"] == "BLOCK"
     assert "temperature_telemetry_unavailable" in result["reason_codes"]
+
+
+def test_combined_wsl_resource_sample_is_parsed_deterministically() -> None:
+    result = parse_wsl_resource_snapshot(
+        "10240\n39\n"
+        "               total        used        free      shared  buff/cache   available\n"
+        "Mem:      8589934592  2147483648  1073741824  0  5368709120  6442450944\n"
+    )
+
+    assert result == {
+        "wsl_running": True,
+        "wsl_process_count": 39,
+        "wsl_fd_soft_limit": 10240,
+        "wsl_memory_total_mb": 8192,
+        "wsl_memory_available_mb": 6144,
+    }
+
+
+def test_invalid_wsl_resource_sample_fails_closed_without_fake_metrics() -> None:
+    result = parse_wsl_resource_snapshot("partial output")
+
+    assert result == {
+        "wsl_running": False,
+        "wsl_probe_error_code": "wsl_resource_probe_invalid_output",
+    }
 
 
 @pytest.mark.parametrize(

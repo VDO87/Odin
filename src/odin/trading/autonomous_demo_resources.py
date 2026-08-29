@@ -59,6 +59,30 @@ def evaluate_resource_snapshot(snapshot: Mapping[str, object]) -> dict[str, obje
     }
 
 
+def parse_wsl_resource_snapshot(output: str) -> dict[str, object]:
+    """Parse one bounded WSL sample without inventing missing metrics."""
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if len(lines) < 3 or not lines[0].isdigit() or not lines[1].isdigit():
+        return {
+            "wsl_running": False,
+            "wsl_probe_error_code": "wsl_resource_probe_invalid_output",
+        }
+    memory_line = next((line for line in lines[2:] if line.startswith("Mem:")), "")
+    parts = memory_line.split()
+    if len(parts) < 7 or not all(part.isdigit() for part in (parts[1], parts[6])):
+        return {
+            "wsl_running": False,
+            "wsl_probe_error_code": "wsl_resource_probe_invalid_output",
+        }
+    return {
+        "wsl_running": True,
+        "wsl_process_count": int(lines[1]),
+        "wsl_fd_soft_limit": int(lines[0]),
+        "wsl_memory_total_mb": round(int(parts[1]) / (1024 * 1024)),
+        "wsl_memory_available_mb": round(int(parts[6]) / (1024 * 1024)),
+    }
+
+
 def _temperatures(snapshot: Mapping[str, object]) -> list[float]:
     values: list[float] = []
     gpu = snapshot.get("gpu_temperature_c")
