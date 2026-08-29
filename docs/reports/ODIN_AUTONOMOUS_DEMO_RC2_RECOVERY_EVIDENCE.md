@@ -179,6 +179,28 @@ Branch: `feature/autonomous-demo-operations-rc2`
 
 ## Testes não forçados
 
+### Regressão do probe e retoma bounded em 2026-08-29
+
+- A regressão real apresentou `resource_probe_timeout` aos 45 s e transitou
+  corretamente para `EXECUTION_PAUSED`, sempre com zero posições, zero ordens e
+  `broker_submission_called=false`.
+- O bootstrap do supervisor também revelou uma dependência recuperável de
+  `wsl.exe ... git rev-parse`; o checkpoint passou a ser lido diretamente dos
+  metadados Git locais, de forma determinística e fail-closed (`5a4d544`).
+- Os subprocessos de telemetria passaram a ser criados sem consola herdada
+  (`87956fa`). A validação dirigida totalizou `25 passed`; Ruff, mypy dirigido e
+  `git diff --check` passaram.
+- A retoma final em monitorização direta produziu três ciclos consecutivos em
+  `WAITING_MARKET`, com resource gate `WARNING`, probe `OK`, WSL em 234--485 ms,
+  MT5 ligado, reconciliação `RECONCILED` e os três guardrails a `false`.
+- Duas variantes de arranque pelo Task Scheduler não atingiram o primeiro
+  heartbeat no contexto atual. O bounded loop foi respeitado: não houve terceira
+  tentativa, a definição foi reposta no modelo anterior e a tarefa ficou
+  registada mas parada, aguardando evidência nova ou validação num próximo logon.
+- Estado operacional preservado no checkpoint `29a0749`: uma única instância
+  direta independente mantém observação e dashboard; o autoarranque após reboot
+  continua pendente e impede acceptance.
+
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
   reboot humano oportuno.
