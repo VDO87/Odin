@@ -23,6 +23,8 @@ _GUARDRAILS = {
     "execution_allowed": False,
 }
 _CANARY_DECISION_ID = "rc1-canary-human-confirmed"
+_EQUITY_SAMPLE_INTERVAL_SECONDS = 300.0
+_MAX_EQUITY_SAMPLES = 2_016
 
 
 def update_autonomous_demo_reports(
@@ -60,6 +62,12 @@ def update_autonomous_demo_reports(
     ledger_metrics = _as_dict(ledger.get("metrics"))
     current_drawdown = _number(observed.get("drawdown_percent"))
     max_drawdown = max(_number(prior.get("max_drawdown_percent")), current_drawdown)
+    equity_series = _update_equity_series(
+        prior,
+        observed=observed,
+        now=now,
+        realized_pnl=_number(ledger.get("realized_pnl")),
+    )
     metrics: dict[str, object] = {
         "schema": "odin.autonomous_demo_metrics/v1",
         "generated_at_utc": now.isoformat(),
@@ -89,6 +97,7 @@ def update_autonomous_demo_reports(
         "floating_pnl": observed.get("floating_pnl"),
         "current_drawdown_percent": current_drawdown,
         "max_drawdown_percent": round(max_drawdown, 4),
+        "equity_series": equity_series,
         "positions_count": observed.get("positions_count", 0),
         "orders_count": observed.get("orders_count", 0),
         "decision_ledger_status": decision_ledger.get("status"),
@@ -353,6 +362,38 @@ def _integer(value: object) -> int:
 
 def _string_list(value: object) -> list[str]:
     return [str(item) for item in value] if isinstance(value, list) else []
+
+
+def _update_equity_series(
+    prior: dict[str, object],
+    *,
+    observed: dict[str, object],
+    now: datetime,
+    realized_pnl: float,
+) -> list[dict[str, object]]:
+    previous = prior.get("equity_series")
+    previous_items = previous if isinstance(previous, list) else []
+    series = [
+        dict(item)
+        for item in previous_items
+        if isinstance(item, dict)
+    ][-_MAX_EQUITY_SAMPLES:]
+    balance = observed.get("balance")
+    equity = observed.get("equity")
+    if not isinstance(balance, (int, float)) or not isinstance(equity, (int, float)):
+        return series
+    last_at = _parse_utc(series[-1].get("timestamp_utc")) if series else None
+    if last_at is not None and (now - last_at).total_seconds() < _EQUITY_SAMPLE_INTERVAL_SECONDS:
+        return series
+    sample: dict[str, object] = {
+        "timestamp_utc": now.isoformat(),
+        "balance": float(balance),
+        "equity": float(equity),
+        "realized_pnl": realized_pnl,
+        "floating_pnl": _number(observed.get("floating_pnl")),
+        "drawdown_percent": _number(observed.get("drawdown_percent")),
+    }
+    return [*series, sample][-_MAX_EQUITY_SAMPLES:]
 
 
 def _atomic_json(path: Path, value: dict[str, object]) -> None:

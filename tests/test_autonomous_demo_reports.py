@@ -28,6 +28,8 @@ def _state() -> dict[str, object]:
             "data_freshness": "FRESH",
             "positions_count": 0,
             "orders_count": 0,
+            "balance": 50_000.0,
+            "equity": 49_998.75,
             "daily_realized_pnl": 0.0,
             "completed_trades_today": 0,
             "floating_pnl": -1.25,
@@ -93,9 +95,15 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
 
     first = update_autonomous_demo_reports(**kwargs, now_utc=NOW)
     second = update_autonomous_demo_reports(**kwargs, now_utc=NOW + timedelta(seconds=60))
+    third = update_autonomous_demo_reports(**kwargs, now_utc=NOW + timedelta(minutes=5))
 
     assert first["status"] == "UPDATED"
     assert second["metrics"]["market_open_seconds"] == 60.0
+    assert third["metrics"]["market_open_seconds"] == 300.0
+    assert len(third["metrics"]["equity_series"]) == 2
+    assert third["metrics"]["equity_series"][-1]["balance"] == 50_000.0
+    assert third["metrics"]["equity_series"][-1]["equity"] == 49_998.75
+    assert third["metrics"]["equity_series"][-1]["floating_pnl"] == -1.25
     assert second["metrics"]["autonomous_demo_trades"] == 0
     assert second["metrics"]["floating_pnl"] == -1.25
     assert second["metrics"]["current_drawdown_percent"] == 0.05
