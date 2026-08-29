@@ -208,6 +208,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   Uma única instância direta independente retomou `WAITING_MARKET`, probe `OK`,
   zero exposição e checkpoint alinhado. O autoarranque após reboot continua
   pendente, requer evidência administrativa/logon nova e impede acceptance.
+- Uma tarefa one-shot provou que o probe completo pode terminar no Scheduler com
+  `LastTaskResult=0`, mas a latência é altamente variável. A medição por componente
+  observou `nvidia-smi=13.339 s`, consulta térmica CPU vazia `=9.799 s`, varredura
+  de logs `=3.255 s` e duração total da tarefa `=82.956 s`.
+- A consulta térmica CPU, que nunca fornece uma amostra neste host, foi removida
+  do ciclo e o estado explícito `cpu_temperature_telemetry_unavailable` foi
+  preservado (`4153f4c`). Uma tentativa otimizada posterior não produziu saída em
+  100 s, provando que aumentar o timeout não seria determinístico; o limite de
+  45 s foi reposto em `840569d`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
