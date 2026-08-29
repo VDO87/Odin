@@ -13,14 +13,15 @@ class A12SmokeCliDashboardTests(unittest.TestCase):
     def test_cli_smoke_returns_json(self):
         env = os.environ.copy()
         env["PYTHONPATH"] = str(Path.cwd() / "src")
-        completed = subprocess.run(
-            [sys.executable, "-m", "odin.cli", "smoke"],
-            cwd=Path.cwd(),
-            env=env,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            completed = subprocess.run(
+                [sys.executable, "-m", "odin.cli", "smoke"],
+                cwd=tmp,
+                env=env,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
 
         report = json.loads(completed.stdout)
         self.assertEqual(report["status"], "PASS")

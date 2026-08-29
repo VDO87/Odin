@@ -1,4 +1,6 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from odin.dashboard.routes import DashboardRoutes
 from odin.trading.replay import replay_trading_state
@@ -22,8 +24,13 @@ class TradeDeskReplayTests(unittest.TestCase):
         self.assertIs(result["execution_allowed"], False)
 
     def test_dashboard_exposes_replay_endpoint_and_separates_human_and_technical_views(self):
-        routes = DashboardRoutes()
-        status, payload = routes.serve("/trading/replay")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            routes = DashboardRoutes(
+                log_path=str(root / "logs" / "events.jsonl"),
+                sqlite_path=str(root / "runtime" / "odin.sqlite"),
+            )
+            status, payload = routes.serve("/trading/replay")
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["component"], "trading_replay")
