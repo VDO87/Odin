@@ -363,6 +363,14 @@ Branch: `feature/autonomous-demo-operations-rc2`
   histórico e saiu do caminho ativo. A matriz RC2 alargada passou com
   `222 passed, 20 subtests`; a alteração dirigida passou com `55 passed`, Ruff,
   parser PowerShell, validação live `-ValidateMt5Only` e `git diff --check`.
+- O bundle `06166ab61e3f` foi instalado com inventário SHA-256
+  `64355B421CE6FC898B0BE6A1F0792F5642A30647CDED80BB1AEADD69BA8B71D0`;
+  o refresh instalado tem SHA-256
+  `66B38726C73C8FC54BB24961195D642BC36BF4D84186B07FB8520C8558763964`.
+  O atalho genérico `MetaTrader 5.lnk` passou a apontar para a instalação OANDA
+  allowlisted e a auditoria recursiva do Desktop encontrou zero atalhos para
+  `D:\ODIN_LOCAL\mt5\terminal64.exe`. O processo/instalação MetaQuotes não foi
+  terminado nem apagado; ficou apenas fora do caminho operacional.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
