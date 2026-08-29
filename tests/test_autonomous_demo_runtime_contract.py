@@ -277,6 +277,9 @@ def test_local_runtime_bootstrap_is_non_financial_and_uses_versioned_sources() -
     assert "RESTART_DELAYS_SECONDS = (5, 30, 60)" in source
     assert "SUPERVISOR_RESTART_SCHEDULED" in source
     assert "SUPERVISOR_RESTART_BUDGET_EXHAUSTED" in source
+    assert "SUPERVISOR_CHILD_CONTAINMENT_FAILED" in source
+    assert "JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE" in source
+    assert "AssignProcessToJobObject" in source
     assert "broker_submission_called" in source
 
 
@@ -354,6 +357,45 @@ def test_local_runtime_watchdog_exhausts_bounded_restart_budget() -> None:
     assert len(processes) == 4
     assert sleeps == [5, 30, 60]
     assert events[-1]["event"] == "SUPERVISOR_RESTART_BUDGET_EXHAUSTED"
+
+
+def test_local_runtime_watchdog_contains_each_child_in_kill_on_close_job() -> None:
+    bootstrap = ROOT / "scripts/windows/mt5_autonomous_demo_bootstrap.py"
+    specification = importlib.util.spec_from_file_location("rc2_bootstrap_job", bootstrap)
+    assert specification is not None and specification.loader is not None
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    return_codes = iter((-1, 0))
+    attached: list[int] = []
+    closed: list[int] = []
+
+    class Process:
+        def __init__(self, return_code: int) -> None:
+            self.pid = 300 + len(attached)
+            self.return_code = return_code
+
+        def wait(self) -> int:
+            return self.return_code
+
+    def popen(_command: list[str], **_kwargs: object) -> Process:
+        return Process(next(return_codes))
+
+    def attach(process: Process) -> int:
+        attached.append(process.pid)
+        return process.pid + 1_000
+
+    result = module._supervise(
+        ["python", "supervisor.py"],
+        popen=popen,
+        sleep=lambda _seconds: None,
+        record=lambda _event: None,
+        attach_child_to_job=attach,
+        close_job=closed.append,
+    )
+
+    assert result == 0
+    assert attached == [300, 301]
+    assert closed == [1_300, 1_301]
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:

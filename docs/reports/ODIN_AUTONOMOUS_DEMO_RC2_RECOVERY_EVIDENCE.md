@@ -319,6 +319,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   timeout e marcando `wsl_resource_telemetry_degraded` como `WARNING`. Sem esse
   healthcheck atual, WSL falso/desconhecido continua `BLOCK`. Testes dirigidos:
   `61 passed`; Ruff, mypy no módulo tipado alterado e `git diff --check`: PASS.
+- A primeira rotação controlada após o checkpoint confirmou ainda que
+  `Stop-ScheduledTask` terminava o bootstrap, mas deixava o supervisor filho
+  órfão. Com posições/ordens a zero e sem submissão ao broker, esse único PID foi
+  terminado de forma controlada. O bootstrap passou a colocar cada filho num
+  Windows Job Object com `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`; se a contenção não
+  puder ser configurada, termina o filho e regista
+  `SUPERVISOR_CHILD_CONTAINMENT_FAILED` em vez de o deixar correr sem watchdog.
+  A matriz dirigida passou com `62 passed`; Ruff, mypy dirigido, compilação do
+  bootstrap e `git diff --check`: PASS.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
