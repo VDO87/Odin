@@ -86,8 +86,9 @@ MT5, histórico do broker e ledgers locais prevalecem.
 3. Supervisor observa decisões legítimas sem forçar sinal.
 4. Cada trade passa Strategy → Risk → Demo Gate → broker → ledgers → reconciliação.
 5. Acumular 24h de mercado aberto e pelo menos cinco trades autónomos completos.
-6. A última suite integral verde antes das extensões finais teve `833 passed` e
-   `42 subtests`; repetir a suite integral no checkpoint final após o soak.
+6. A suite integral pré-soak mais recente teve `852 passed`, `42 subtests`,
+   duração 595,12 s e FD soft limit 8192; repetir a suite integral no checkpoint
+   final após o soak.
 
 `safe_to_trade=false`  
 `real_trading=false`  
