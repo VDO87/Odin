@@ -100,8 +100,14 @@ try {
     $stdout = Join-Path $LogRoot "supervisor.stdout.log"
     $stderr = Join-Path $LogRoot "supervisor.stderr.log"
     Write-StartupTrace "SUPERVISOR_STARTING"
-    & $basePython $probe 1> $stdout 2> $stderr
-    exit $LASTEXITCODE
+    $supervisor = Start-Process -FilePath $basePython `
+        -ArgumentList @($probe) `
+        -WindowStyle Hidden `
+        -PassThru `
+        -Wait `
+        -RedirectStandardOutput $stdout `
+        -RedirectStandardError $stderr
+    exit $supervisor.ExitCode
 }
 finally {
     @(
