@@ -23,12 +23,13 @@ $envFile = Join-Path $RepoRoot ".env"
 $probe = Join-Path $RepoRoot "scripts\windows\mt5_autonomous_demo_supervisor.py"
 $dashboardLauncher = "D:\ODIN_LOCAL\runtime\Start-ODIN-Dashboard-Persistent.ps1"
 $config = Join-Path $RepoRoot "config\demo_execution_rc2.json"
+$rationalizationSource = Join-Path $RepoRoot "docs\ODIN_RUNTIME_RATIONALIZATION_REPORT.md"
 
 if ($TerminalPath -ine $ExpectedTerminal -or $TerminalPath -ieq $ExcludedTerminal) {
     throw "ODIN RC2 terminal path is not allowlisted."
 }
 Write-StartupTrace "TERMINAL_ALLOWLIST_OK"
-foreach ($requiredPath in @($TerminalPath, $PythonPath, $envFile, $probe, $dashboardLauncher, $config)) {
+foreach ($requiredPath in @($TerminalPath, $PythonPath, $envFile, $probe, $dashboardLauncher, $config, $rationalizationSource)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "ODIN RC2 prerequisite unavailable."
     }
@@ -59,6 +60,7 @@ if ($values['ODIN_OANDA_LOGIN'] -notmatch '^\d+$') {
 Write-StartupTrace "IDENTITY_CONFIG_OK"
 
 New-Item -ItemType Directory -Force -Path $StateRoot, $LogRoot, $ReportRoot | Out-Null
+Copy-Item -LiteralPath $rationalizationSource -Destination (Join-Path $ReportRoot "ODIN_RUNTIME_RATIONALIZATION_REPORT.md") -Force
 Write-StartupTrace "DIRECTORIES_READY"
 & $dashboardLauncher
 Write-StartupTrace "DASHBOARD_READY"

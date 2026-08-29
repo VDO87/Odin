@@ -104,6 +104,8 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert r"C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe" in launcher
     assert r"D:\ODIN_LOCAL\mt5\terminal64.exe" in launcher
     assert "wsl.exe -d Ubuntu-ODIN --user odin --exec git" in launcher
+    assert "ODIN_RUNTIME_RATIONALIZATION_REPORT.md" in launcher
+    assert "Copy-Item -LiteralPath $rationalizationSource" in launcher
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:
