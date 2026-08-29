@@ -68,6 +68,42 @@ não foram envolvidos por novos agentes ou daemons.
 - A telemetria de storage preserva `windows_*` e `wsl_*` antes de calcular os
   totais. Não infere, duplica nem oculta bytes quando uma origem não responde.
 
+## Evidência live pré-final — 2026-08-30
+
+- O Task Scheduler apresenta uma única tarefa ODIN ativa:
+  `ODIN Autonomous Demo Operations RC2`. A tarefa de diagnóstico RC2 está
+  `Disabled`. A tarefa ativa usa o utilizador `ODIN`, `RunLevel=Limited`, trigger
+  de logon, `StartWhenAvailable=true`, `MultipleInstances=IgnoreNew`, três
+  restarts bounded com intervalo de um minuto e o bundle imutável
+  `856e3f8fb130` em `D:\ODIN_LOCAL`.
+- A árvore ativa é o bootstrap RC2 seguido por um único supervisor. O dashboard
+  corre num único watchdog WSL separado. Não foi observado scheduler, serviço
+  ou processo n8n/Agent Zero/Oh My Hermes ligado a essa árvore.
+- O executável `n8n` não existe no `PATH` Windows nem WSL; o diretório npm global
+  do utilizador também não existe. `n8n`, Agent Zero e Oh My Hermes não aparecem
+  nos manifests de dependências do projeto. `N8N_DECISION=NOT_NEEDED` mantém-se.
+- A aplicação Hermes desktop do utilizador e o Ollama estão abertos fora da
+  árvore do supervisor. Isto não é uma introdução de Oh My Hermes no runtime
+  financeiro: não existe tarefa/serviço/launcher ODIN para essa camada e o
+  adapter Hermes do ODIN permanece local, bounded e read-only.
+- As duas instalações MT5 estão abertas, mas a MetaQuotes-Demo
+  `D:\ODIN_LOCAL\mt5\terminal64.exe` não é filha do supervisor nem participa no
+  caminho de execução. O snapshot factual do supervisor continua ligado apenas
+  a `C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe`, conta DEMO,
+  `OANDA TMS Brokers S.A.` e `OANDATMS-MT5`.
+- A pesquisa do código executável encontrou uma única chamada literal
+  `mt5.order_send`, em `src/odin/adapters/mt5/demo_execution_adapter.py`. O
+  chamador RC2 exige snapshot broker-first, reconciliação, Risk Engine,
+  `AUTONOMOUS_DEMO_READY`, `order_check` aceite e reserva atómica idempotente.
+  Strategy, Hermes, dashboard, n8n e LLM não possuem chamada direta.
+- TradeDesk expõe apenas `PAUSE`, `SAFE_STOP`, `RESUME`, `REFRESH`, Cockpit e
+  Reports. `RESUME` exige confirmação e revalidação integral dos gates; não
+  existem botões BUY/SELL/REAL.
+
+Esta evidência fecha a auditoria de configuração e caminho ativo, mas não
+substitui os gates finais de reboot Windows real, visibilidade durante mercado
+aberto, soak de 24 horas, cinco trades legítimos reconciliados e suite final.
+
 ## Remoção
 
 Nenhum componente foi apagado nesta auditoria. A remoção futura exige prova de
