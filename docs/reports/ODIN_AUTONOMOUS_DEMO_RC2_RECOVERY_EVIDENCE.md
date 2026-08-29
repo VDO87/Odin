@@ -426,6 +426,19 @@ Branch: `feature/autonomous-demo-operations-rc2`
   359 ms. O supervisor manteve `WAITING_MARKET`, zero exposição e guardrails
   `false`. Matriz RC2: `232 passed in 14.08s`; Ruff, mypy dirigido e
   `git diff --check`: PASS.
+- O relatório runtime de Acceptance resumia apenas soak, trades e ledgers, sem
+  tornar explícitos os restantes gates da Definition of Done. O checkpoint
+  `856e3f8` substituiu esse resumo por uma matriz requisito a requisito e
+  preservou o fecho fail-closed: atingir `24h` e `5` trades produz apenas
+  `ELIGIBLE_FOR_FINAL_AUDIT`; nunca `PASSED` automático. O bundle imutável
+  `856e3f8fb130` foi instalado com inventário SHA-256
+  `506C05927C65B952E55D1A2B3FC1F18D8B82AC81187A26B6C2BE1CC2EDDE50E7`.
+  A prova live confirmou `Status: NOT_READY`, TradeDesk/Cockpit `PASS`, uma
+  instância do supervisor, zero posições/ordens e guardrails `false`. Validação:
+  `41 passed` dirigidos, matriz RC2 de `213 passed in 19.54s`, Ruff, mypy
+  isolado e `git diff --check`: PASS. A correção ficou registada no
+  Incident/Repair Ledger como `ACCEPTANCE_EVIDENCE_GAP` resolvido por
+  `requirement_by_requirement_fail_closed_acceptance_matrix`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
