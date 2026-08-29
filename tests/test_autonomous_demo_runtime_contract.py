@@ -171,8 +171,8 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "installedDashboardLauncher" in installer
     assert "installedResourceProbe" in installer
     assert "resourceProbeInstalledHash" in installer
-    assert "New-ScheduledTaskAction -Execute $basePython" in installer
-    assert '" --persistent-task"' in installer
+    assert "New-ScheduledTaskAction -Execute $powerShell" in installer
+    assert 'ExecutionPolicy Bypass -File `"$installedLauncher`"' in installer
     assert 'replace "`r?`n", "`r`n"' in installer
     wrapper = (ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.cmd").read_text(
         encoding="utf-8"
@@ -188,7 +188,7 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "ODIN_OANDA_PASSWORD" not in installer + launcher
     assert r"C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe" in launcher
     assert r"D:\ODIN_LOCAL\mt5\terminal64.exe" in launcher
-    assert "wsl.exe -d Ubuntu-ODIN --user odin --exec git" in launcher
+    assert "wsl.exe -d Ubuntu-ODIN --user odin --exec git" not in launcher
     assert "ODIN_RUNTIME_RATIONALIZATION_REPORT.md" in launcher
     assert "Copy-Item -LiteralPath $rationalizationSource" in launcher
     assert "& $basePython $probe" in launcher

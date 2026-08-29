@@ -61,9 +61,9 @@ if (
 }
 
 $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$probe = Join-Path $RepoRoot "scripts\windows\mt5_autonomous_demo_supervisor.py"
-$arguments = "`"$probe`" --persistent-task"
-$action = New-ScheduledTaskAction -Execute $basePython -Argument $arguments -WorkingDirectory $WorkingDirectory
+$powerShell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+$arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$installedLauncher`""
+$action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments -WorkingDirectory $WorkingDirectory
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet `
@@ -94,6 +94,7 @@ Write-Output "LOGON_TYPE=Interactive"
 Write-Output "MULTIPLE_INSTANCES=IgnoreNew"
 Write-Output "WORKING_DIRECTORY=$WorkingDirectory"
 Write-Output "PYTHON_RUNTIME=$basePython"
+Write-Output "TASK_LAUNCHER=$installedLauncher"
 Write-Output "INSTALLED_LAUNCHER=$installedLauncher"
 Write-Output "LAUNCHER_SHA256=$installedHash"
 Write-Output "DASHBOARD_LAUNCHER_SHA256=$dashboardInstalledHash"

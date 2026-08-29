@@ -94,11 +94,6 @@ $env:ODIN_RC2_DASHBOARD_LAUNCHER = $dashboardLauncher
 $env:ODIN_RC2_RESOURCE_PROBE_PATH = $resourceProbe
 $env:ODIN_RC2_CYCLE_SECONDS = [string]$CycleSeconds
 $env:ODIN_RC2_BRANCH = "feature/autonomous-demo-operations-rc2"
-$checkpoint = (& wsl.exe -d Ubuntu-ODIN --user odin --exec git -C /home/odin/projects/odin rev-parse --short HEAD)
-if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($checkpoint)) {
-    throw "ODIN RC2 checkpoint lookup failed."
-}
-$env:ODIN_RC2_CHECKPOINT = $checkpoint.Trim()
 Write-StartupTrace "SUPERVISOR_ENV_READY"
 
 try {
