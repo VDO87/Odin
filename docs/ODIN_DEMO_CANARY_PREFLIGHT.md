@@ -1,6 +1,6 @@
 # ODIN DEMO CANARY PRE-FLIGHT
 
-Status: **ODIN DEMO EXECUTION RC1 — CANARY EXECUTED AND RECONCILED**
+Status: **ODIN DEMO EXECUTION RC1 — CANARY LIFECYCLE COMPLETE AND RECONCILED**
 
 CANARY evidence captured: `2026-08-28T09:14:46Z`
 
@@ -63,19 +63,22 @@ in this report.
 - Executed volume: 0.01 lot
 - Slippage: 0 points
 - Broker reconciliation: `RECONCILED`
-- Execution Ledger: hash chain valid; final state `RECONCILED`
+- Execution Ledger: hash chain valid; final state `CLOSED / RECONCILED`
 - Raw report: `D:\ODIN_LOCAL\reports\demo-execution\canary-one-shot.json`
 - Raw report SHA-256:
   `74f891b5c7b7fa707e176855e58cee207f4e7a40836d13da7676dbd1ef115d18`
 - One-shot attempt marker: present
 - New broker submission allowed: false
 
-The open position has its required SL/TP and is monitored read-only. Do not
-open a second position. Closure, P/L and close reason remain pending.
+MT5 history proves that the position closed at SL: exit deal `105378769`, order
+`151427905`, normalized close time `2026-08-28T14:01:42Z`, exit price 1.16335
+and realized P/L EUR -0.88. Commission, swap and fee were zero. The DEMO
+Decision Ledger and Execution Ledger are hash-valid and linked by decision,
+proposal and position identifiers. Do not open a second position.
 
 The next intended state is:
 
-`CANARY EXECUTED — POST-CANARY SOAK ACTIVE`
+`CANARY LIFECYCLE COMPLETE_AND_RECONCILED`
 
 with exactly one historical `broker_submission_called=true` and no new broker
 action enabled.

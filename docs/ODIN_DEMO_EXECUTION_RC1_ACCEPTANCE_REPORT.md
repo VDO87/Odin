@@ -1,11 +1,12 @@
 # ODIN DEMO EXECUTION RC1 — ACCEPTANCE REPORT
 
-Current verdict: **ODIN DEMO EXECUTION RC1 — CANARY EXECUTED — POST-CANARY SOAK ACTIVE**
+Current verdict: **ODIN DEMO EXECUTION RC1 — CANARY LIFECYCLE COMPLETE AND RECONCILED**
 
 Reason: explicit human confirmation authorized one DEMO CANARY. It filled at
 0.01 lot, reconciled against broker truth and consumed the one-shot marker.
-Exactly one protected DEMO position is now under read-only bounded monitoring;
-new broker actions remain disabled.
+The position later closed at its SL. MT5 history, the DEMO Decision Ledger and
+the Execution Ledger now reconcile append-only through final state `CLOSED`.
+New broker actions remain disabled.
 
 ## Baseline and checkpoints
 
@@ -29,6 +30,7 @@ new broker actions remain disabled.
 - Broker position identifier linkage: `3b2b8b3`
 - Read-only post-CANARY monitor: `6ec4215`
 - Factual monitor reporting: `77f0ed5`
+- Broker-time/freshness separation and lifecycle auditor: `3665d13`
 - Automatic merge: not performed.
 
 ## Definition of Done matrix
@@ -44,7 +46,7 @@ new broker actions remain disabled.
 | Submission isolated | PASS | AST sentinel proves one isolated broker submission call in the authorized adapter |
 | Human CANARY gate | PASS | Repo control is disarmed; short, proposal/account-bound authorization required |
 | Idempotency | PASS | Atomic proposal reservation, one-shot CANARY marker and duplicate tests |
-| Decision to Execution linkage | PASS | `decision_id`, `proposal_id`, hashes and strategy version in hash-chained ledger |
+| Decision to Execution linkage | PASS | Dedicated hash-chained DEMO Decision Ledger links the human decision and proposal to the Execution Ledger; the historical gap is explicitly marked retrospective |
 | MT5 reconciliation | PASS | Broker is source of truth; mismatch/orphan/side/volume/entry/SL/TP blocks |
 | Restart/recovery | PASS | Disconnect, reconnect, response-lost, submitted order and open-position scenarios tested |
 | SL/TP and sizing | PASS | Direction, distance, point/digits, volume min/max/step and fixed 0.01 tested |
@@ -55,11 +57,11 @@ new broker actions remain disabled.
 | Secret redaction | PASS | Redaction tests and sanitized MT5/ledger outputs |
 | Live Stage 0 | PASS | `DRY_RUN_VALIDATED`; FRESH data, `ALLOW_DEMO`, `RECONCILED`, accepted `order_check` |
 | First CANARY | PASS | Human-confirmed BUY 0.01 lot filled once, reconciled and linked to the ledger |
-| Post-CANARY soak | ACTIVE | Read-only monitor, 60 s interval, maximum 360 cycles/6 h, no new broker action |
+| Post-CANARY soak | PASS | 275 read-only cycles; stopped fail-closed when the broker position disappeared, then MT5 history proved and reconciled the SL closure |
 
 ## Automated acceptance evidence
 
-Latest full suite, without exclusions:
+Latest full suite, without exclusions, at checkpoint `2b48bd5`:
 
 - collected: 768;
 - passed: 768;
@@ -80,6 +82,10 @@ Additional gates:
 - Ruff: `ruff check .` passed;
 - mypy directed scope: 10 RC1 source files passed with no issues;
 - `git diff --check`: passed.
+
+Current lifecycle/time-normalization scope at checkpoint `3665d13`: 128 tests
+passed, Ruff passed, mypy passed on 7 source files and `git diff --check`
+passed. No full-suite result is inferred from the focused run.
 
 ## Live Stage 0 result
 
@@ -126,20 +132,42 @@ The human-confirmed one-shot at `2026-08-28T09:14:46Z` produced:
   `74f891b5c7b7fa707e176855e58cee207f4e7a40836d13da7676dbd1ef115d18`;
 - one-shot marker present; no retry or second submission path enabled.
 
-The first post-CANARY monitor cycle observed one reconciled position, zero
-pending orders, FRESH data, spread 8 points and `broker_action_allowed=false`.
-The bounded monitor runs under PID `5368` and stops on position closure, any
-stop condition, 360 cycles or 6 hours, whichever comes first.
+The bounded read-only monitor completed 275 cycles over 17,261 seconds with
+100% fresh-data cycles, zero exceptions and no new broker action. At
+`2026-08-28T14:02:27Z` it observed zero positions and stopped fail-closed with
+`reconciliation_mismatch`, because the local ledger still represented the
+previously reconciled open position.
+
+The lifecycle audit subsequently proved from MT5 broker history:
+
+- entry deal `105358964`, order/position `151407246`, BUY 0.01 at 1.16437;
+- entry time `2026-08-28T09:14:39Z` after CET/CEST normalization;
+- exit deal `105378769`, order `151427905`, at 1.16335;
+- exit time `2026-08-28T14:01:42Z` after CET/CEST normalization;
+- close reason `SL`, with 2 points of exit slippage relative to 1.16337;
+- realized P/L EUR -0.88; commission, swap and fee all EUR 0.00;
+- no open position and no pending order;
+- Execution Ledger state `CLOSED / RECONCILED`, hash chain valid;
+- DEMO Decision Ledger state `OK`, with the recovered historical decision
+  explicitly labelled retrospective;
+- lifecycle report SHA-256
+  `c63abe4958a3a908386e17528199d76924a7edd3f195202e66f785b715b53103`.
+
+The stale weekend tick was also normalized correctly: raw broker wall-clock
+epoch represented `2026-08-28T22:58:59`, the audited summer profile applied
+`+7200`, and the normalized event time is `2026-08-28T20:58:59Z`. Freshness is
+`STALE` with only `stale_data` / `stale_data_threshold_exceeded`; the time
+profile remains `VALID`, confidence `HIGH`.
 
 ## Mandatory post-CANARY stop
 
-Do not open a second position while the CANARY is open. The next allowed work
-is observation, closure reconciliation, report completion and recovery
-validation. SMALL BATCH is not active.
+Do not open a second position. The first CANARY lifecycle is complete, but this
+audit grants no SMALL BATCH or new execution authority. The terminal currently
+reports `terminal_trade_allowed=false`; ODIN did not alter it.
 
 Current state:
 
-`ODIN DEMO EXECUTION RC1 — CANARY EXECUTED — POST-CANARY SOAK ACTIVE`
+`ODIN DEMO EXECUTION RC1 — CANARY LIFECYCLE COMPLETE_AND_RECONCILED`
 
 ## Guardrails
 
