@@ -328,6 +328,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `SUPERVISOR_CHILD_CONTAINMENT_FAILED` em vez de o deixar correr sem watchdog.
   A matriz dirigida passou com `62 passed`; Ruff, mypy dirigido, compilação do
   bootstrap e `git diff --check`: PASS.
+- O bundle imutável `646e7f2b7717` (inventário SHA-256
+  `BA41E383D591A386E329C8458667FC27BEC0A825E9A1A8B6CE90757FA17ABE91`) foi
+  instalado e validado no Task Scheduler. Numa única rotação controlada, o
+  evento Operational 330 terminou o bootstrap PID `2736` e o Job Object terminou
+  também o supervisor PID `18184`, sem intervenção adicional. A retoma produziu
+  eventos 110/129/200, bootstrap PID `17096` e novo supervisor PID `17456`.
+  Três ciclos consecutivos ficaram em `WAITING_MARKET`, resource `WARNING`, WSL
+  vivo, zero posições/ordens, reconciliação `RECONCILED`, nenhuma submissão ao
+  broker e guardrails globais `false`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
