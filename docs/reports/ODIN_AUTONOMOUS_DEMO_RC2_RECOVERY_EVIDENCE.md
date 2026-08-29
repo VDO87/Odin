@@ -91,9 +91,10 @@ Branch: `feature/autonomous-demo-operations-rc2`
 ### Regressão pré-soak
 
 - Matriz direcionada RC2: `206 passed, 3 subtests passed`.
-- Suite completa sem exclusões: `852 passed, 42 subtests passed` em 595,12 s,
+- Suite completa sem exclusões mais recente: `853 passed, 42 subtests passed`
+  em 623,89 s,
   com file descriptor soft limit 8192.
-- Ruff global: PASS. Mypy dirigido: PASS em seis módulos fonte alterados.
+- Ruff global: PASS. Mypy dirigido: PASS nos módulos fonte alterados.
 - Parse PowerShell: PASS nos três scripts RC2 alterados. `git diff --check`: PASS.
 - Este resultado é validação pré-soak; a suite final continua a ter de ser
   repetida depois dos gates operacionais de 24 h e cinco trades.
