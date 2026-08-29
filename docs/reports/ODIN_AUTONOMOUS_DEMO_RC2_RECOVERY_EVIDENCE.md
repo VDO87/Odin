@@ -503,6 +503,20 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `OANDA TMS Brokers S.A.`, server `OANDATMS-MT5`, zero posições/ordens e
   reconciliação `RECONCILED`. Nenhum processo foi terminado ou reconfigurado; a
   instância histórica continua apenas fora do caminho operacional.
+- A auditoria read-only dos artefactos confirmou os oito relatórios RC2
+  obrigatórios e `docs/ODIN_NOTION_SYNC_2026-08-29.md`. O Execution Ledger tem
+  11 registos, cadeia `OK`, zero anomalias, um lifecycle fechado e zero erros de
+  reconciliação; o Decision Ledger tem um registo e cadeia `OK`. O ficheiro
+  `ODIN_AUTONOMOUS_DEMO_TRADES.jsonl` está vazio por desenho: o canary RC1
+  permanece integralmente no Execution Ledger, mas é excluído do relatório de
+  trades autónomos RC2, cuja contagem factual continua zero.
+- O registo autoritativo Hermes contém 19 analysis events para 19 `trigger_id`
+  únicos (um trade fechado, 17 incidentes e um resumo diário), zero triggers
+  duplicados, 20 claims e 20 `claim_id` únicos. As 75 linhas de
+  `ODIN_HERMES_VS_REALITY.jsonl` são snapshots cumulativos do scorecard quando a
+  evidência muda, não 75 chamadas ao modelo; a vista live usa o snapshot mais
+  recente. Assim, mantém-se o limite de uma análise por trade/incidente único e
+  não foi necessária alteração de código.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
