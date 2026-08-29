@@ -48,6 +48,7 @@ from odin.trading.autonomous_demo_resources import (  # noqa: E402
     evaluate_resource_snapshot,
     parse_wsl_resource_snapshot,
 )
+from odin.trading.autonomous_demo_runtime import read_local_git_checkpoint  # noqa: E402
 from odin.trading.autonomous_demo_cycle import (  # noqa: E402
     build_market_bars,
     build_trade_candidate,
@@ -295,29 +296,11 @@ def _bootstrap_runtime_environment() -> None:
     }
     for key, value in defaults.items():
         os.environ.setdefault(key, value)
-    checkpoint = subprocess.run(
-        [
-            "wsl.exe",
-            "-d",
-            "Ubuntu-ODIN",
-            "--user",
-            "odin",
-            "--exec",
-            "git",
-            "-C",
-            "/home/odin/projects/odin",
-            "rev-parse",
-            "--short",
-            "HEAD",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=20,
-    )
-    if checkpoint.returncode != 0 or not checkpoint.stdout.strip():
-        raise RuntimeError("rc2_checkpoint_lookup_failed")
-    os.environ["ODIN_RC2_CHECKPOINT"] = checkpoint.stdout.strip()
+    try:
+        checkpoint = read_local_git_checkpoint(_REPO_ROOT)
+    except RuntimeError as error:
+        raise RuntimeError("rc2_checkpoint_lookup_failed") from error
+    os.environ["ODIN_RC2_CHECKPOINT"] = checkpoint
     load_autonomous_demo_policy(os.environ["ODIN_RC2_CONFIG_PATH"])
     report_root = Path(os.environ["ODIN_RC2_REPORT_ROOT"])
     report_root.mkdir(parents=True, exist_ok=True)
