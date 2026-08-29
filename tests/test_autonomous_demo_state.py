@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from odin.dashboard.routes import DashboardRoutes
+from odin.trading import autonomous_demo_state as state_module
 from odin.trading.autonomous_demo_state import (
     ALLOWED_STATES,
     append_incident,
@@ -57,6 +58,60 @@ def test_state_tampering_fails_closed(tmp_path: Path) -> None:
     assert loaded["status"] == "BLOCKED"
     assert loaded["state"] == "EXECUTION_PAUSED"
     assert validate_state(value) is False
+
+
+def test_state_write_retries_transient_windows_replace_contention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "state.json"
+    initial = build_supervisor_state("MONITOR_ONLY", cycle=1, now_utc=NOW)
+    updated = build_supervisor_state("WAITING_MARKET", cycle=2, now_utc=NOW)
+    write_state(path, initial)
+    original_replace = Path.replace
+    attempts = 0
+    delays: list[float] = []
+
+    def replace_after_contention(source: Path, target: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise PermissionError(5, "simulated Windows sharing contention")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", replace_after_contention)
+    monkeypatch.setattr(state_module.time, "sleep", delays.append)
+
+    write_state(path, updated)
+
+    assert attempts == 2
+    assert delays == [0.05]
+    assert read_state(path)["cycle"] == 2
+
+
+def test_state_write_fails_closed_after_bounded_replace_contention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "state.json"
+    initial = build_supervisor_state("MONITOR_ONLY", cycle=1, now_utc=NOW)
+    updated = build_supervisor_state("WAITING_MARKET", cycle=2, now_utc=NOW)
+    write_state(path, initial)
+    attempts = 0
+    delays: list[float] = []
+
+    def replace_blocked(_source: Path, _target: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        raise PermissionError(5, "simulated persistent Windows sharing contention")
+
+    monkeypatch.setattr(Path, "replace", replace_blocked)
+    monkeypatch.setattr(state_module.time, "sleep", delays.append)
+
+    with pytest.raises(PermissionError):
+        write_state(path, updated)
+
+    assert attempts == 4
+    assert delays == pytest.approx([0.05, 0.1, 0.15])
+    assert read_state(path)["cycle"] == 1
 
 
 def test_heartbeat_and_incident_memory_are_non_secret(tmp_path: Path) -> None:

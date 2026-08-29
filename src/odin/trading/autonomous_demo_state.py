@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 import hashlib
 import json
 from pathlib import Path
+import time
 from typing import Iterable, Mapping
 
 
@@ -39,6 +40,8 @@ GLOBAL_GUARDRAILS = {
     "real_trading": False,
     "execution_allowed": False,
 }
+_ATOMIC_REPLACE_ATTEMPTS = 4
+_ATOMIC_REPLACE_DELAY_SECONDS = 0.05
 
 
 def build_supervisor_state(
@@ -393,7 +396,14 @@ def _atomic_json(path: Path, value: Mapping[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, indent=2, sort_keys=True), encoding="utf-8")
-    temporary.replace(path)
+    for attempt in range(_ATOMIC_REPLACE_ATTEMPTS):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt + 1 >= _ATOMIC_REPLACE_ATTEMPTS:
+                raise
+            time.sleep(_ATOMIC_REPLACE_DELAY_SECONDS * (attempt + 1))
 
 
 def _read_json(path: Path) -> dict[str, object]:

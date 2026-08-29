@@ -218,6 +218,34 @@ Branch: `feature/autonomous-demo-operations-rc2`
   100 s, provando que aumentar o timeout não seria determinístico; o limite de
   45 s foi reposto em `840569d`.
 
+### Evidência operacional do Task Scheduler e contenção do state writer
+
+- Depois da ativação administrativa do canal
+  `Microsoft-Windows-TaskScheduler/Operational`, uma única reprodução iniciou a
+  ação esperada: eventos 129/200, instância
+  `{fe199c3b-86e2-4f14-a923-86bd4efea422}`, Python PID `15448`, utilizador
+  interativo `DESKTOP-4JKDGKS\ODIN`, mesma sessão dos terminais MT5 e módulo
+  oficial MetaTrader5 carregado. O Scheduler não falhou a criação do processo.
+- A instância não publicou o primeiro heartbeat e foi terminada de forma
+  controlada uma única vez. Os eventos 330/201/102/111 registaram a ação do
+  operador e o retorno `2147943691` (`ERROR_CANCELLED`); não houve retry nem
+  submissão ao broker.
+- Ao restaurar o supervisor direto surgiu evidência adicional precisa: no
+  segundo ciclo, `Path.replace` recebeu `PermissionError [WinError 5]` ao trocar
+  atomicamente `autonomous_demo_state.json.tmp` pelo snapshot lido em paralelo.
+  O writer passou a repetir apenas esta substituição, no máximo quatro vezes,
+  com backoff total máximo de 300 ms; contenção persistente continua a propagar
+  o erro e a falhar fechado.
+- Testes novos provam recuperação após uma contenção transitória e falha depois
+  do limite sem substituir o último snapshot íntegro. A matriz dirigida passou
+  com `54 passed`; Ruff, mypy dirigido e `git diff --check` passaram.
+- Uma retoma direta sob leitura concorrente completou três ciclos consecutivos
+  em `WAITING_MARKET`, com zero posições, zero ordens, reconciliação
+  `RECONCILED`, `broker_submission_called=false` e os três guardrails globais a
+  `false`. A validação do autoarranque agendado permanece pendente; esta
+  evidência não permite ainda atribuir todo o stall inicial à contenção do
+  ficheiro.
+
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
   reboot humano oportuno.
