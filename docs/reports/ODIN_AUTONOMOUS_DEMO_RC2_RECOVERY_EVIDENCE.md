@@ -389,6 +389,14 @@ Branch: `feature/autonomous-demo-operations-rc2`
   heartbeat, Risk, Execution e recursos já persistidos. O endpoint técnico
   continua disponível para diagnóstico explícito. Testes dirigidos:
   `17 passed`; Ruff, mypy dirigido, compilação e `git diff --check`: PASS.
+- Uma página Cockpit carregada antes do deploy continuou a chamar o endpoint
+  legado a cada 30 s, provando que a correção apenas no cliente não era
+  suficiente. `/operations/overview` deixou por isso de reconstruir Market,
+  Observation Frame, Strategy, Risk e Hermes a cada GET. A compatibilidade do
+  schema foi preservada, mas todos os campos passam a ser projetados a partir
+  do snapshot e heartbeat persistentes do supervisor RC2. Um teste de regressão
+  prova que uma leitura produz apenas os dois eventos de request/response e não
+  reexecuta pipelines. Testes dirigidos: `18 passed`; Ruff: PASS.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

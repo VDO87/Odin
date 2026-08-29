@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 from uuid import uuid4
 
-from odin.adapters.brokers.isolated_observer import observer_status
 from odin.adapters.mt5.demo_session import reconcile_demo_session
 from odin.adapters.mt5.demo_readonly_state import (
     read_demo_observation_audit,
@@ -54,7 +53,6 @@ from odin.dashboard.schemas import (
     dashboard_state_payload,
     data_quality_payload,
     decision_intent_payload,
-    operational_overview_payload,
     feed_source_payload,
     health_payload,
     hermes_summary_payload,
@@ -476,24 +474,107 @@ class DashboardRoutes:
         return tradedesk_html()
 
     def _operational_overview(self) -> dict[str, object]:
-        """Return one read-only, human-oriented local-first operations view."""
-        return operational_overview_payload(
-            state=self._state(),
-            hermes=run_hermes_supervisor(
-                log_path=self.log_path,
-                sqlite_path=self.sqlite_path,
-            ),
-            market=market_status(log_path=self.log_path, sqlite_path=self.sqlite_path),
-            observation=observation_frame_status(
-                log_path=self.log_path,
-                sqlite_path=self.sqlite_path,
-            ),
-            strategy=strategy_status(log_path=self.log_path, sqlite_path=self.sqlite_path),
-            risk=risk_gate(log_path=self.log_path, sqlite_path=self.sqlite_path),
-            observer=observer_status(),
-            mt5=reconcile_demo_session("/mnt/d/ODIN_LOCAL/runtime/mt5_demo_session.json"),
-            mt5_observation=read_demo_readonly_state(),
+        """Return a read-only summary from already-persisted operational evidence.
+
+        Dashboard reads must not rebuild mock observation frames or rerun Hermes.
+        Those pipelines emit their own audit trails and made an old polling client
+        recursively grow JSONL/SQLite.  The persistent RC2 supervisor is the live
+        source for this compatibility endpoint.
+        """
+        autonomous = autonomous_demo_dashboard_state(
+            state_path=self.autonomous_state_path,
+            heartbeat_path=self.autonomous_heartbeat_path,
+            incidents_path=self.autonomous_incidents_path,
+            report_root=self.autonomous_report_root,
         )
+        supervisor = _object_dict(autonomous.get("supervisor"))
+        observed = _object_dict(supervisor.get("observed"))
+        resources = _object_dict(observed.get("resources"))
+        resource_snapshot = _object_dict(resources.get("snapshot"))
+        market = _object_dict(autonomous.get("market"))
+        risk = _object_dict(autonomous.get("risk"))
+        decision = _object_dict(autonomous.get("decision"))
+        execution = _object_dict(autonomous.get("execution"))
+        heartbeat = _object_dict(autonomous.get("heartbeat"))
+        reason_codes = supervisor.get("reason_codes", [])
+        reasons = reason_codes if isinstance(reason_codes, list) else []
+        supervisor_state = str(supervisor.get("state", "EXECUTION_PAUSED"))
+        terminal_connected = observed.get("terminal_connected") is True
+        account_mode = str(observed.get("account_mode", "UNKNOWN"))
+        mt5_connected_demo = terminal_connected and account_mode == "DEMO"
+        hermes_running = resource_snapshot.get("hermes_running") is True or (
+            resource_snapshot.get("wsl_hermes_running") is True
+        )
+        ollama_running = resource_snapshot.get("ollama_running") is True
+        market_fresh = market.get("data_freshness") == "FRESH"
+        market_open = market.get("market_open") is True
+        strategy_status = decision.get("decision", decision.get("status", "NO_TRADE"))
+
+        return {
+            "status": autonomous.get("status", "BLOCKED"),
+            "component": "operations_overview",
+            "mode": "LOCAL_ONLY",
+            "read_only": True,
+            "source": "persistent_autonomous_demo_state",
+            "safety": {
+                "safe_to_trade": False,
+                "real_trading": False,
+                "execution_allowed": False,
+                "human_approval_required": False,
+                "dashboard_configuration_writes_allowed": False,
+            },
+            "local_runtime": {
+                "runtime_status": autonomous.get("status", "BLOCKED"),
+                "hermes_status": "OK" if hermes_running else "DEGRADED",
+                "hermes_operational_state": "READ_ONLY",
+                "ollama_available": ollama_running,
+                "local_models": [],
+                "resource_guardian": resource_snapshot,
+                "warnings": resources.get("warning_codes", []),
+            },
+            "observation": {
+                "market_status": "OPEN" if market_open and market_fresh else supervisor_state,
+                "market_provider": observed.get("broker", "UNKNOWN"),
+                "observation_frame_status": market.get("data_freshness", "UNKNOWN"),
+                "strategy_status": strategy_status,
+                "risk_gate_status": risk.get("status", "BLOCK"),
+            },
+            "supervised_demo": {
+                "observer": {
+                    "status": "RUNNING" if heartbeat.get("fresh") is True else "DEGRADED",
+                    "reason": reasons[0] if reasons else supervisor_state,
+                    "execution_allowed": False,
+                },
+                "mt5": {
+                    "status": "CONNECTED_DEMO_READ_ONLY"
+                    if mt5_connected_demo
+                    else "BLOCKED",
+                    "reason": reasons[0] if reasons else supervisor_state,
+                    "terminal_connection_attempted": "terminal_connected" in observed,
+                    "kill_switch_engaged": observed.get("kill_switch_engaged", False),
+                    "execution_allowed": False,
+                },
+                "mt5_observation": {
+                    "status": "CONNECTED_DEMO_READ_ONLY"
+                    if mt5_connected_demo
+                    else "BLOCKED",
+                    "as_of": supervisor.get("updated_at_utc", ""),
+                    "market_status": "OPEN" if market_open and market_fresh else supervisor_state,
+                    "market_as_of": market.get("normalized_event_time_utc", ""),
+                    "positions_count": observed.get("positions_count", 0),
+                    "execution_allowed": False,
+                },
+                "execution": execution,
+            },
+            "configuration": {
+                "provider_policy": "local_first",
+                "cloud_fallback_allowed": False,
+                "automatic_code_application": False,
+                "repository_code_application": False,
+                "financial_data_policy": "read_only_observation",
+                "changes": "Use a reviewed local config change; this endpoint is informational.",
+            },
+        }
 
     def _shadow_intelligence(self) -> dict[str, object]:
         """Expose P0 replay evidence only; this route cannot interact with a broker."""
@@ -543,6 +624,10 @@ class DashboardRoutes:
         )
         self.logger.write(event)
         self.store.record_event(event)
+
+
+def _object_dict(value: object) -> dict[str, object]:
+    return value if isinstance(value, dict) else {}
 
 
 def _is_alert(event: dict[str, object]) -> bool:

@@ -88,6 +88,56 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
 
         initialize.assert_not_called()
 
+    def test_operations_overview_reads_persistent_state_without_rebuilding_pipelines(self):
+        autonomous = {
+            "status": "OK",
+            "supervisor": {
+                "state": "WAITING_MARKET",
+                "reason_codes": ["market_closed"],
+                "updated_at_utc": "2026-08-29T22:00:00Z",
+                "observed": {
+                    "account_mode": "DEMO",
+                    "broker": "OANDA TMS Brokers S.A.",
+                    "terminal_connected": True,
+                    "positions_count": 0,
+                    "kill_switch_engaged": False,
+                    "resources": {
+                        "snapshot": {"hermes_running": True, "ollama_running": True},
+                        "warning_codes": [],
+                    },
+                },
+            },
+            "heartbeat": {"fresh": True},
+            "market": {"market_open": False, "data_freshness": "STALE"},
+            "risk": {"status": "BLOCK"},
+            "decision": None,
+            "execution": {
+                "status": "NO_ORDER",
+                "reconciliation_status": "RECONCILED",
+                "broker_submission_called": False,
+            },
+        }
+        with patch(
+            "odin.dashboard.routes.autonomous_demo_dashboard_state",
+            return_value=autonomous,
+        ) as read_state:
+            payload = self.get_payload("/operations/overview")
+
+        self.assertEqual(payload["source"], "persistent_autonomous_demo_state")
+        self.assertEqual(payload["observation"]["market_status"], "WAITING_MARKET")
+        self.assertEqual(
+            payload["supervised_demo"]["mt5"]["status"],
+            "CONNECTED_DEMO_READ_ONLY",
+        )
+        self.assertIs(payload["safety"]["execution_allowed"], False)
+        read_state.assert_called_once()
+        events = self.routes.logs_tail(limit=20)["lines"]
+        event_names = [event["event"] for event in events]
+        self.assertEqual(
+            event_names,
+            ["dashboard.request.received", "dashboard.state.served"],
+        )
+
     def test_cockpit_shell_is_local_and_read_only(self):
         page = self.routes.cockpit_html()
 
