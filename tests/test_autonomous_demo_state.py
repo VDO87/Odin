@@ -123,6 +123,8 @@ def test_incident_fingerprint_accumulates_occurrences_without_new_diagnosis(
     assert first["fingerprint"] == second["fingerprint"]
     assert second["occurrences"] == 2
     assert second["first_seen"] == first["first_seen"]
+    assert first["regression_status"] == "NEW"
+    assert second["regression_status"] == "RECURRING"
 
     annotation = append_repair_evidence(
         path,
@@ -142,6 +144,20 @@ def test_incident_fingerprint_accumulates_occurrences_without_new_diagnosis(
     assert annotation["repair_annotation"] is True
     assert annotation["repair_annotated_at"] == (NOW + timedelta(minutes=2)).isoformat()
     assert annotation["successful_fix"] == "bounded_reconnect"
+
+    regression = append_incident(
+        path,
+        incident_type="MT5_DISCONNECTED",
+        component="mt5",
+        error_code="-10005",
+        root_cause="ipc_timeout",
+        evidence={"status": "offline"},
+        now_utc=NOW + timedelta(minutes=3),
+    )
+
+    assert regression["occurrences"] == 3
+    assert regression["regression_status"] == "REGRESSION"
+    assert regression["successful_fix"] == "bounded_reconnect"
 
 
 def test_operator_control_fails_to_pause_and_never_enables_global_execution(

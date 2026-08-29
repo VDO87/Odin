@@ -148,7 +148,7 @@ def append_incident(
     state_before: str = "",
     state_after: str = "",
     checkpoint: str = "",
-    regression_status: str = "NEW",
+    regression_status: str = "",
     now_utc: datetime | None = None,
 ) -> dict[str, object]:
     """Append one deduplicatable incident observation without storing secrets."""
@@ -167,6 +167,13 @@ def append_incident(
         if item.get("fingerprint") == fingerprint
     ]
     latest = previous[-1] if previous else {}
+    effective_regression_status = regression_status or (
+        "REGRESSION"
+        if latest.get("successful_fix")
+        else "RECURRING"
+        if previous
+        else "NEW"
+    )
     record: dict[str, object] = {
         "schema": "odin.autonomous_demo_incident/v1",
         "fingerprint": fingerprint,
@@ -192,7 +199,7 @@ def append_incident(
         "state_after": _safe_scalar(state_after)
         or _safe_scalar(latest.get("state_after", "")),
         "checkpoint": checkpoint or str(latest.get("checkpoint", "")),
-        "regression_status": regression_status,
+        "regression_status": effective_regression_status,
         **GLOBAL_GUARDRAILS,
     }
     target = Path(path)
