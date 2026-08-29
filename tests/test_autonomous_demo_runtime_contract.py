@@ -123,3 +123,42 @@ def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:
     assert "execution_allowed = $false" in control
     assert "real_trading = $false" in control
     assert "[Text.UTF8Encoding]::new($false)" in control
+
+
+def test_bounded_sleep_never_passes_negative_time_after_deadline_race() -> None:
+    supervisor = ROOT / "scripts/windows/mt5_autonomous_demo_supervisor.py"
+    tree = ast.parse(supervisor.read_text(encoding="utf-8"))
+    sleep_function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_sleep_bounded"
+    )
+
+    class AdvancingClock:
+        def __init__(self) -> None:
+            self.values = iter((100.0, 100.5, 101.1))
+            self.sleeps: list[float] = []
+
+        def monotonic(self) -> float:
+            return next(self.values)
+
+        def sleep(self, seconds: float) -> None:
+            assert seconds >= 0
+            self.sleeps.append(seconds)
+
+    clock = AdvancingClock()
+    namespace = {
+        "Path": Path,
+        "STOP_REQUESTED": False,
+        "read_control": lambda _path: {},
+        "time": clock,
+    }
+    exec(compile(ast.Module(body=[sleep_function], type_ignores=[]), str(supervisor), "exec"), namespace)
+
+    namespace["_sleep_bounded"](
+        1,
+        control_path=Path("unused.json"),
+        previous_request_id="",
+    )
+
+    assert clock.sleeps == []

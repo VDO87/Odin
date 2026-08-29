@@ -834,12 +834,18 @@ def _sleep_bounded(
     previous_request_id: str,
 ) -> None:
     deadline = time.monotonic() + seconds
-    while not STOP_REQUESTED and time.monotonic() < deadline:
+    while not STOP_REQUESTED:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
         current = read_control(control_path)
         current_request_id = str(current.get("request_id", ""))
         if current_request_id and current_request_id != previous_request_id:
             return
-        time.sleep(min(1.0, deadline - time.monotonic()))
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        time.sleep(min(1.0, remaining))
 
 
 def _bounded_integer(value: str | None, default: int, minimum: int, maximum: int) -> int:
