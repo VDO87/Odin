@@ -517,6 +517,13 @@ Branch: `feature/autonomous-demo-operations-rc2`
   evidência muda, não 75 chamadas ao modelo; a vista live usa o snapshot mais
   recente. Assim, mantém-se o limite de uma análise por trade/incidente único e
   não foi necessária alteração de código.
+- A auditoria de redaction examinou 97 artefactos runtime ativos e 9.960.500
+  bytes: relatórios, estado, logs e ledgers Windows, além de
+  `logs/hermes_ollama.jsonl`, `logs/odin_events.jsonl` e `runtime/odin.sqlite` no
+  WSL. A pesquisa reportou apenas categorias e nomes de ficheiro, nunca valores,
+  e encontrou zero ocorrências de token/password OANDA, Bearer credential,
+  segredo JSON ou login/account ID não mascarado. `.env`, fontes e bundles foram
+  deliberadamente excluídos porque esta prova cobre saídas persistidas.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
