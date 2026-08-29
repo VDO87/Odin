@@ -488,6 +488,21 @@ Branch: `feature/autonomous-demo-operations-rc2`
   não uma declaração de click end-to-end. Em todas as transições: submissão ao
   broker `false`, zero exposição, `safe_to_trade=false`, `real_trading=false` e
   `execution_allowed=false`.
+- O canal `Microsoft-Windows-TaskScheduler/Operational` permanece `Enabled` e
+  registou a instância corrente às `2026-08-30T00:00:32+01:00`: eventos
+  325/110/129/100/200, bootstrap PID `516` e ação Python direta no bundle
+  imutável `856e3f8fb130`. O bootstrap mantém um único supervisor lógico, PID
+  `3152`; o heartbeat correlacionado avançou até ao ciclo 73, ficou fresh e
+  publicou `WAITING_MARKET`. Os quatro endpoints locais responderam HTTP 200.
+  Esta instância começou depois de uma atualização da tarefa, não depois de um
+  reboot; por isso não é usada como prova de autoarranque após Windows restart.
+- A auditoria de processos encontrou simultaneamente o terminal histórico
+  `D:\ODIN_LOCAL\mt5\terminal64.exe` e o terminal OANDA allowlisted. O estado
+  factual do supervisor identifica exclusivamente
+  `C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe`, conta `DEMO`, broker
+  `OANDA TMS Brokers S.A.`, server `OANDATMS-MT5`, zero posições/ordens e
+  reconciliação `RECONCILED`. Nenhum processo foi terminado ou reconfigurado; a
+  instância histórica continua apenas fora do caminho operacional.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
