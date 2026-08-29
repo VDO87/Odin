@@ -26,6 +26,7 @@ class OllamaAdapterConfig:
     max_task_seconds: float = 300.0
     max_attempts: int = 2
     context_size: int = 2048
+    max_output_tokens: int = 512
     temperature: float = 0.1
     json_mode: bool = False
     audit_log_path: str = "logs/hermes_ollama.jsonl"
@@ -41,6 +42,8 @@ class OllamaAdapterConfig:
             raise ValueError("max_attempts deve estar entre 1 e 3")
         if not 256 <= self.context_size <= 8192:
             raise ValueError("context_size fora dos limites permitidos")
+        if not 16 <= self.max_output_tokens <= 2048:
+            raise ValueError("max_output_tokens fora dos limites permitidos")
         if not 0.0 <= self.temperature <= 1.0:
             raise ValueError("temperature deve estar entre 0 e 1")
 
@@ -93,6 +96,7 @@ class OllamaAdapter:
                 "keep_alive": "5m",
                 "options": {
                     "num_ctx": self.config.context_size,
+                    "num_predict": self.config.max_output_tokens,
                     "temperature": self.config.temperature,
                 },
             }

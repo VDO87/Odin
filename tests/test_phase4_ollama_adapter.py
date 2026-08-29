@@ -23,6 +23,7 @@ class Phase4OllamaAdapterTests(unittest.TestCase):
 
             def transport(_url, payload, _timeout):
                 self.assertEqual(payload["model"], "qwen2.5-coder:1.5b")
+                self.assertEqual(payload["options"]["num_predict"], 512)
                 return {"response": "codigo", "prompt_eval_count": 12, "eval_count": 7}
 
             result = OllamaAdapter(self._config(root), transport=transport).run(
@@ -103,6 +104,10 @@ class Phase4OllamaAdapterTests(unittest.TestCase):
     def test_rejects_non_local_endpoint(self):
         with self.assertRaisesRegex(ValueError, "host local"):
             OllamaAdapterConfig(base_url="http://192.0.2.1:11434")
+
+    def test_rejects_unbounded_output_configuration(self):
+        with self.assertRaisesRegex(ValueError, "max_output_tokens"):
+            OllamaAdapterConfig(max_output_tokens=4096)
 
     def test_json_mode_requests_native_json_output(self):
         with tempfile.TemporaryDirectory() as tmp:

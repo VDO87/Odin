@@ -114,6 +114,13 @@ def test_hermes_trade_and_incident_claims_retain_auditable_context() -> None:
                 "expected": "NEW",
                 "source": "HERMES_LOCAL_OLLAMA_READ_ONLY",
             },
+            {
+                "claim_id": "incident-error",
+                "kind": "incident_error_code",
+                "subject_id": "fingerprint-1",
+                "expected": ["resource_probe_unavailable"],
+                "source": "HERMES_LOCAL_OLLAMA_READ_ONLY",
+            },
         ],
         snapshot={
             "closed_trades": [
@@ -125,12 +132,16 @@ def test_hermes_trade_and_incident_claims_retain_auditable_context() -> None:
                 }
             ],
             "incidents": [
-                {"fingerprint": "fingerprint-1", "regression_status": "RESOLVED"}
+                {
+                    "fingerprint": "fingerprint-1",
+                    "error_code": "resource_probe_unavailable",
+                    "regression_status": "RESOLVED",
+                }
             ],
         },
     )
 
-    confirmed, contradicted = scores["items"]
+    confirmed, contradicted, normalized = scores["items"]
     assert confirmed["classification"] == "CONFIRMED"
     assert confirmed["evidence"]["observed"] == -0.88
     assert confirmed["action"] == "Review the deterministic exit."
@@ -139,6 +150,7 @@ def test_hermes_trade_and_incident_claims_retain_auditable_context() -> None:
     assert confirmed["context_hash"] == "context-1"
     assert contradicted["classification"] == "CONTRADICTED"
     assert contradicted["cause"] == "HALLUCINATION"
+    assert normalized["classification"] == "CONFIRMED"
 
 
 def test_weekly_gate_proposes_at_most_one_human_reviewed_initiative(tmp_path) -> None:

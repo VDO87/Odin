@@ -398,6 +398,10 @@ def _subject_record(
 
 
 def _values_equal(actual: object, expected: object) -> bool:
+    if isinstance(actual, list) and len(actual) == 1 and not isinstance(expected, list):
+        actual = actual[0]
+    if isinstance(expected, list) and len(expected) == 1 and not isinstance(actual, list):
+        expected = expected[0]
     if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
         return abs(float(actual) - float(expected)) <= 1e-9
     if isinstance(actual, list) and isinstance(expected, list):

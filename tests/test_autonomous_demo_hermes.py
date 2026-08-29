@@ -95,7 +95,7 @@ def test_one_structured_analysis_per_trade_incident_and_daily_summary(
                 "claims": [
                     {
                         "kind": "incident_regression_status",
-                        "expected": "RESOLVED",
+                        "expected": ["RESOLVED"],
                         "claim": "The incident is resolved.",
                         "action": "Monitor recurrence.",
                     }
@@ -150,6 +150,7 @@ def test_one_structured_analysis_per_trade_incident_and_daily_summary(
     assert claims[0]["action"] == "NO_ACTION"
     assert claims[0]["model"] == "local-test-model"
     assert claims[0]["latency_ms"] == 125
+    assert claims[1]["expected"] == "RESOLVED"
     assert claims[0]["financial_authority"] is False
     assert all(item["execution_allowed"] is False for item in events + claims)
 

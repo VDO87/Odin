@@ -45,6 +45,7 @@ _ALLOWED_KINDS = {
         "runtime_state",
     },
 }
+_LIST_KINDS = {"decision_reason_codes"}
 
 
 def run_next_hermes_reality_analysis(
@@ -213,6 +214,9 @@ def _next_candidate(
 
 def _prompt(candidate: dict[str, Any], context: object) -> str:
     allowed = sorted(_ALLOWED_KINDS[str(candidate["trigger_type"])])
+    expected_types = {
+        kind: "string_list" if kind in _LIST_KINDS else "scalar" for kind in allowed
+    }
     return "\n".join(
         (
             "You are Hermes in ODIN read-only diagnostic mode.",
@@ -222,6 +226,7 @@ def _prompt(candidate: dict[str, Any], context: object) -> str:
             f"trigger_type={candidate['trigger_type']}",
             f"subject_id={candidate['subject_id']}",
             f"allowed_kinds={json.dumps(allowed)}",
+            f"expected_types={json.dumps(expected_types, sort_keys=True)}",
             f"facts={json.dumps(context, sort_keys=True, separators=(',', ':'))}",
         )
     )
@@ -249,7 +254,7 @@ def _parse_claims(
     for raw in payload["claims"][:4]:
         if not isinstance(raw, dict) or raw.get("kind") not in allowed:
             continue
-        expected = _expected_value(raw.get("expected"))
+        expected = _expected_value(kind=str(raw["kind"]), value=raw.get("expected"))
         if expected is None:
             continue
         kind = str(raw["kind"])
@@ -288,6 +293,7 @@ def _default_runner(audit_log_path: str | Path) -> HermesRunner:
             max_task_seconds=50.0,
             max_attempts=1,
             context_size=2048,
+            max_output_tokens=256,
             temperature=0.0,
             json_mode=True,
             audit_log_path=str(audit_log_path),
@@ -336,14 +342,18 @@ def _read_jsonl(path: Path) -> list[dict[str, object]]:
     return result
 
 
-def _expected_value(value: object) -> bool | int | float | str | list[str] | None:
+def _expected_value(
+    *, kind: str, value: object
+) -> bool | int | float | str | list[str] | None:
+    if kind not in _LIST_KINDS and isinstance(value, list) and len(value) == 1:
+        value = value[0]
     if isinstance(value, bool):
         return value
     if isinstance(value, (int, float)):
         return value
     if isinstance(value, str) and value and len(value) <= 160:
         return value
-    if (
+    if kind in _LIST_KINDS and (
         isinstance(value, list)
         and len(value) <= 12
         and all(isinstance(item, str) and len(item) <= 120 for item in value)
