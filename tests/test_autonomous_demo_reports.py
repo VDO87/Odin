@@ -166,6 +166,11 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
     acceptance = (reports / "ODIN_AUTONOMOUS_DEMO_ACCEPTANCE_REPORT.md").read_text()
     assert "Status: NOT_READY" in acceptance
     assert "24h market-open soak: PENDING" in acceptance
+    assert "Initial canary fully reconciled: BLOCKED" in acceptance
+    assert "Auto-start after an actual Windows reboot: FINAL_AUDIT_REQUIRED" in acceptance
+    assert "Restart/recovery validated: PARTIAL" in acceptance
+    assert "Full final suite: PENDING" in acceptance
+    assert "may only reach ELIGIBLE_FOR_FINAL_AUDIT automatically" in acceptance
     assert (reports / "ODIN_AUTONOMOUS_DEMO_STATUS.md").exists()
     assert (reports / "ODIN_AUTONOMOUS_DEMO_TRADES.jsonl").exists()
     assert (reports / "ODIN_AUTONOMOUS_DEMO_INCIDENTS.md").exists()
@@ -179,6 +184,53 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
     assert "State after: DASHBOARD_RUNNING" in repairs
     assert "Checkpoint: abc1234" in repairs
     assert repairs.count("dashboard_restarted_by_bounded_launcher") == 1
+
+
+def test_operational_thresholds_only_make_report_eligible_for_final_audit(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "ODIN_AUTONOMOUS_DEMO_ACCEPTANCE_REPORT.md"
+    (tmp_path / "ODIN_RUNTIME_RATIONALIZATION_REPORT.md").write_text(
+        "validated",
+        encoding="utf-8",
+    )
+    state = _state()
+    observed = state["observed"]
+    assert isinstance(observed, dict)
+    observed.update(
+        {
+            "account_mode": "DEMO",
+            "time_profile": "oanda_tms_mt5_cet_cest_v1",
+            "dashboard": "RUNNING",
+            "resources": {"snapshot": {"supervisor_logical_instances": 1}},
+        }
+    )
+    reports_module._write_acceptance(
+        report,
+        {
+            "market_open_hours": 24.0,
+            "autonomous_demo_trades": 5,
+            "demo_trades_total": 6,
+            "reconciled_trades": 6,
+            "execution_ledger_status": "OK",
+            "decision_ledger_status": "OK",
+            "duplicates": 0,
+            "orphan_positions": 0,
+            "real_trading": False,
+        },
+        supervisor_state=state,
+        incidents=[
+            {"incident_type": "DASHBOARD_RECOVERY", "successful_fix": "fixed"},
+            {"incident_type": "SCHEDULER_ORPHAN_PROCESS", "successful_fix": "fixed"},
+        ],
+        hermes={"status": "RECORDED"},
+    )
+
+    acceptance = report.read_text(encoding="utf-8")
+    assert "Status: ELIGIBLE_FOR_FINAL_AUDIT" in acceptance
+    assert "Status: PASSED" not in acceptance
+    assert "Auto-start after an actual Windows reboot: FINAL_AUDIT_REQUIRED" in acceptance
+    assert "Final acceptance declaration: PENDING" in acceptance
 
 
 def test_hermes_claim_is_scored_once_per_unchanged_context(tmp_path: Path) -> None:

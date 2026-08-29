@@ -113,7 +113,6 @@ def update_autonomous_demo_reports(
     _write_status(root / "ODIN_AUTONOMOUS_DEMO_STATUS.md", supervisor_state, metrics)
     _write_incidents(root / "ODIN_AUTONOMOUS_DEMO_INCIDENTS.md", incidents)
     _write_repairs(root / "ODIN_AUTONOMOUS_DEMO_REPAIRS.md", incidents)
-    _write_acceptance(root / "ODIN_AUTONOMOUS_DEMO_ACCEPTANCE_REPORT.md", metrics)
     hermes = _update_hermes_journal(
         root / "ODIN_HERMES_VS_REALITY.jsonl",
         supervisor_state=supervisor_state,
@@ -126,6 +125,13 @@ def update_autonomous_demo_reports(
         closed=closed,
         incidents=incidents,
         now=now,
+    )
+    _write_acceptance(
+        root / "ODIN_AUTONOMOUS_DEMO_ACCEPTANCE_REPORT.md",
+        metrics,
+        supervisor_state=supervisor_state,
+        incidents=incidents,
+        hermes=hermes,
     )
     return {
         "status": "UPDATED",
@@ -199,30 +205,116 @@ def _write_repairs(path: Path, incidents: list[dict[str, object]]) -> None:
     _atomic_text(path, "\n".join(lines) + "\n")
 
 
-def _write_acceptance(path: Path, metrics: dict[str, object]) -> None:
+def _write_acceptance(
+    path: Path,
+    metrics: dict[str, object],
+    *,
+    supervisor_state: dict[str, object],
+    incidents: list[dict[str, object]],
+    hermes: dict[str, object],
+) -> None:
+    observed = _as_dict(supervisor_state.get("observed"))
+    resources = _as_dict(observed.get("resources"))
+    resource_snapshot = _as_dict(resources.get("snapshot"))
     soak_ok = _number(metrics.get("market_open_hours")) >= 24.0
     trades_ok = _integer(metrics.get("autonomous_demo_trades")) >= 5
+    canary_ok = (
+        _integer(metrics.get("demo_trades_total")) >= 1
+        and _integer(metrics.get("reconciled_trades")) >= 1
+    )
     ledger_ok = (
         metrics.get("execution_ledger_status") == "OK"
         and metrics.get("decision_ledger_status") == "OK"
         and metrics.get("duplicates") == 0
         and metrics.get("orphan_positions") == 0
     )
+    supervisor_ok = supervisor_state.get("state") not in {
+        None,
+        "SECURITY_HARD_BLOCK",
+        "EXECUTION_PAUSED",
+    }
+    single_instance_ok = resource_snapshot.get("supervisor_logical_instances") == 1
+    dashboard_ok = observed.get("dashboard") == "RUNNING"
+    mt5_identity_ok = (
+        observed.get("account_mode") == "DEMO"
+        and observed.get("broker") == "OANDA TMS Brokers S.A."
+        and observed.get("server") == "OANDATMS-MT5"
+        and observed.get("terminal_connected") is True
+    )
+    symbol_ok = (
+        observed.get("logical_symbol") == "EURUSD"
+        and observed.get("broker_symbol") == "EURUSD.pro"
+    )
+    time_profile_ok = observed.get("time_profile") == "oanda_tms_mt5_cet_cest_v1"
+    repairs_visible = any(item.get("successful_fix") for item in incidents)
+    restart_types = {
+        str(item.get("incident_type"))
+        for item in incidents
+        if item.get("successful_fix")
+    }
+    recovery_ok = {
+        "DASHBOARD_RECOVERY",
+        "SCHEDULER_ORPHAN_PROCESS",
+    }.issubset(restart_types)
+    hermes_visible = hermes.get("status") in {"RECORDED", "ALREADY_RECORDED"}
+    rationalization_exists = (path.parent / "ODIN_RUNTIME_RATIONALIZATION_REPORT.md").is_file()
     status = "ELIGIBLE_FOR_FINAL_AUDIT" if soak_ok and trades_ok and ledger_ok else "NOT_READY"
     lines = [
         "# ODIN Autonomous DEMO Operations RC2 — Acceptance",
         "",
         f"Status: {status}",
+        "",
+        "## Runtime evidence matrix",
+        "",
+        f"- Initial canary fully reconciled: {_pass(canary_ok)} "
+        f"(demo={metrics.get('demo_trades_total', 0)}; reconciled={metrics.get('reconciled_trades', 0)})",
+        f"- Persistent supervisor active: {_pass(supervisor_ok)} "
+        f"(state={supervisor_state.get('state', 'UNAVAILABLE')})",
+        "- Auto-start after an actual Windows reboot: FINAL_AUDIT_REQUIRED",
+        f"- Single-instance lock: {_pass(single_instance_ok)} "
+        f"(logical_instances={resource_snapshot.get('supervisor_logical_instances', 'UNAVAILABLE')})",
+        f"- TradeDesk and Cockpit available: {_pass(dashboard_ok)}",
+        f"- MT5 DEMO identity allowlisted: {_pass(mt5_identity_ok)}",
+        f"- Canonical symbol mapping EURUSD -> EURUSD.pro: {_pass(symbol_ok)}",
+        f"- Broker time profile consistent: {_pass(time_profile_ok)}",
+        "- Live decisions/risk/orders/positions visibility: FINAL_AUDIT_REQUIRED",
+        f"- Repairs visible: {_pass(repairs_visible)}",
+        f"- Hermes-versus-Reality visible: {_pass(hermes_visible)}",
         f"- 24h market-open soak: {'PASS' if soak_ok else 'PENDING'} ({metrics.get('market_open_hours', 0)} h)",
         f"- 5 autonomous DEMO trades: {'PASS' if trades_ok else 'PENDING'} ({metrics.get('autonomous_demo_trades', 0)})",
-        f"- Ledgers/duplicates/orphans: {'PASS' if ledger_ok else 'BLOCKED'}",
-        "- Final suite and recovery acceptance: PENDING until the operational thresholds pass.",
+        f"- Zero REAL operations: {_pass(metrics.get('real_trading') is False)}",
+        f"- Zero duplicate submissions: {_pass(metrics.get('duplicates') == 0)}",
+        f"- Zero unresolved orphan positions: {_pass(metrics.get('orphan_positions') == 0)}",
+        "- Zero Risk Engine bypass: FINAL_AUDIT_REQUIRED",
+        "- Zero Demo Execution Gate bypass: FINAL_AUDIT_REQUIRED",
+        f"- Restart/recovery validated: {_pass(recovery_ok, failure='PARTIAL')}",
+        f"- Decision and Execution Ledgers consistent: {_pass(ledger_ok)}",
+        f"- Runtime rationalization report present: {_pass(rationalization_exists)}",
+        "- Unnecessary components excluded from active path: FINAL_AUDIT_REQUIRED",
+        "- n8n not installed without need: FINAL_AUDIT_REQUIRED",
+        "- Agent Zero / Oh My Hermes absent from runtime: FINAL_AUDIT_REQUIRED",
+        "",
+        "## Final audit gates",
+        "",
+        "- Full final suite: PENDING",
+        "- Global Ruff: PENDING",
+        "- Directed mypy: PENDING",
+        "- git diff --check and clean worktree: PENDING",
+        "- Final checkpoint: PENDING",
+        "- Final acceptance declaration: PENDING",
+        "",
+        "The runtime may only reach ELIGIBLE_FOR_FINAL_AUDIT automatically. "
+        "ODIN AUTONOMOUS DEMO OPERATIONS RC2 — PASSED requires the final audit.",
         "",
         "safe_to_trade=false",
         "real_trading=false",
         "execution_allowed=false",
     ]
     _atomic_text(path, "\n".join(lines) + "\n")
+
+
+def _pass(value: bool, *, failure: str = "BLOCKED") -> str:
+    return "PASS" if value else failure
 
 
 def _write_closed_trades(path: Path, records: list[dict[str, object]]) -> None:
