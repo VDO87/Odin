@@ -1073,7 +1073,11 @@ def _resource_gate() -> dict[str, object]:
             raise ValueError("resource_probe_payload_invalid")
         value["probe_duration_ms"] = round((time.monotonic() - started) * 1000)
         if value.get("probe_status") == "OK":
-            value.update(_wsl_resource_snapshot())
+            wsl_snapshot = _wsl_resource_snapshot()
+            value.update(wsl_snapshot)
+            value["hermes_running"] = value.get("hermes_running") is True or (
+                wsl_snapshot.get("wsl_hermes_running") is True
+            )
     except subprocess.TimeoutExpired:
         value = _resource_probe_failure(
             "resource_probe_timeout",

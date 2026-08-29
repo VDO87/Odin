@@ -87,7 +87,7 @@ def test_wsl_resource_sample_reports_hermes_without_exposing_process_arguments(
         f"{marker}\n"
     )
 
-    assert result["hermes_running"] is expected
+    assert result["wsl_hermes_running"] is expected
 
 
 @pytest.mark.parametrize(

@@ -83,7 +83,7 @@ def parse_wsl_resource_snapshot(output: str) -> dict[str, object]:
     }
     hermes_line = next((line for line in lines[2:] if line.startswith("HERMES:")), "")
     if hermes_line in {"HERMES:0", "HERMES:1"}:
-        result["hermes_running"] = hermes_line == "HERMES:1"
+        result["wsl_hermes_running"] = hermes_line == "HERMES:1"
     return result
 
 

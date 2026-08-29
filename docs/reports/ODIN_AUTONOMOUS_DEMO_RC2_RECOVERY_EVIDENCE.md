@@ -285,6 +285,12 @@ Branch: `feature/autonomous-demo-operations-rc2`
   passaram a ser enumerados diretamente por `CreateToolhelp32Snapshot`. A sonda
   real terminou em 622 ms e observou `hermes_running=true` e
   `ollama_running=true`; não foram iniciados serviços nem guardados argumentos.
+- No merge seguinte, o marcador factual `HERMES:0` do WSL sobrescreveu
+  incorretamente `Hermes.exe=true` do Windows. As fontes passaram a permanecer
+  separadas (`wsl_hermes_running`) e `hermes_running` é a união explícita das
+  observações Windows/WSL. Ollama já foi confirmado `true`; o runtime manteve
+  quatro ciclos em `WAITING_MARKET`, probe `OK` em 1.125--4.250 ms, resource
+  `WARNING`, zero exposição e guardrails `false` durante o diagnóstico.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
