@@ -136,6 +136,8 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "wsl.exe -d Ubuntu-ODIN --user odin --exec git" in launcher
     assert "ODIN_RUNTIME_RATIONALIZATION_REPORT.md" in launcher
     assert "Copy-Item -LiteralPath $rationalizationSource" in launcher
+    assert "& $PythonPath $probe" in launcher
+    assert "Start-Process -FilePath $PythonPath" not in launcher
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:
