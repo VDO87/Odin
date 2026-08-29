@@ -465,6 +465,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `false`, guardrails `false` e zero erros de consola. Validação: `19 passed`,
   Ruff, mypy isolado, sintaxe JavaScript, browser live e `git diff --check`:
   PASS. Repair registado como `COCKPIT_LIVE_HISTORICAL_SCOPE`.
+- O controlo `OPEN REPORTS` apontava para `/cockpit#reports`, mas o Cockpit não
+  possuía esse destino. O checkpoint `9680f4d` adicionou um inventário local
+  estritamente read-only com os oito relatórios RC2 obrigatórios, expondo apenas
+  nome, disponibilidade, bytes e timestamp; nenhum conteúdo de relatório é
+  devolvido. A prova end-to-end no browser abriu o link, encontrou o anchor
+  `#reports`, carregou `8/8`, confirmou `read_only=true`, guardrails `false` e
+  zero erros de consola. Validação: `20 passed`, Ruff, mypy isolado, sintaxe
+  JavaScript, browser live e `git diff --check`: PASS. Repair registado como
+  `OPERATOR_REPORTS_NAVIGATION`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
