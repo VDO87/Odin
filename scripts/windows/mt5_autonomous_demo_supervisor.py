@@ -49,6 +49,7 @@ from odin.trading.autonomous_demo_state import (  # noqa: E402
 )
 from odin.trading.autonomous_demo_resources import (  # noqa: E402
     evaluate_resource_snapshot,
+    merge_resource_storage_totals,
     parse_wsl_resource_snapshot,
 )
 from odin.trading.autonomous_demo_runtime import read_local_git_checkpoint  # noqa: E402
@@ -1079,7 +1080,7 @@ def _resource_gate(*, dashboard_status: str) -> dict[str, object]:
                 _wsl_resource_snapshot(),
                 dashboard_status=dashboard_status,
             )
-            value.update(wsl_snapshot)
+            value = merge_resource_storage_totals(value, wsl_snapshot)
             value["hermes_running"] = value.get("hermes_running") is True or (
                 wsl_snapshot.get("wsl_hermes_running") is True
             )
@@ -1137,7 +1138,13 @@ def _wsl_resource_snapshot() -> dict[str, object]:
                 (
                     "ulimit -n; ps -e --no-headers | wc -l; free -b; "
                     "pgrep -f '[h]ermes_cli\\.main serve' >/dev/null "
-                    "&& echo HERMES:1 || echo HERMES:0"
+                    "&& echo HERMES:1 || echo HERMES:0; "
+                    "find /home/odin/projects/odin/logs -maxdepth 1 -type f "
+                    "-printf '%s\\n' 2>/dev/null | "
+                    "awk '{total += $1} END {print \"WSL_LOGS_BYTES:\" total + 0}'; "
+                    "find /home/odin/projects/odin/runtime -maxdepth 1 -type f "
+                    "-name 'odin.sqlite*' -printf '%s\\n' 2>/dev/null | "
+                    "awk '{total += $1} END {print \"WSL_SQLITE_BYTES:\" total + 0}'"
                 ),
             ],
             check=False,

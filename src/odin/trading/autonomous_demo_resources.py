@@ -86,6 +86,40 @@ def parse_wsl_resource_snapshot(output: str) -> dict[str, object]:
     hermes_line = next((line for line in lines[2:] if line.startswith("HERMES:")), "")
     if hermes_line in {"HERMES:0", "HERMES:1"}:
         result["wsl_hermes_running"] = hermes_line == "HERMES:1"
+    for marker, key in (
+        ("WSL_LOGS_BYTES:", "wsl_logs_bytes"),
+        ("WSL_SQLITE_BYTES:", "wsl_sqlite_bytes"),
+    ):
+        line = next((item for item in lines[2:] if item.startswith(marker)), "")
+        if not line:
+            continue
+        raw = line.removeprefix(marker)
+        if not raw.isdigit():
+            return {
+                "wsl_running": False,
+                "wsl_probe_error_code": "wsl_resource_probe_invalid_output",
+            }
+        result[key] = int(raw)
+    return result
+
+
+def merge_resource_storage_totals(
+    host_snapshot: Mapping[str, object],
+    wsl_snapshot: Mapping[str, object],
+) -> dict[str, object]:
+    """Merge exact WSL storage observations without hiding either source."""
+    result = dict(host_snapshot)
+    result.update(wsl_snapshot)
+    for total_key, wsl_key in (
+        ("logs_and_reports_bytes", "wsl_logs_bytes"),
+        ("sqlite_bytes", "wsl_sqlite_bytes"),
+    ):
+        host_value = _byte_count(host_snapshot.get(total_key))
+        wsl_value = _byte_count(wsl_snapshot.get(wsl_key))
+        if host_value is None or wsl_value is None:
+            continue
+        result[f"windows_{total_key}"] = host_value
+        result[total_key] = host_value + wsl_value
     return result
 
 
@@ -102,3 +136,9 @@ def _temperatures(snapshot: Mapping[str, object]) -> list[float]:
 
 def _at_least(value: object, minimum: float) -> bool:
     return isinstance(value, (int, float)) and float(value) >= minimum
+
+
+def _byte_count(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+        return None
+    return int(value)

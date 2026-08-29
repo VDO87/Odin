@@ -4,6 +4,7 @@ import pytest
 
 from odin.trading.autonomous_demo_resources import (
     evaluate_resource_snapshot,
+    merge_resource_storage_totals,
     parse_wsl_resource_snapshot,
 )
 
@@ -66,6 +67,44 @@ def test_combined_wsl_resource_sample_is_parsed_deterministically() -> None:
         "wsl_memory_total_mb": 8192,
         "wsl_memory_available_mb": 6144,
     }
+
+
+def test_wsl_resource_sample_includes_exact_dashboard_storage_bytes() -> None:
+    result = parse_wsl_resource_snapshot(
+        "10240\n39\n"
+        "Mem: 8589934592 2147483648 1073741824 0 5368709120 6442450944\n"
+        "HERMES:0\n"
+        "WSL_LOGS_BYTES:2658700\n"
+        "WSL_SQLITE_BYTES:2506752\n"
+    )
+
+    assert result["wsl_logs_bytes"] == 2_658_700
+    assert result["wsl_sqlite_bytes"] == 2_506_752
+
+
+def test_windows_and_wsl_storage_totals_remain_auditable() -> None:
+    result = merge_resource_storage_totals(
+        {"logs_and_reports_bytes": 1_275_017, "sqlite_bytes": 90_112},
+        {"wsl_logs_bytes": 2_658_700, "wsl_sqlite_bytes": 2_506_752},
+    )
+
+    assert result["windows_logs_and_reports_bytes"] == 1_275_017
+    assert result["wsl_logs_bytes"] == 2_658_700
+    assert result["logs_and_reports_bytes"] == 3_933_717
+    assert result["windows_sqlite_bytes"] == 90_112
+    assert result["wsl_sqlite_bytes"] == 2_506_752
+    assert result["sqlite_bytes"] == 2_596_864
+
+
+def test_missing_wsl_storage_metrics_does_not_invent_totals() -> None:
+    result = merge_resource_storage_totals(
+        {"logs_and_reports_bytes": 1_275_017, "sqlite_bytes": 90_112},
+        {"wsl_running": True},
+    )
+
+    assert result["logs_and_reports_bytes"] == 1_275_017
+    assert result["sqlite_bytes"] == 90_112
+    assert "windows_logs_and_reports_bytes" not in result
 
 
 def test_invalid_wsl_resource_sample_fails_closed_without_fake_metrics() -> None:
