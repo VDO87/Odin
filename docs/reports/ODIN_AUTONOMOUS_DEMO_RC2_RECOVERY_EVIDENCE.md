@@ -337,6 +337,14 @@ Branch: `feature/autonomous-demo-operations-rc2`
   Três ciclos consecutivos ficaram em `WAITING_MARKET`, resource `WARNING`, WSL
   vivo, zero posições/ordens, reconciliação `RECONCILED`, nenhuma submissão ao
   broker e guardrails globais `false`.
+- Um incidente único posterior expôs a mesma contenção Windows no writer dos
+  relatórios: `AUTONOMOUS_REPORTING_EXCEPTION / PermissionError` enquanto um
+  leitor abria os artefactos. O writer de estado já tinha retry bounded, mas
+  `_atomic_text` ainda fazia uma única substituição. Os relatórios passaram a
+  repetir apenas o `replace`, no máximo quatro vezes, com esperas de
+  50/100/150 ms; contenção persistente conserva o relatório anterior e propaga a
+  falha. A validação dirigida passou com `67 passed`; Ruff, mypy dirigido e
+  `git diff --check`: PASS.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

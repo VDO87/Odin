@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 import hashlib
 import json
 from pathlib import Path
+import time
 from typing import Iterable
 
 from odin.contracts.events import redact_for_audit
@@ -25,6 +26,8 @@ _GUARDRAILS = {
 _CANARY_DECISION_ID = "rc1-canary-human-confirmed"
 _EQUITY_SAMPLE_INTERVAL_SECONDS = 300.0
 _MAX_EQUITY_SAMPLES = 2_016
+_ATOMIC_REPLACE_ATTEMPTS = 4
+_ATOMIC_REPLACE_DELAY_SECONDS = 0.05
 
 
 def update_autonomous_demo_reports(
@@ -404,4 +407,11 @@ def _atomic_text(path: Path, value: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(value, encoding="utf-8")
-    temporary.replace(path)
+    for attempt in range(_ATOMIC_REPLACE_ATTEMPTS):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt + 1 >= _ATOMIC_REPLACE_ATTEMPTS:
+                raise
+            time.sleep(_ATOMIC_REPLACE_DELAY_SECONDS * (attempt + 1))

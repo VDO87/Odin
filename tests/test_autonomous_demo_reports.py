@@ -4,11 +4,64 @@ from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 
+import pytest
+
+from odin.reporting import autonomous_demo_reports as reports_module
 from odin.reporting.autonomous_demo_reports import update_autonomous_demo_reports
 from odin.trading.autonomous_demo_state import append_incident, build_supervisor_state
 
 
 NOW = datetime(2026, 8, 31, 8, tzinfo=UTC)
+
+
+def test_report_write_retries_transient_windows_replace_contention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "status.md"
+    path.write_text("initial", encoding="utf-8")
+    original_replace = Path.replace
+    attempts = 0
+    delays: list[float] = []
+
+    def replace_after_contention(source: Path, target: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise PermissionError(5, "simulated Windows sharing contention")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", replace_after_contention)
+    monkeypatch.setattr(reports_module.time, "sleep", delays.append)
+
+    reports_module._atomic_text(path, "updated")
+
+    assert attempts == 2
+    assert delays == [0.05]
+    assert path.read_text(encoding="utf-8") == "updated"
+
+
+def test_report_write_fails_closed_after_bounded_replace_contention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "status.md"
+    path.write_text("initial", encoding="utf-8")
+    attempts = 0
+    delays: list[float] = []
+
+    def replace_blocked(_source: Path, _target: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        raise PermissionError(5, "simulated persistent Windows sharing contention")
+
+    monkeypatch.setattr(Path, "replace", replace_blocked)
+    monkeypatch.setattr(reports_module.time, "sleep", delays.append)
+
+    with pytest.raises(PermissionError):
+        reports_module._atomic_text(path, "updated")
+
+    assert attempts == 4
+    assert delays == pytest.approx([0.05, 0.1, 0.15])
+    assert path.read_text(encoding="utf-8") == "initial"
 
 
 def _state() -> dict[str, object]:
