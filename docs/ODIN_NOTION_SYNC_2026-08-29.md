@@ -85,6 +85,7 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `2a93d4e` — regressões posteriores a um fix classificadas como `REGRESSION`.
 - `3c7dfdc` — curva MT5 DEMO reconciliada e bounded no TradeDesk; recovery
   autónomo do dashboard comprovado em 34,8 s.
+- `4bce696` — timeline real e redigida do Execution Ledger na Visão Geral.
 
 ## Próximos gates
 

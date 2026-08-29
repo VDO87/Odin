@@ -142,6 +142,18 @@ Branch: `feature/autonomous-demo-operations-rc2`
   ficou `RESOLVED` e registou fix, ficheiro, teste, estado antes/depois e
   checkpoint. `broker_submission_called=false` durante todo o teste.
 
+### Timeline real do Execution Ledger
+
+- O checkpoint `4bce696` expôs no endpoint read-only uma projeção bounded dos
+  últimos 20 eventos, apenas quando a hash-chain do Execution Ledger é válida.
+- A timeline viva contém 11 eventos e cobre `PROPOSED`, `RISK_APPROVED`,
+  `ORDER_CHECKED`, `FILLED`, `RECONCILED` e `CLOSED`.
+- O último evento foi observado como `CLOSED / RECONCILED`, `close_reason=SL` e
+  `realized_pnl=-0.88`. O ticket aparece apenas como `••••7246`; não existe chave
+  com o ticket integral no payload.
+- Testes dirigidos do ledger, Demo Gate, observabilidade e TradeDesk:
+  `95 passed`. Ruff e mypy dirigidos: PASS.
+
 ### Restart do WSL
 
 - Pré-condições: zero posições, zero ordens, mercado stale e nenhuma submissão.
