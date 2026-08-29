@@ -61,6 +61,17 @@ class TradeDeskReplayTests(unittest.TestCase):
         self.assertIn("MT5 DEMO · read-only", routes.tradedesk_html())
         self.assertIn("EXECUTION BLOCKED", routes.tradedesk_html())
         self.assertIn("Detalhes técnicos", routes.tradedesk_html())
+        self.assertIn("Decisão live ODIN", routes.tradedesk_html())
+        self.assertIn("display_source:'RUNTIME_STATE'", routes.tradedesk_html())
+        self.assertIn("shadow_reference:shadowDecision", routes.tradedesk_html())
+        self.assertIn(
+            "q('shadow-freshness').textContent=shadowDecision.freshness",
+            routes.tradedesk_html(),
+        )
+        self.assertNotIn(
+            "observed.latest_decision?.decision_id?observed.latest_decision:shadowDecision",
+            routes.tradedesk_html(),
+        )
         self.assertIn("ODIN Cockpit", routes.cockpit_html())
         self.assertIs(payload["real_trading"], False)
 
