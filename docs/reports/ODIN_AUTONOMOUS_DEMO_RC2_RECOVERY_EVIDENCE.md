@@ -279,6 +279,12 @@ Branch: `feature/autonomous-demo-operations-rc2`
   sem guardar argumentos de processos. A duração de probes Windows bem-sucedidos
   passou também a ser persistida. A matriz dirigida desta alteração passou com
   `57 passed`; Ruff, mypy dirigido e `git diff --check` passaram.
+- A validação seguinte mostrou que, neste host, Hermes é a aplicação Windows
+  `Hermes.exe` e Ollama também corre no Windows; `tasklist.exe` expirava no token
+  agendado e devolvia ambos como falsos. O subprocesso foi removido e os nomes
+  passaram a ser enumerados diretamente por `CreateToolhelp32Snapshot`. A sonda
+  real terminou em 622 ms e observou `hermes_running=true` e
+  `ollama_running=true`; não foram iniciados serviços nem guardados argumentos.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

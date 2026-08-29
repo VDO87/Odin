@@ -34,6 +34,21 @@ class _MemoryStatus(ctypes.Structure):
     ]
 
 
+class _ProcessEntry(ctypes.Structure):
+    _fields_ = [
+        ("size", ctypes.c_uint32),
+        ("usage", ctypes.c_uint32),
+        ("process_id", ctypes.c_uint32),
+        ("default_heap_id", ctypes.POINTER(ctypes.c_ulong)),
+        ("module_id", ctypes.c_uint32),
+        ("threads", ctypes.c_uint32),
+        ("parent_process_id", ctypes.c_uint32),
+        ("priority_base", ctypes.c_long),
+        ("flags", ctypes.c_uint32),
+        ("executable", ctypes.c_wchar * 260),
+    ]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--supervisor-process-id", required=True, type=int)
@@ -43,7 +58,7 @@ def main() -> int:
     memory_total_mb, memory_available_mb = _memory_megabytes()
     disk = shutil.disk_usage(arguments.root)
     gpu = _gpu_snapshot()
-    processes = _tasklist_names()
+    processes = _process_names()
     mutex_verified = _mutex_exists(MUTEX_NAME)
     snapshot: dict[str, object] = {
         "schema": "odin.autonomous_demo_resource_snapshot/v1",
@@ -70,7 +85,7 @@ def main() -> int:
         ),
         "sqlite_bytes": _sqlite_bytes(Path(arguments.root) / "runtime"),
         "ollama_running": any(name in {"ollama.exe", "ollama app.exe"} for name in processes),
-        "hermes_running": False,
+        "hermes_running": "hermes.exe" in processes,
     }
     print(json.dumps(snapshot, separators=(",", ":"), sort_keys=True))
     return 0
@@ -189,25 +204,23 @@ def _gpu_snapshot() -> dict[str, object]:
         return empty
 
 
-def _tasklist_names() -> set[str]:
+def _process_names() -> set[str]:
+    kernel = ctypes.windll.kernel32
+    kernel.CreateToolhelp32Snapshot.restype = ctypes.c_void_p
+    snapshot = kernel.CreateToolhelp32Snapshot(0x00000002, 0)
+    if not snapshot or snapshot == ctypes.c_void_p(-1).value:
+        return set()
+    names: set[str] = set()
+    entry = _ProcessEntry()
+    entry.size = ctypes.sizeof(_ProcessEntry)
     try:
-        completed = subprocess.run(
-            ["tasklist.exe", "/FO", "CSV", "/NH"],
-            check=False,
-            capture_output=True,
-            creationflags=CREATE_NO_WINDOW,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return set()
-    if completed.returncode != 0:
-        return set()
-    return {
-        row[0].strip().casefold()
-        for row in csv.reader(completed.stdout.splitlines())
-        if row
-    }
+        available = kernel.Process32FirstW(snapshot, ctypes.byref(entry))
+        while available:
+            names.add(str(entry.executable).casefold())
+            available = kernel.Process32NextW(snapshot, ctypes.byref(entry))
+    finally:
+        kernel.CloseHandle(snapshot)
+    return names
 
 
 def _directory_bytes(*roots: Path) -> int:

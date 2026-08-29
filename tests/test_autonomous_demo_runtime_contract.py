@@ -219,8 +219,11 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "GlobalMemoryStatusEx" in python_probe_source
     assert "GetSystemTimes" in python_probe_source
     assert "OpenMutexW" in python_probe_source
+    assert "CreateToolhelp32Snapshot" in python_probe_source
+    assert '"hermes.exe"' in python_probe_source
+    assert '"ollama.exe"' in python_probe_source
     assert 'timeout=20' in python_probe_source
-    assert 'timeout=5' in python_probe_source
+    assert "tasklist.exe" not in python_probe_source
     assert "ulimit -n; ps -e --no-headers | wc -l; free -b" in supervisor_source
 
 
