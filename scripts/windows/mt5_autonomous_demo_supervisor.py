@@ -80,6 +80,7 @@ INSTALLED_RESOURCE_PROBE = (
 )
 MUTEX_NAME = "Local\\ODIN_AUTONOMOUS_DEMO_RC2_SUPERVISOR"
 ERROR_ALREADY_EXISTS = 183
+RESOURCE_PROBE_TIMEOUT_SECONDS = 45
 STOP_REQUESTED = False
 
 
@@ -1011,7 +1012,7 @@ def _resource_gate() -> dict[str, object]:
             check=False,
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=RESOURCE_PROBE_TIMEOUT_SECONDS,
         )
         if completed.returncode != 0:
             value = _resource_probe_failure(
@@ -1029,6 +1030,7 @@ def _resource_gate() -> dict[str, object]:
             "resource_probe_timeout",
             started=started,
         )
+        value["probe_timeout_seconds"] = RESOURCE_PROBE_TIMEOUT_SECONDS
     except json.JSONDecodeError as error:
         value = _resource_probe_failure(
             "resource_probe_invalid_json",

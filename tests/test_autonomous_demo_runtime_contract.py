@@ -66,6 +66,8 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert 'Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])' in source
     assert '"resource_probe_timeout"' in source
     assert '"resource_probe_invalid_json"' in source
+    assert "RESOURCE_PROBE_TIMEOUT_SECONDS = 45" in source
+    assert "timeout=RESOURCE_PROBE_TIMEOUT_SECONDS" in source
     assert "_bootstrap_runtime_environment()" in source
     assert "_VENV_SITE_PACKAGES" in source
 
