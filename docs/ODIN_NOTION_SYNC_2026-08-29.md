@@ -31,6 +31,9 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - O resource probe Windows foi separado do subprobe WSL bounded de 10 s depois
   de bloqueios transitórios observados. Cinco ciclos reais consecutivos passaram
   sem BLOCK, com uma única instância e zero exposição.
+- O checkpoint `256f618` completou a telemetria de storage: logs/reports e
+  SQLite mostram separadamente bytes Windows e WSL, mais o total exato; o probe
+  live respondeu em 359 ms sem alterar o resource gate.
 - Hermes-versus-Reality está ativo e read-only. A prova mais recente foi
   `ANALYZED/SCORED`; o histórico preserva quatro claims `CONFIRMED` e quatro
   `CONTRADICTED`, sem apagar alucinações anteriores.
@@ -99,6 +102,7 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `7178dd6` — Cockpit deixou de fazer polling recursivo do overview.
 - `28e3ffd` — overview passou a projetar apenas estado persistente RC2.
 - `25fb4e1` — healthcheck tornou-se puro e sem reconstrução do runtime.
+- `256f618` — storage do dashboard WSL incluído na telemetria de recursos.
 
 ## Próximos gates
 

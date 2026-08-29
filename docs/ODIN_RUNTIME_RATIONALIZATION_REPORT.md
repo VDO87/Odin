@@ -26,7 +26,7 @@ não foram envolvidos por novos agentes ou daemons.
 | `C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe` | ACTIVE_REQUIRED | Único terminal allowlisted para execução DEMO. |
 | `D:\ODIN_LOCAL\mt5\terminal64.exe` | REMOVE_CANDIDATE | MetaQuotes-Demo excluído de launchers, discovery e fallback. Não terminar nem apagar automaticamente. |
 | `mt5_autonomous_demo_supervisor.py` | ACTIVE_REQUIRED | Supervisor, heartbeat, reconciliação, bounded recovery, Strategy/Risk/Gate orchestration. Não contém chamada direta a `order_send`. |
-| `Get-ODIN-Autonomous-Demo-Resources.ps1` | ACTIVE_REQUIRED | Probe read-only de recursos Windows. O supervisor recolhe WSL/FD/memória/processos num subprobe isolado com timeout de 10 s; qualquer falha bloqueia execução. |
+| `Get-ODIN-Autonomous-Demo-Resources.ps1` | ACTIVE_REQUIRED | Probe read-only de recursos Windows. O supervisor recolhe WSL/FD/memória/processos e bytes exatos do JSONL/SQLite do dashboard num subprobe isolado com timeout de 10 s; as origens Windows/WSL permanecem separadas e o total é auditável. |
 | `Start-ODIN-Dashboard-Persistent.ps1` + `run_dashboard_local.sh` | ACTIVE_REQUIRED | Um dashboard loopback com watchdog bounded. |
 | TradeDesk e Cockpit em `127.0.0.1:8765` | ACTIVE_REQUIRED | Duas vistas da mesma aplicação, não dois runtimes. |
 | JSONL/SQLite do dashboard | ACTIVE_REQUIRED | Audit trail atual bounded; leitura live usa snapshots. Arquivos históricos ficam fora de `logs`/`reports` ativos em `D:\ODIN_LOCAL\archives`. |
@@ -65,6 +65,8 @@ não foram envolvidos por novos agentes ou daemons.
   descritas como “agentes”; não criar wrappers inteligentes duplicados.
 - O probe PowerShell e o subprobe WSL são partes da mesma medição, não dois
   guardians. A separação existe para conter bloqueios transitórios do WSL.
+- A telemetria de storage preserva `windows_*` e `wsl_*` antes de calcular os
+  totais. Não infere, duplica nem oculta bytes quando uma origem não responde.
 
 ## Remoção
 

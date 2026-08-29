@@ -417,6 +417,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   disponíveis, tick stale de fim de semana, zero posições/ordens,
   `RECONCILED` e nenhuma submissão ao broker. A matriz RC2 alargada passou com
   `229 passed in 13.38s`; Ruff e `git diff --check`: PASS.
+- A telemetria de storage contava apenas `D:\ODIN_LOCAL` e omitia o JSONL/SQLite
+  ativos do dashboard no WSL. O bundle `256f6182a3ff` (inventário SHA-256
+  `7C62B867EEB49B36DE678D9933BC8B771CAE61D5014E979A1E0A2A2E1A545D49`)
+  passou a preservar e somar as duas origens. A prova live observou
+  `4.033.420 = 1.276.979 Windows + 2.756.441 WSL` bytes de logs/reports e
+  `2.625.536 = 90.112 Windows + 2.535.424 WSL` bytes SQLite, com probe WSL em
+  359 ms. O supervisor manteve `WAITING_MARKET`, zero exposição e guardrails
+  `false`. Matriz RC2: `232 passed in 14.08s`; Ruff, mypy dirigido e
+  `git diff --check`: PASS.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
