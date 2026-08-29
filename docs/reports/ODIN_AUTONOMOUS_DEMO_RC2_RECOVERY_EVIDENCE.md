@@ -98,6 +98,16 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - Este resultado é validação pré-soak; a suite final continua a ter de ser
   repetida depois dos gates operacionais de 24 h e cinco trades.
 
+### Supervisor visível no TradeDesk
+
+- O checkpoint `7fa5ccd` tornou explícitos na Visão Geral: uptime, ciclo,
+  próximo check, branch, checkpoint e último repair.
+- Validação no browser local confirmou os seis campos com dados vivos, além de
+  `SUPERVISOR RUNNING`, `MARKET CLOSED / WAITING`, `MT5 CONNECTED`,
+  `HERMES AVAILABLE` e zero erros de consola.
+- A alteração é exclusivamente read-only e de apresentação; não adiciona
+  endpoints de controlo nem capacidade financeira.
+
 ### Restart do WSL
 
 - Pré-condições: zero posições, zero ordens, mercado stale e nenhuma submissão.

@@ -78,6 +78,8 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `6dc91a9` — subprobe WSL isolado com timeout de 10 s.
 - `4a202de` — rejeição fail-closed de placeholders do modelo.
 - `06d4023` — contrato Hermes reduzido a uma claim factual por trigger.
+- `7fa5ccd` — uptime, ciclo, próximo check, branch/checkpoint e último repair
+  visíveis no painel Supervisor do TradeDesk.
 
 ## Próximos gates
 
