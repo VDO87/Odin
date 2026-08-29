@@ -60,6 +60,34 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "update_autonomous_demo_reports" in source
     assert "previous_request_id" in source
     assert "current_request_id != previous_request_id" in source
+    assert 'incident_type="RESOURCE_GUARD_BLOCK"' in source
+    assert 'observation["resources"] = _resource_gate()' in source
+
+
+def test_resource_block_pauses_execution_before_any_decision() -> None:
+    supervisor = ROOT / "scripts/windows/mt5_autonomous_demo_supervisor.py"
+    tree = ast.parse(supervisor.read_text(encoding="utf-8"))
+    classify = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_classify_state"
+    )
+    namespace: dict[str, object] = {}
+    exec(compile(ast.Module(body=[classify], type_ignores=[]), str(supervisor), "exec"), namespace)
+
+    state, reasons = namespace["_classify_state"](
+        {
+            "status": "OK",
+            "resources": {
+                "status": "BLOCK",
+                "reason_codes": ["thermal_guardrail_exceeded"],
+            },
+        },
+        {"action": "RESUME"},
+    )
+
+    assert state == "EXECUTION_PAUSED"
+    assert reasons == ["thermal_guardrail_exceeded"]
 
 
 def test_only_isolated_adapter_still_contains_one_order_send_call() -> None:

@@ -37,6 +37,9 @@ from odin.trading.autonomous_demo_state import (  # noqa: E402
     write_heartbeat,
     write_state,
 )
+from odin.trading.autonomous_demo_resources import (  # noqa: E402
+    evaluate_resource_snapshot,
+)
 from odin.trading.autonomous_demo_cycle import (  # noqa: E402
     build_market_bars,
     build_trade_candidate,
@@ -79,6 +82,7 @@ def main() -> int:
     started = datetime.now(UTC)
     cycle = 0
     failure_count = 0
+    active_resource_incident = ""
     interval = _bounded_integer(os.environ.get("ODIN_RC2_CYCLE_SECONDS"), 30, 5, 300)
     state_path = Path(os.environ["ODIN_RC2_STATE_PATH"])
     heartbeat_path = Path(os.environ["ODIN_RC2_HEARTBEAT_PATH"])
@@ -90,6 +94,30 @@ def main() -> int:
             control = read_control(control_path)
             try:
                 observation = _observe_once()
+                observation["resources"] = _resource_gate()
+                resource_gate = observation["resources"]
+                resource_status = (
+                    str(resource_gate.get("status", "BLOCK"))
+                    if isinstance(resource_gate, dict)
+                    else "BLOCK"
+                )
+                resource_reasons = (
+                    [str(item) for item in resource_gate.get("reason_codes", [])]
+                    if isinstance(resource_gate, dict)
+                    else ["resource_guard_blocked"]
+                )
+                resource_incident = "|".join(resource_reasons) if resource_status == "BLOCK" else ""
+                if resource_incident and resource_incident != active_resource_incident:
+                    append_incident(
+                        incidents_path,
+                        incident_type="RESOURCE_GUARD_BLOCK",
+                        component="autonomous_demo_resources",
+                        error_code=resource_reasons[0] if resource_reasons else "resource_guard_blocked",
+                        root_cause="resource_guardrail_triggered",
+                        evidence=resource_gate if isinstance(resource_gate, dict) else {},
+                        checkpoint=os.environ.get("ODIN_RC2_CHECKPOINT", ""),
+                    )
+                active_resource_incident = resource_incident
                 control = read_control(control_path)
                 state, reasons = _classify_state(observation, control)
                 if state == "READY_FOR_DECISION":
@@ -335,6 +363,16 @@ def _classify_state(
         return "RECOVERING", reasons or ["mt5_reconnecting"]
     if observed_status != "OK":
         return "DEGRADED", reasons or ["observation_degraded"]
+    resources = observation.get("resources")
+    resource_gate = resources if isinstance(resources, dict) else {}
+    if resource_gate.get("status") == "BLOCK":
+        resource_reasons = resource_gate.get("reason_codes")
+        return (
+            "EXECUTION_PAUSED",
+            [str(item) for item in resource_reasons]
+            if isinstance(resource_reasons, list)
+            else ["resource_guard_blocked"],
+        )
     action = control.get("action")
     if action in {"PAUSE", "SAFE_STOP"}:
         return "EXECUTION_PAUSED", [f"operator_{str(action).lower()}"]
@@ -788,6 +826,39 @@ def _hard_block_observation(reason: str, terminal_path: str) -> dict[str, object
         "terminal_path": terminal_path,
         "broker_submission_called": False,
     }
+
+
+def _resource_gate() -> dict[str, object]:
+    script = Path(os.environ["ODIN_RC2_WINDOWS_SCRIPTS"]) / (
+        "Get-ODIN-Autonomous-Demo-Resources.ps1"
+    )
+    try:
+        completed = subprocess.run(
+            [
+                "powershell.exe",
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(script),
+                "-SupervisorProcessId",
+                str(os.getpid()),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError("resource_probe_failed")
+        value = json.loads(completed.stdout)
+        if not isinstance(value, dict):
+            raise ValueError("resource_probe_payload_invalid")
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError, ValueError, RuntimeError):
+        value = {"probe_status": "BLOCKED"}
+    return evaluate_resource_snapshot(value)
 
 
 def _public_event(
