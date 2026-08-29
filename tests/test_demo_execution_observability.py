@@ -58,12 +58,11 @@ def test_demo_dashboard_exposes_finance_and_permanent_blocks(tmp_path) -> None:
         "daily_pnl": 0.0,
         "drawdown_percent": 0.05,
     }
-    assert result["execution"] == {
-        "status": "NO ORDER",
-        "reconciliation_status": "NOT_STARTED",
-        "anomalies": [],
-        "records_count": 0,
-    }
+    assert result["execution"]["status"] == "NO ORDER"
+    assert result["execution"]["reconciliation_status"] == "NOT_STARTED"
+    assert result["execution"]["anomalies"] == []
+    assert result["execution"]["records_count"] == 0
+    assert result["execution"]["metrics"]["closed_trades"] == 0
     assert result["canary_confirmation_required"] is True
     assert result["execution_allowed"] is False
     assert result["safe_to_trade"] is False
@@ -153,6 +152,10 @@ def test_tradedesk_and_cockpit_show_demo_execution_without_broker_controls() -> 
     assert "PAUSE DEMO EXECUTION" in tradedesk
     assert "SAFE STOP" in tradedesk
     assert "RESUME DEMO EXECUTION" in tradedesk
+    assert "MARKET A CARREGAR" in tradedesk
+    assert "MT5 A CARREGAR" in tradedesk
+    assert "HERMES A CARREGAR" in tradedesk
+    assert "OPEN COCKPIT / REPORTS" in tradedesk
     assert "/operations/autonomous-demo" in tradedesk
     assert "/trading/demo-execution" in tradedesk
     assert "DEMO EXECUTION RC2" in cockpit

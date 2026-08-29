@@ -183,17 +183,43 @@ def analyze_execution_ledger(path: str | Path) -> dict[str, object]:
                 anomalies.append("margin_anomaly")
     if any(count > 1 for count in attempts.values()):
         anomalies.append("duplicate_submission")
-    realized = 0.0
-    for record in records:
-        value = record.get("realized_pnl")
-        if isinstance(value, (int, float)) and record.get("execution_status") == "CLOSED":
-            realized += float(value)
+    closed = [record for record in records if record.get("execution_status") == "CLOSED"]
+    outcomes = _numeric_values(closed, "realized_pnl")
+    realized = sum(outcomes)
+    wins = sum(value > 0 for value in outcomes)
+    losses = sum(value < 0 for value in outcomes)
+    gross_profit = sum(value for value in outcomes if value > 0)
+    gross_loss = abs(sum(value for value in outcomes if value < 0))
+    attempt_records = [
+        record for record in records if record.get("execution_status") in _ATTEMPT_RECORD_STATES
+    ]
+    spreads = _numeric_values(attempt_records, "spread")
+    slippages = _numeric_values(attempt_records, "slippage")
+    rejected = sum(record.get("execution_status") == "REJECTED" for record in records)
+    reconciliation_errors = sum(
+        record.get("reconciliation_status") == "RECONCILIATION_BLOCK" for record in records
+    )
     return {
         "status": "OK" if not anomalies else "DEGRADED",
         "anomalies": sorted(set(anomalies)),
         "records_count": len(records),
         "submission_attempts": sum(attempts.values()),
         "realized_pnl": round(realized, 2),
+        "metrics": {
+            "closed_trades": len(outcomes),
+            "wins": wins,
+            "losses": losses,
+            "win_rate_percent": round(wins / len(outcomes) * 100, 2) if outcomes else None,
+            "profit_factor": round(gross_profit / gross_loss, 4) if gross_loss > 0 else None,
+            "expectancy": round(realized / len(outcomes), 4) if outcomes else None,
+            "average_spread": round(sum(spreads) / len(spreads), 8) if spreads else None,
+            "average_slippage": round(sum(slippages) / len(slippages), 8) if slippages else None,
+            "rejected": rejected,
+            "rejection_rate_percent": round(rejected / len(attempt_records) * 100, 2)
+            if attempt_records
+            else 0.0,
+            "reconciliation_errors": reconciliation_errors,
+        },
         "latest": records[-1] if records else None,
         "execution_allowed": False,
         "safe_to_trade": False,
@@ -414,6 +440,15 @@ def confirm_execution_close(
 def _reservation_path(ledger_path: Path, proposal_id: str) -> Path:
     name = hashlib.sha256(proposal_id.encode()).hexdigest()
     return ledger_path.parent / ".execution_reservations" / f"{name}.json"
+
+
+def _numeric_values(records: list[dict[str, object]], key: str) -> list[float]:
+    values: list[float] = []
+    for record in records:
+        value = record.get(key)
+        if isinstance(value, (int, float)):
+            values.append(float(value))
+    return values
 
 
 def _reconciliation_confirmation_block(reason: str) -> dict[str, object]:

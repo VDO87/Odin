@@ -238,14 +238,12 @@ def autonomous_demo_dashboard_state(
     incidents = _read_jsonl_tail(Path(incidents_path), limit=20)
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
     heartbeat_at = _parse_utc(heartbeat.get("heartbeat_at_utc"))
-    heartbeat_age = (
-        int((now - heartbeat_at).total_seconds()) if heartbeat_at is not None else None
-    )
+    heartbeat_age = int((now - heartbeat_at).total_seconds()) if heartbeat_at is not None else None
     heartbeat_fresh = heartbeat_age is not None and 0 <= heartbeat_age <= 120
+    observed = current.get("observed")
+    safe_observed = observed if isinstance(observed, dict) else {}
     return {
-        "status": "OK"
-        if current.get("status") != "BLOCKED" and heartbeat_fresh
-        else "DEGRADED",
+        "status": "OK" if current.get("status") != "BLOCKED" and heartbeat_fresh else "DEGRADED",
         "mode": "ODIN_AUTONOMOUS_DEMO_RC2",
         "supervisor": current,
         "heartbeat": {
@@ -258,6 +256,38 @@ def autonomous_demo_dashboard_state(
         },
         "incidents": incidents,
         "incident_count_visible": len(incidents),
+        "financial": {
+            key: safe_observed.get(key)
+            for key in (
+                "balance",
+                "equity",
+                "margin",
+                "free_margin",
+                "daily_realized_pnl",
+                "completed_trades_today",
+                "positions_count",
+                "orders_count",
+            )
+        },
+        "market": {
+            key: safe_observed.get(key)
+            for key in (
+                "logical_symbol",
+                "broker_symbol",
+                "bid",
+                "ask",
+                "spread",
+                "spread_points",
+                "data_freshness",
+                "data_age_seconds",
+                "normalized_event_time_utc",
+                "time_profile",
+                "market_open",
+            )
+        },
+        "decision": safe_observed.get("latest_decision"),
+        "risk": safe_observed.get("risk"),
+        "execution": safe_observed.get("execution"),
         **GLOBAL_GUARDRAILS,
     }
 

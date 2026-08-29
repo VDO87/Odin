@@ -142,7 +142,18 @@ def test_dashboard_exposes_state_and_operator_controls_without_broker_capability
     incidents_path = tmp_path / "incidents.jsonl"
     write_state(
         state_path,
-        build_supervisor_state("MONITOR_ONLY", cycle=4, now_utc=NOW),
+        build_supervisor_state(
+            "MONITOR_ONLY",
+            cycle=4,
+            now_utc=NOW,
+            observed={
+                "balance": 50_000.0,
+                "logical_symbol": "EURUSD",
+                "broker_symbol": "EURUSD.pro",
+                "data_freshness": "FRESH",
+                "latest_decision": {"signal": "NO_TRADE"},
+            },
+        ),
     )
     write_heartbeat(
         heartbeat_path,
@@ -170,6 +181,9 @@ def test_dashboard_exposes_state_and_operator_controls_without_broker_capability
 
     assert status == 200
     assert payload["supervisor"]["state"] == "MONITOR_ONLY"
+    assert payload["financial"]["balance"] == 50_000.0
+    assert payload["market"]["logical_symbol"] == "EURUSD"
+    assert payload["decision"]["signal"] == "NO_TRADE"
     assert payload["execution_allowed"] is False
     assert resume_status == 400
     assert resume["reason"] == "resume_visual_confirmation_required"

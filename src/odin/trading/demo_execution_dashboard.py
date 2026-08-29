@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from odin.adapters.mt5.demo_readonly_state import read_demo_readonly_state
-from odin.trading.execution_ledger import analyze_execution_ledger
+from odin.trading.execution_ledger import (
+    analyze_execution_ledger,
+    completed_reconciled_lifecycle,
+)
 
 
 def demo_execution_dashboard_state(
@@ -17,11 +20,19 @@ def demo_execution_dashboard_state(
     ledger = analyze_execution_ledger(ledger_path)
     account = _as_dict(mt5.get("account"))
     positions = mt5.get("positions")
-    safe_positions = [item for item in positions if isinstance(item, dict)] if isinstance(positions, list) else []
+    safe_positions = (
+        [item for item in positions if isinstance(item, dict)]
+        if isinstance(positions, list)
+        else []
+    )
     latest = _as_dict(ledger.get("latest"))
     ledger_anomalies = ledger.get("anomalies")
     anomalies = list(ledger_anomalies) if isinstance(ledger_anomalies, list) else []
-    if safe_positions and latest.get("execution_status") not in {"FILLED", "SUBMITTED"}:
+    if safe_positions and latest.get("execution_status") not in {
+        "FILLED",
+        "SUBMITTED",
+        "RECONCILED",
+    }:
         anomalies.append("orphan_broker_position")
     floating_pnl = sum(
         float(position.get("profit", 0.0))
@@ -32,10 +43,15 @@ def demo_execution_dashboard_state(
     if anomalies:
         execution_status = "RECONCILIATION_BLOCK"
     risk = _as_dict(latest.get("risk_result"))
+    initial_canary_complete = completed_reconciled_lifecycle(
+        ledger_path, "rc1-canary-human-confirmed"
+    )
     return {
-        "status": "OK" if mt5.get("status") == "CONNECTED_DEMO_READ_ONLY" and not anomalies else "BLOCKED",
+        "status": "OK"
+        if mt5.get("status") == "CONNECTED_DEMO_READ_ONLY" and not anomalies
+        else "BLOCKED",
         "component": "demo_execution_dashboard",
-        "mode": "MT5_DEMO_EXECUTION_RC1",
+        "mode": "ODIN_AUTONOMOUS_DEMO_RC2",
         "banner": "DEMO MONEY — NO REAL CAPITAL",
         "real_trading_banner": "REAL TRADING BLOCKED",
         "mt5_status": mt5.get("status", "BLOCKED"),
@@ -65,10 +81,13 @@ def demo_execution_dashboard_state(
             "reconciliation_status": latest.get("reconciliation_status", "NOT_STARTED"),
             "anomalies": sorted(set(str(item) for item in anomalies)),
             "records_count": ledger.get("records_count", 0),
+            "metrics": ledger.get("metrics", {}),
         },
         "positions": safe_positions,
         "demo_execution_enabled": False,
-        "canary_confirmation_required": True,
+        "autonomous_demo_scope": "ODIN_AUTONOMOUS_DEMO_RC2",
+        "initial_canary_complete": initial_canary_complete,
+        "canary_confirmation_required": not initial_canary_complete,
         "execution_allowed": False,
         "safe_to_trade": False,
         "real_trading": False,
@@ -78,7 +97,11 @@ def demo_execution_dashboard_state(
 def _drawdown(account: dict[str, object]) -> float | None:
     balance = account.get("balance")
     equity = account.get("equity")
-    if not isinstance(balance, (int, float)) or not isinstance(equity, (int, float)) or balance <= 0:
+    if (
+        not isinstance(balance, (int, float))
+        or not isinstance(equity, (int, float))
+        or balance <= 0
+    ):
         return None
     return round(max(0.0, (float(balance) - float(equity)) / float(balance) * 100), 4)
 
