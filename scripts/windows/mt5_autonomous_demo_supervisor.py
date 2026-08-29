@@ -23,6 +23,7 @@ from urllib.request import urlopen
 
 sys.path.insert(0, os.environ["ODIN_RC2_REPO_SRC"])
 sys.path.insert(0, os.environ["ODIN_RC2_WINDOWS_SCRIPTS"])
+os.environ.setdefault("ODIN_RC1_REPO_SRC", os.environ["ODIN_RC2_REPO_SRC"])
 
 import MetaTrader5 as mt5  # type: ignore[import-not-found]  # noqa: E402
 

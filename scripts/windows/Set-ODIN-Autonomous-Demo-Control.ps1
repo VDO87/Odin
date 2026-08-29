@@ -24,7 +24,8 @@ $payload = [ordered]@{
     execution_allowed = $false
 }
 $temporary = "$ControlPath.tmp"
-$payload | ConvertTo-Json | Set-Content -LiteralPath $temporary -Encoding utf8
+$json = $payload | ConvertTo-Json
+[IO.File]::WriteAllText($temporary, $json, [Text.UTF8Encoding]::new($false))
 Move-Item -LiteralPath $temporary -Destination $ControlPath -Force
 Write-Output "CONTROL=$Action"
 Write-Output "execution_allowed=false"

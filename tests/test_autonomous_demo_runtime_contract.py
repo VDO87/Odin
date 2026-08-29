@@ -78,9 +78,26 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "-MultipleInstances IgnoreNew" in installer
     assert "-RestartCount 3" in installer
     assert "-ExecutionTimeLimit ([TimeSpan]::Zero)" in installer
+    assert '[string]$WorkingDirectory = "D:\\ODIN_LOCAL"' in installer
+    assert "Copy-Item -LiteralPath $launcher -Destination $installedLauncher -Force" in installer
+    assert "installedDashboardLauncher" in installer
+    assert 'New-ScheduledTaskAction -Execute "cmd.exe"' in installer
+    assert 'replace "`r?`n", "`r`n"' in installer
+    wrapper = (
+        ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.cmd"
+    ).read_text(encoding="utf-8")
+    assert "-NonInteractive" in wrapper
+    assert "ODIN_RC2_EXIT" in wrapper
+    dashboard_launcher = (
+        ROOT / "scripts/windows/Start-ODIN-Dashboard-Persistent.ps1"
+    ).read_text(encoding="utf-8")
+    assert "/home/odin/projects/odin/scripts/run_dashboard_local.sh" in dashboard_launcher
+    assert '"43200"' in dashboard_launcher
+    assert "installed launcher hash mismatch" in installer
     assert "ODIN_OANDA_PASSWORD" not in installer + launcher
     assert r"C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe" in launcher
     assert r"D:\ODIN_LOCAL\mt5\terminal64.exe" in launcher
+    assert "wsl.exe -d Ubuntu-ODIN --user odin --exec git" in launcher
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:
@@ -95,3 +112,4 @@ def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:
     assert "Stop-ScheduledTask" not in control
     assert "execution_allowed = $false" in control
     assert "real_trading = $false" in control
+    assert "[Text.UTF8Encoding]::new($false)" in control

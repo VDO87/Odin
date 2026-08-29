@@ -24,9 +24,11 @@ if (Test-OdinDashboard) {
 New-Item -ItemType Directory -Force -Path $LogRoot | Out-Null
 $stdout = Join-Path $LogRoot "dashboard.stdout.log"
 $stderr = Join-Path $LogRoot "dashboard.stderr.log"
-$command = "cd /home/odin/projects/odin && ulimit -n 8192 2>/dev/null || true; exec python3 -m odin.cli dashboard --host 127.0.0.1 --port 8765"
 Start-Process -FilePath "wsl.exe" `
-    -ArgumentList @("-d", "Ubuntu-ODIN", "--user", "odin", "--exec", "sh", "-lc", $command) `
+    -ArgumentList @(
+        "-d", "Ubuntu-ODIN", "--user", "odin", "--exec",
+        "/home/odin/projects/odin/scripts/run_dashboard_local.sh", "43200"
+    ) `
     -WindowStyle Hidden `
     -RedirectStandardOutput $stdout `
     -RedirectStandardError $stderr | Out-Null

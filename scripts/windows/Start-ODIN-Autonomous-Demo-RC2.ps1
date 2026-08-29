@@ -8,6 +8,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$StartupTrace = "D:\ODIN_LOCAL\state\autonomous_demo_startup.log"
+function Write-StartupTrace([string]$Step) {
+    $line = "{0} {1}" -f [DateTime]::UtcNow.ToString("o"), $Step
+    Add-Content -LiteralPath $StartupTrace -Value $line -Encoding utf8
+}
+Write-StartupTrace "LAUNCHER_STARTED"
 $ExpectedTerminal = "C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe"
 $ExcludedTerminal = "D:\ODIN_LOCAL\mt5\terminal64.exe"
 $StateRoot = "D:\ODIN_LOCAL\state"
@@ -15,17 +21,19 @@ $LogRoot = "D:\ODIN_LOCAL\logs\autonomous-demo"
 $ReportRoot = "D:\ODIN_LOCAL\reports"
 $envFile = Join-Path $RepoRoot ".env"
 $probe = Join-Path $RepoRoot "scripts\windows\mt5_autonomous_demo_supervisor.py"
-$dashboardLauncher = Join-Path $RepoRoot "scripts\windows\Start-ODIN-Dashboard-Persistent.ps1"
+$dashboardLauncher = "D:\ODIN_LOCAL\runtime\Start-ODIN-Dashboard-Persistent.ps1"
 $config = Join-Path $RepoRoot "config\demo_execution_rc2.json"
 
 if ($TerminalPath -ine $ExpectedTerminal -or $TerminalPath -ieq $ExcludedTerminal) {
     throw "ODIN RC2 terminal path is not allowlisted."
 }
+Write-StartupTrace "TERMINAL_ALLOWLIST_OK"
 foreach ($requiredPath in @($TerminalPath, $PythonPath, $envFile, $probe, $dashboardLauncher, $config)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "ODIN RC2 prerequisite unavailable."
     }
 }
+Write-StartupTrace "REQUIRED_PATHS_OK"
 
 $values = @{}
 Get-Content -LiteralPath $envFile | ForEach-Object {
@@ -48,9 +56,12 @@ if ($values['ODIN_OANDA_SERVER'] -ne 'OANDATMS-MT5') {
 if ($values['ODIN_OANDA_LOGIN'] -notmatch '^\d+$') {
     throw "OANDA DEMO login identifier is invalid."
 }
+Write-StartupTrace "IDENTITY_CONFIG_OK"
 
 New-Item -ItemType Directory -Force -Path $StateRoot, $LogRoot, $ReportRoot | Out-Null
+Write-StartupTrace "DIRECTORIES_READY"
 & $dashboardLauncher
+Write-StartupTrace "DASHBOARD_READY"
 
 $env:ODIN_RC2_EXPECTED_LOGIN = $values['ODIN_OANDA_LOGIN']
 $env:ODIN_RC2_TERMINAL_PATH = $TerminalPath
@@ -66,13 +77,25 @@ $env:ODIN_RC2_INCIDENTS_PATH = Join-Path $StateRoot "autonomous_demo_incidents.j
 $env:ODIN_RC2_DASHBOARD_LAUNCHER = $dashboardLauncher
 $env:ODIN_RC2_CYCLE_SECONDS = [string]$CycleSeconds
 $env:ODIN_RC2_BRANCH = "feature/autonomous-demo-operations-rc2"
-$env:ODIN_RC2_CHECKPOINT = (& git -C $RepoRoot rev-parse --short HEAD 2>$null)
+$checkpoint = (& wsl.exe -d Ubuntu-ODIN --user odin --exec git -C /home/odin/projects/odin rev-parse --short HEAD)
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($checkpoint)) {
+    throw "ODIN RC2 checkpoint lookup failed."
+}
+$env:ODIN_RC2_CHECKPOINT = $checkpoint.Trim()
+Write-StartupTrace "SUPERVISOR_ENV_READY"
 
 try {
     $stdout = Join-Path $LogRoot "supervisor.stdout.log"
     $stderr = Join-Path $LogRoot "supervisor.stderr.log"
-    & $PythonPath $probe 1>> $stdout 2>> $stderr
-    exit $LASTEXITCODE
+    Write-StartupTrace "SUPERVISOR_STARTING"
+    $supervisor = Start-Process -FilePath $PythonPath `
+        -ArgumentList @($probe) `
+        -WindowStyle Hidden `
+        -PassThru `
+        -Wait `
+        -RedirectStandardOutput $stdout `
+        -RedirectStandardError $stderr
+    exit $supervisor.ExitCode
 }
 finally {
     @(
