@@ -172,7 +172,13 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "installedResourceProbe" in installer
     assert "resourceProbeInstalledHash" in installer
     assert "New-ScheduledTaskAction -Execute $basePython" in installer
-    assert '" --persistent-task"' in installer
+    assert "mt5_autonomous_demo_bootstrap.py" in installer
+    assert "--runtime-root" in installer
+    assert "--canonical-repo-root" in installer
+    assert '$arguments = "`"$installedBootstrap`"' in installer
+    assert "runtime-manifest.json" in installer
+    assert "contains_environment_file = $false" in installer
+    assert "versioned runtime hash mismatch" in installer
     assert 'replace "`r?`n", "`r`n"' in installer
     wrapper = (ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.cmd").read_text(
         encoding="utf-8"
@@ -202,6 +208,19 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     ).read_text(encoding="utf-8")
     assert "wsl.exe" not in resource_probe
     assert "ulimit -n; ps -e --no-headers | wc -l; free -b" in supervisor_source
+
+
+def test_local_runtime_bootstrap_is_non_financial_and_uses_versioned_sources() -> None:
+    bootstrap = ROOT / "scripts/windows/mt5_autonomous_demo_bootstrap.py"
+    source = bootstrap.read_text(encoding="utf-8")
+
+    assert _attribute_calls(bootstrap, "order_send") == []
+    assert "ODIN_RC2_CANONICAL_REPO_ROOT" in source
+    assert "ODIN_RC2_REPO_SRC" in source
+    assert "ODIN_RC2_WINDOWS_SCRIPTS" in source
+    assert "ODIN_RC1_REPO_SRC" in source
+    assert "rc2_installed_runtime_root_mismatch" in source
+    assert "runpy.run_path" in source
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:

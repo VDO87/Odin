@@ -40,9 +40,13 @@ Start-ScheduledTask -TaskName "ODIN Autonomous Demo Operations RC2"
 Stop-ScheduledTask -TaskName "ODIN Autonomous Demo Operations RC2"
 ```
 
-A tarefa chama diretamente o Python base registado no `pyvenv.cfg`; não usa o
-wrapper CMD/PowerShell no caminho persistente. Isto permite ao Task Scheduler
-terminar o processo real sem deixar um supervisor órfão.
+A tarefa chama diretamente o Python base registado no `pyvenv.cfg` e um
+bootstrap Python local, instalado numa pasta imutável identificada pelo
+checkpoint em `D:\ODIN_LOCAL\runtime\autonomous-demo`. O bundle contém apenas
+`src/odin` e `scripts/windows`, com inventário SHA-256; não copia `.env` nem
+credenciais. A configuração canónica continua a ser lida do repositório WSL.
+Não existe wrapper CMD/PowerShell no caminho persistente, pelo que o Task
+Scheduler continua a controlar o processo real sem deixar supervisor órfão.
 
 Parar a tarefa pausa o supervisor, não fecha posições no broker. Se existir uma
 posição DEMO, MT5 continua com SL/TP no broker; na retoma, MT5 é source of truth e

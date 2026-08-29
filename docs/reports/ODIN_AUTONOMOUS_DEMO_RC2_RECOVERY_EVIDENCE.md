@@ -245,6 +245,20 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `false`. A validação do autoarranque agendado permanece pendente; esta
   evidência não permite ainda atribuir todo o stall inicial à contenção do
   ficheiro.
+- Uma sonda mínima no mesmo token do Scheduler provou que o IPC MT5 não é o
+  bloqueio: `initialize` terminou em 47 ms, conta DEMO, broker
+  `OANDA TMS Brokers S.A.`, servidor `OANDATMS-MT5`, símbolo disponível e código
+  de retorno 0, sem credenciais nem chamadas financeiras.
+- A sonda de imports válida mediu `66.610 ms` para carregar a cadeia RC2 a partir
+  de `\\wsl.localhost`; `odin.reporting.autonomous_demo_reports` consumiu
+  `42.172 ms`. A mesma cadeia, copiada sem `.env` para `D:`, terminou em
+  `18.688 ms`; o módulo de relatórios caiu para `6.688 ms`.
+- A causa do stall agendado foi assim classificada como bootstrap Python
+  altamente variável sobre 9P/UNC, não falha do Scheduler nem do MT5. O
+  instalador passou a criar um bundle local imutável por checkpoint, com
+  inventário SHA-256 e manifesto disarmado, enquanto `.env`, configuração e Git
+  permanecem na fonte canónica WSL. A tarefa conserva um único processo Python
+  rastreável através de um bootstrap local sem capacidade financeira.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

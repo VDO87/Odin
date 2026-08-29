@@ -23,8 +23,11 @@ from typing import Any
 from urllib.request import urlopen
 
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-_WINDOWS_SCRIPTS = _REPO_ROOT / "scripts" / "windows"
+_EXECUTION_ROOT = Path(__file__).resolve().parents[2]
+_REPO_ROOT = Path(os.environ.get("ODIN_RC2_CANONICAL_REPO_ROOT", _EXECUTION_ROOT))
+_WINDOWS_SCRIPTS = Path(
+    os.environ.get("ODIN_RC2_WINDOWS_SCRIPTS", _REPO_ROOT / "scripts" / "windows")
+)
 _VENV_SITE_PACKAGES = Path(r"D:\ODIN_LOCAL\runtime\mt5_probe_venv\Lib\site-packages")
 os.environ.setdefault("ODIN_RC2_REPO_SRC", str(_REPO_ROOT / "src"))
 os.environ.setdefault("ODIN_RC2_WINDOWS_SCRIPTS", str(_WINDOWS_SCRIPTS))
