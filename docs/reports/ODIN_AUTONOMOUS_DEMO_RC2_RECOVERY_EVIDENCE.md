@@ -409,6 +409,14 @@ Branch: `feature/autonomous-demo-operations-rc2`
   (JSONL) e
   `6E74895948C9730955330E823A7FC65C8C0B7926E80E51B8C6B0539448FDFC95`
   (SQLite).
+- O bundle imutável `25fb4e107ebc` foi instalado com inventário SHA-256
+  `587FACDB27E9703C6C6F441F9FDDD05C808863BA3BADA665A6EBACCAB2B2BAE4`.
+  O Task Scheduler Operational está `Enabled` e registou os eventos 110/129/200
+  do arranque atual. O supervisor permaneceu `WAITING_MARKET` durante oito
+  ciclos observados, com conta DEMO OANDA allowlisted, terminal e Algo Trading
+  disponíveis, tick stale de fim de semana, zero posições/ordens,
+  `RECONCILED` e nenhuma submissão ao broker. A matriz RC2 alargada passou com
+  `229 passed in 13.38s`; Ruff e `git diff --check`: PASS.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
