@@ -127,6 +127,21 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `REGRESSION`; uma ocorrência posterior a um fix deixa de ser classificada
   incorretamente como nova.
 
+### Curva financeira e recovery autónomo do dashboard
+
+- O checkpoint `3c7dfdc` substituiu o gráfico principal de replay por uma curva
+  source-backed de balance/equity MT5 DEMO reconciliados. As amostras têm grain
+  de cinco minutos, limite bounded de 2.016 pontos e origem explícita; replay é
+  apenas fallback rotulado quando a série real está vazia.
+- Primeira amostra viva: balance `49999.12`, equity `49999.12`, zero posições e
+  zero ordens. O endpoint e o HTML expuseram a série e o rótulo DEMO.
+- O listener do dashboard foi terminado por PID exato e não foi chamado nenhum
+  launcher manual. O supervisor observou o outage e recuperou uma única cadeia
+  em 34,8 s.
+- O incidente `DASHBOARD_RECOVERY` passou de uma para duas ocorrências reais,
+  ficou `RESOLVED` e registou fix, ficheiro, teste, estado antes/depois e
+  checkpoint. `broker_submission_called=false` durante todo o teste.
+
 ### Restart do WSL
 
 - Pré-condições: zero posições, zero ordens, mercado stale e nenhuma submissão.

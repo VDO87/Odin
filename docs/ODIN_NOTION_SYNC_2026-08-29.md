@@ -83,6 +83,8 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `8e29e0b` — repairs completos e auto-restart do dashboard auditável.
 - `8687728` — anotação append-only e relatório deduplicado por fingerprint.
 - `2a93d4e` — regressões posteriores a um fix classificadas como `REGRESSION`.
+- `3c7dfdc` — curva MT5 DEMO reconciliada e bounded no TradeDesk; recovery
+  autónomo do dashboard comprovado em 34,8 s.
 
 ## Próximos gates
 
