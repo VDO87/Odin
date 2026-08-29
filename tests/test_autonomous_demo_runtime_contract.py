@@ -171,8 +171,8 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "installedDashboardLauncher" in installer
     assert "installedResourceProbe" in installer
     assert "resourceProbeInstalledHash" in installer
-    assert 'New-ScheduledTaskAction -Execute "$env:SystemRoot\\System32\\cmd.exe"' in installer
-    assert 'call `"$installedTaskWrapper`"' in installer
+    assert "New-ScheduledTaskAction -Execute $basePython" in installer
+    assert '" --persistent-task"' in installer
     assert 'replace "`r?`n", "`r`n"' in installer
     wrapper = (ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.cmd").read_text(
         encoding="utf-8"
