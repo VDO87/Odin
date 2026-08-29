@@ -452,6 +452,19 @@ Branch: `feature/autonomous-demo-operations-rc2`
   posições/ordens e guardrails `false`. Validação: `19 passed`, Ruff, mypy
   isolado, sintaxe JavaScript, browser live e `git diff --check`: PASS. Repair
   registado como `DASHBOARD_LIVE_REPLAY_SEPARATION`.
+- A continuação da auditoria visual encontrou o `Risk=ALLOW_DEMO` do canary no
+  painel técnico de Execution Ledger sem uma indicação explícita de que era
+  evidência histórica. O checkpoint `24d4cbd` tornou o contrato aditivo e
+  auditável: o payload declara
+  `evidence_scope=HISTORICAL_EXECUTION_LEDGER_AND_CANARY`, marca decisão e Risk
+  como `HISTORICAL_LEDGER_RECORD` e referencia `/operations/autonomous-demo`
+  como autoridade runtime atual. O Cockpit passou a rotular Shadow, auditoria
+  MT5 e ledger como históricos, mantendo o `Live operational summary`
+  explicitamente separado. A prova no browser confirmou simultaneamente
+  histórico `ALLOW_DEMO`, live `Risk=BLOCK`, execução `NO_ORDER`, submissão
+  `false`, guardrails `false` e zero erros de consola. Validação: `19 passed`,
+  Ruff, mypy isolado, sintaxe JavaScript, browser live e `git diff --check`:
+  PASS. Repair registado como `COCKPIT_LIVE_HISTORICAL_SCOPE`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
