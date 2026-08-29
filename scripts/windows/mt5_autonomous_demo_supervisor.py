@@ -1071,6 +1071,7 @@ def _resource_gate() -> dict[str, object]:
             value = json.loads(completed.stdout)
         if not isinstance(value, dict):
             raise ValueError("resource_probe_payload_invalid")
+        value["probe_duration_ms"] = round((time.monotonic() - started) * 1000)
         if value.get("probe_status") == "OK":
             value.update(_wsl_resource_snapshot())
     except subprocess.TimeoutExpired:
@@ -1106,7 +1107,11 @@ def _wsl_resource_snapshot() -> dict[str, object]:
                 "--exec",
                 "sh",
                 "-lc",
-                "ulimit -n; ps -e --no-headers | wc -l; free -b",
+                (
+                    "ulimit -n; ps -e --no-headers | wc -l; free -b; "
+                    "pgrep -f '[h]ermes_cli\\.main serve' >/dev/null "
+                    "&& echo HERMES:1 || echo HERMES:0"
+                ),
             ],
             check=False,
             capture_output=True,

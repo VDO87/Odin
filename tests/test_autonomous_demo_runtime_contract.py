@@ -69,6 +69,9 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "get_odin_autonomous_demo_resources.py" in source
     assert 'sys.executable,' in source
     assert '"--supervisor-process-id"' in source
+    assert '"probe_duration_ms"' in source
+    assert "HERMES:1" in source
+    assert "[h]ermes_cli" in source
     assert '"resource_probe_timeout"' in source
     assert '"resource_probe_invalid_json"' in source
     assert "RESOURCE_PROBE_TIMEOUT_SECONDS = 45" in source

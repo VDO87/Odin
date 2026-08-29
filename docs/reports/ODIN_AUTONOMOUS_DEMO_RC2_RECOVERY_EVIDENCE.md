@@ -268,6 +268,17 @@ Branch: `feature/autonomous-demo-operations-rc2`
   continua num subprobe separado. A primeira medição real terminou em 1.484 ms,
   reportou GPU a 39 °C, RAM/disco suficientes e uma instância lógica. Telemetria
   ausente ou timeout continuam a produzir BLOCK.
+- O bundle `7f62db7178ad` foi iniciado pelo Scheduler como PID `18600`; os eventos
+  operacionais 130--134 provam fila, instância, processo e ação esperados. O
+  primeiro heartbeat chegou no ciclo 1 e o mesmo PID completou três ciclos.
+  Todos ficaram em `WAITING_MARKET`, resource gate `WARNING`, probe `OK`, WSL em
+  2.953--4.016 ms, zero posições, zero ordens, reconciliação preservada,
+  `broker_submission_called=false` e guardrails globais `false`.
+- A telemetria Hermes, que corre dentro do WSL e não aparece em `tasklist.exe`,
+  foi incorporada no subprobe WSL já existente através de um marcador booleano,
+  sem guardar argumentos de processos. A duração de probes Windows bem-sucedidos
+  passou também a ser persistida. A matriz dirigida desta alteração passou com
+  `57 passed`; Ruff, mypy dirigido e `git diff --check` passaram.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

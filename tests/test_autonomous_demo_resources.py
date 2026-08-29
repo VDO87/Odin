@@ -77,6 +77,19 @@ def test_invalid_wsl_resource_sample_fails_closed_without_fake_metrics() -> None
     }
 
 
+@pytest.mark.parametrize(("marker", "expected"), [("HERMES:1", True), ("HERMES:0", False)])
+def test_wsl_resource_sample_reports_hermes_without_exposing_process_arguments(
+    marker: str, expected: bool
+) -> None:
+    result = parse_wsl_resource_snapshot(
+        "10240\n39\n"
+        "Mem: 8589934592 2147483648 1073741824 0 5368709120 6442450944\n"
+        f"{marker}\n"
+    )
+
+    assert result["hermes_running"] is expected
+
+
 @pytest.mark.parametrize(
     ("changes", "reason"),
     [

@@ -74,13 +74,17 @@ def parse_wsl_resource_snapshot(output: str) -> dict[str, object]:
             "wsl_running": False,
             "wsl_probe_error_code": "wsl_resource_probe_invalid_output",
         }
-    return {
+    result: dict[str, object] = {
         "wsl_running": True,
         "wsl_process_count": int(lines[1]),
         "wsl_fd_soft_limit": int(lines[0]),
         "wsl_memory_total_mb": round(int(parts[1]) / (1024 * 1024)),
         "wsl_memory_available_mb": round(int(parts[6]) / (1024 * 1024)),
     }
+    hermes_line = next((line for line in lines[2:] if line.startswith("HERMES:")), "")
+    if hermes_line in {"HERMES:0", "HERMES:1"}:
+        result["hermes_running"] = hermes_line == "HERMES:1"
+    return result
 
 
 def _temperatures(snapshot: Mapping[str, object]) -> list[float]:
