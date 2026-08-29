@@ -439,6 +439,19 @@ Branch: `feature/autonomous-demo-operations-rc2`
   isolado e `git diff --check`: PASS. A correção ficou registada no
   Incident/Repair Ledger como `ACCEPTANCE_EVIDENCE_GAP` resolvido por
   `requirement_by_requirement_fail_closed_acceptance_matrix`.
+- A validação visual live encontrou uma decisão Shadow histórica (`BUY`,
+  `2026-07-31T22:15:00Z`, `FRESH`) apresentada no cartão principal quando o
+  supervisor não possuía decisão live e estava em `WAITING_MARKET`. O checkpoint
+  `1a6cb97` removeu esse fallback silencioso: o cartão passou a chamar-se
+  `Decisão live ODIN` e, na ausência de uma decisão autónoma factual, projeta
+  apenas o estado runtime atual sem criar uma entrada no Decision Ledger. A
+  prova no browser mostrou `EURUSD · LIVE`, `BLOCKED`, fonte `RUNTIME_STATE`,
+  `market_closed_or_stale` e `STALE`; Shadow/replay permaneceu explicitamente
+  separado com a sua freshness histórica. Risk continuou `BLOCK`, execução
+  `NO_ORDER`, reconciliação `RECONCILED`, submissão ao broker `false`, zero
+  posições/ordens e guardrails `false`. Validação: `19 passed`, Ruff, mypy
+  isolado, sintaxe JavaScript, browser live e `git diff --check`: PASS. Repair
+  registado como `DASHBOARD_LIVE_REPLAY_SEPARATION`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
