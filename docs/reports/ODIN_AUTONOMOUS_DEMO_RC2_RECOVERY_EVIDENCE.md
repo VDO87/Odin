@@ -371,6 +371,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   allowlisted e a auditoria recursiva do Desktop encontrou zero atalhos para
   `D:\ODIN_LOCAL\mt5\terminal64.exe`. O processo/instalação MetaQuotes não foi
   terminado nem apagado; ficou apenas fora do caminho operacional.
+- A auditoria live do Cockpit mediu `/operations/overview` em 28.053 ms e
+  encontrou `sqlite3.OperationalError: database is locked`: cada GET voltava a
+  executar a inicialização de schema e múltiplas instâncias do store escreviam
+  em paralelo no mesmo ficheiro. O store passou a partilhar um `RLock` por
+  caminho dentro do processo, a inicializar schema/WAL uma vez e a preservar
+  todas as escritas de auditoria; a rota deixou de reinicializar SQLite em cada
+  pedido. Testes dirigidos: `37 passed`; Ruff e `git diff --check`: PASS. Os três
+  erros mypy preexistentes em `upsert_hermes_goal` foram reproduzidos no
+  checkpoint anterior e não foram alterados por esta correção.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

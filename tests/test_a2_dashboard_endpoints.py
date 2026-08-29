@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from odin.dashboard.routes import DashboardRoutes
 
@@ -80,6 +81,12 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
         self.assertIs(payload["read_only"], True)
         self.assertEqual(payload["alerts_count"], 0)
         self.assertEqual(payload["alerts"], [])
+
+    def test_route_audit_reuses_initialized_sqlite_store(self):
+        with patch.object(self.routes.store, "initialize") as initialize:
+            self.get_payload("/health")
+
+        initialize.assert_not_called()
 
     def test_cockpit_shell_is_local_and_read_only(self):
         page = self.routes.cockpit_html()

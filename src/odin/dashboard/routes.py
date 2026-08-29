@@ -117,6 +117,7 @@ class DashboardRoutes:
         self.run_id = str(uuid4())
         self.logger = JsonlLogger(log_path)
         self.store = SQLiteStore(sqlite_path)
+        self.store.initialize()
 
     def serve(self, path: str) -> tuple[int, dict[str, object]]:
         if path == "/logs/tail":
@@ -541,7 +542,6 @@ class DashboardRoutes:
             payload=payload,
         )
         self.logger.write(event)
-        self.store.initialize()
         self.store.record_event(event)
 
 

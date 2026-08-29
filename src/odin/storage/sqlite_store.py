@@ -7,14 +7,32 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+import threading
 
 from odin.contracts.events import OdinEvent
 from odin.contracts.state import OdinState
 
 
+_LOCK_REGISTRY_GUARD = threading.Lock()
+_PATH_LOCKS: dict[str, threading.RLock] = {}
+_INITIALIZED_PATHS: set[str] = set()
+
+
+def _path_key(path: Path) -> str:
+    return str(path.resolve(strict=False))
+
+
+def _path_lock(path: Path) -> threading.RLock:
+    key = _path_key(path)
+    with _LOCK_REGISTRY_GUARD:
+        return _PATH_LOCKS.setdefault(key, threading.RLock())
+
+
 class SQLiteStore:
     def __init__(self, path: Path | str = "runtime/odin.sqlite") -> None:
         self.path = Path(path)
+        self._path_key = _path_key(self.path)
+        self._lock = _path_lock(self.path)
 
     def connect(self) -> sqlite3.Connection:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -23,18 +41,23 @@ class SQLiteStore:
     @contextmanager
     def _managed_connection(self):
         """Commit/rollback and always close the SQLite descriptor."""
-        connection = self.connect()
-        try:
-            yield connection
-            connection.commit()
-        except BaseException:
-            connection.rollback()
-            raise
-        finally:
-            connection.close()
+        with self._lock:
+            connection = self.connect()
+            try:
+                yield connection
+                connection.commit()
+            except BaseException:
+                connection.rollback()
+                raise
+            finally:
+                connection.close()
 
     def initialize(self) -> bool:
+        with self._lock:
+            if self._path_key in _INITIALIZED_PATHS and self.path.is_file():
+                return True
         with self._managed_connection() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS system_state (
@@ -136,6 +159,8 @@ class SQLiteStore:
                 );
                 """
             )
+        with self._lock:
+            _INITIALIZED_PATHS.add(self._path_key)
         return self.path.exists() and self.path.is_file()
 
     def record_event(self, event: OdinEvent) -> None:
