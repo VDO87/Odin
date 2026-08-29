@@ -19,6 +19,10 @@ from odin.adapters.market_data.mock_market import market_status
 from odin.dashboard.cockpit import cockpit_html
 from odin.dashboard.tradedesk import tradedesk_html
 from odin.trading.demo_execution_dashboard import demo_execution_dashboard_state
+from odin.trading.autonomous_demo_state import (
+    autonomous_demo_dashboard_state,
+    request_control,
+)
 from odin.trading.replay import replay_trading_state
 from odin.trading.replay_config import save_replay_config
 from odin.trading.shadow_cycle import run_shadow_observation
@@ -88,6 +92,10 @@ class DashboardRoutes:
         public_cache_root: str | None = None,
         demo_execution_ledger_path: str = "/mnt/d/ODIN_LOCAL/runtime/demo_execution_ledger.jsonl",
         mt5_demo_state_path: str = "/mnt/d/ODIN_LOCAL/runtime/mt5_demo_readonly.json",
+        autonomous_state_path: str = "/mnt/d/ODIN_LOCAL/state/autonomous_demo_state.json",
+        autonomous_heartbeat_path: str = "/mnt/d/ODIN_LOCAL/state/autonomous_demo_heartbeat.json",
+        autonomous_control_path: str = "/mnt/d/ODIN_LOCAL/state/autonomous_demo_control.json",
+        autonomous_incidents_path: str = "/mnt/d/ODIN_LOCAL/state/autonomous_demo_incidents.jsonl",
     ) -> None:
         self.log_path = log_path
         self.sqlite_path = sqlite_path
@@ -96,6 +104,10 @@ class DashboardRoutes:
         )
         self.demo_execution_ledger_path = demo_execution_ledger_path
         self.mt5_demo_state_path = mt5_demo_state_path
+        self.autonomous_state_path = autonomous_state_path
+        self.autonomous_heartbeat_path = autonomous_heartbeat_path
+        self.autonomous_control_path = autonomous_control_path
+        self.autonomous_incidents_path = autonomous_incidents_path
         self.run_id = str(uuid4())
         self.logger = JsonlLogger(log_path)
         self.store = SQLiteStore(sqlite_path)
@@ -124,6 +136,15 @@ class DashboardRoutes:
 
         if path == "/operations/events":
             payload = self.events_summary()
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/operations/autonomous-demo":
+            payload = autonomous_demo_dashboard_state(
+                state_path=self.autonomous_state_path,
+                heartbeat_path=self.autonomous_heartbeat_path,
+                incidents_path=self.autonomous_incidents_path,
+            )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
@@ -360,6 +381,31 @@ class DashboardRoutes:
         event_name = "trading.replay_config.updated" if result["status"] == "OK" else "trading.replay_config.blocked"
         self._audit(event_name, {"status": result["status"], "reason": result.get("reason", ""), "watchlist": result.get("watchlist", [])})
         return (200 if result["status"] == "OK" else 400), result
+
+    def configure_autonomous_demo_control(
+        self, value: object
+    ) -> tuple[int, dict[str, object]]:
+        """Persist PAUSE/SAFE_STOP/confirmed RESUME as a local operator request."""
+        if not isinstance(value, dict):
+            result = {
+                "status": "BLOCKED",
+                "reason": "operator_control_request_invalid",
+                "execution_allowed": False,
+                "safe_to_trade": False,
+                "real_trading": False,
+            }
+        else:
+            result = request_control(
+                self.autonomous_control_path,
+                action=str(value.get("action", "")),
+                request_id=str(uuid4()),
+                resume_confirmed=value.get("resume_confirmed") is True,
+            )
+        self._audit(
+            "operations.autonomous_demo_control",
+            {"status": result["status"], "action": value.get("action") if isinstance(value, dict) else ""},
+        )
+        return (200 if result["status"] == "ACCEPTED" else 400), result
 
     def logs_tail(self, *, limit: int = 20) -> dict[str, object]:
         path = Path(self.log_path)

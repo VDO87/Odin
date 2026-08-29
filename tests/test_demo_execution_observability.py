@@ -149,9 +149,14 @@ def test_tradedesk_and_cockpit_show_demo_execution_without_broker_controls() -> 
     assert "REAL TRADING BLOCKED" in tradedesk
     assert "Balance · DEMO" in tradedesk
     assert "Floating P/L" in tradedesk
-    assert "CANARY confirmação humana" in tradedesk
+    assert "Autonomous DEMO Operations RC2" in tradedesk
+    assert "PAUSE DEMO EXECUTION" in tradedesk
+    assert "SAFE STOP" in tradedesk
+    assert "RESUME DEMO EXECUTION" in tradedesk
+    assert "/operations/autonomous-demo" in tradedesk
     assert "/trading/demo-execution" in tradedesk
-    assert "DEMO EXECUTION RC1" in cockpit
+    assert "DEMO EXECUTION RC2" in cockpit
+    assert "AUTONOMOUS DEMO RC2" in cockpit
     assert "/trading/demo-execution" in cockpit
     for page in (tradedesk, cockpit):
         assert "order_send" not in page

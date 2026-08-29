@@ -47,3 +47,27 @@ execution_allowed=false
   continuam tecnicamente proibidos de chamar `order_send`.
 - Toda execução DEMO futura tem de ser idempotente e ligada ao Decision Ledger
   e Execution Ledger. Não fazer merge automático desta branch.
+
+## Exceção estrita — ODIN AUTONOMOUS DEMO OPERATIONS RC2
+
+- Esta secção é mais recente do que a regra RC1 acima e aplica-se apenas a
+  `feature/autonomous-demo-operations-rc2`.
+- RC1 preserva o CANARY one-shot. Depois do primeiro canary completo e
+  reconciliado, RC2 autoriza execução DEMO persistente sem confirmação por
+  trade, apenas no escopo `ODIN_AUTONOMOUS_DEMO_RC2`.
+- A única chamada literal `mt5.order_send` continua no adapter isolado. O
+  supervisor, Hermes, LLM, n8n, Strategy, Risk e dashboards não a podem chamar.
+- A autorização RC2 é vinculada a conta DEMO, broker/server/login/terminal,
+  estratégia e limites. REAL, UNKNOWN, fallback ou identidade divergente são
+  `HARD_BLOCK`.
+- Identidade única: OANDA TMS Brokers S.A., OANDATMS-MT5, terminal
+  `C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe`, EURUSD/EURUSD.pro.
+  `D:\ODIN_LOCAL\mt5\terminal64.exe` é sempre excluído.
+- Limites máximos: 0.01 lot, uma posição, uma ordem em voo, três trades
+  concluídos/dia e perda realizada diária máxima de 5 EUR.
+- Antes de cada envio, revalidar identidade live, Risk, freshness, perfil
+  temporal, sessão, spread, reconciliação, kill switch, margem, SL/TP,
+  idempotência e ausência de exposição concorrente. Timeout ambíguo não repete.
+- `safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`
+  permanecem globais. A autorização DEMO nunca promove autoridade para REAL.
+- O supervisor pode persistir em monitor-only/paused e não ativa Algo Trading.

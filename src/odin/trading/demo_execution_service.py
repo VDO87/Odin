@@ -11,11 +11,13 @@ from typing import Any
 from odin.adapters.mt5.demo_execution_adapter import (
     perform_order_check,
     read_broker_execution_state,
+    submit_autonomous_demo_order,
     submit_demo_canary,
 )
 from odin.contracts.demo_execution import (
     CanaryAuthorization,
     DemoAccountEvidence,
+    DemoAutomationAuthorization,
     DemoRiskLimits,
     TradeProposal,
 )
@@ -253,6 +255,133 @@ def run_demo_canary(
         "ledger_reconciliation": ledger_reconciliation,
         "order_send_called": True,
         "new_executions_enabled": False,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
+
+
+def run_autonomous_demo_order(
+    mt5: Any,
+    *,
+    proposal: TradeProposal,
+    evidence: DemoAccountEvidence,
+    risk_result: dict[str, object],
+    authorization: DemoAutomationAuthorization,
+    ledger_path: str | Path,
+    limits: DemoRiskLimits,
+    now_utc: datetime | None = None,
+) -> dict[str, object]:
+    """Submit at most one proposal cycle under the bounded RC2 DEMO contract."""
+    snapshot = read_broker_execution_state(mt5, evidence)
+    if snapshot["status"] != "OK":
+        return _service_block("broker_snapshot_blocked", snapshot)
+    positions = snapshot.get("positions")
+    orders = snapshot.get("orders")
+    assert isinstance(positions, list) and isinstance(orders, list)
+    recovery = recovery_gate(
+        ledger_path=ledger_path,
+        broker_positions=positions,
+        broker_orders=orders,
+        terminal_connected=True,
+    )
+    if recovery["status"] != "RECONCILED":
+        return _service_block("recovery_not_reconciled", recovery)
+    duplicate = submission_already_attempted(ledger_path, proposal.proposal_id)
+    gate = evaluate_demo_execution_gate(
+        proposal,
+        evidence,
+        risk_result,
+        duplicate_detected=duplicate,
+        limits=limits,
+        automation_authorization=authorization,
+        now_utc=now_utc,
+    )
+    if gate["status"] != "AUTONOMOUS_DEMO_READY":
+        return _service_block("demo_gate_not_autonomous_ready", gate)
+    checked = perform_order_check(mt5, proposal, evidence, gate, limits=limits)
+    if checked["status"] != "ORDER_CHECKED":
+        return _service_block("order_check_blocked", checked)
+    reservation = reserve_submission(ledger_path, proposal.proposal_id)
+    if reservation["status"] != "RESERVED":
+        return _service_block("duplicate_submission_reservation", reservation)
+    append_execution_event(
+        path=ledger_path,
+        proposal=proposal,
+        evidence=evidence,
+        risk_result=risk_result,
+        execution_status="ORDER_CHECKED",
+        reconciliation_status="RECONCILED",
+        order_check_result=_dict_or_none(checked.get("order_check_result")),
+    )
+    submitted = submit_autonomous_demo_order(
+        mt5, proposal, evidence, gate, checked, reservation
+    )
+    order_send_called = submitted.get("order_send_called") is True
+    if not order_send_called:
+        return _service_block("broker_submission_blocked", submitted)
+    broker_result = _dict_or_none(submitted.get("order_send_result"))
+    attempted_status = str(submitted.get("status"))
+    ledger_status = (
+        attempted_status
+        if attempted_status in {"FILLED", "SUBMITTED", "REJECTED"}
+        else "SUBMITTED"
+    )
+    append_execution_event(
+        path=ledger_path,
+        proposal=proposal,
+        evidence=evidence,
+        risk_result=risk_result,
+        execution_status=ledger_status,
+        reconciliation_status="PENDING",
+        order_check_result=_dict_or_none(checked.get("order_check_result")),
+        order_send_result=broker_result,
+        executed_volume=_number(broker_result, "volume"),
+        executed_price=_number(broker_result, "price"),
+        ticket=_integer(broker_result, "order"),
+    )
+    after = read_broker_execution_state(mt5, evidence)
+    if after["status"] != "OK":
+        return _reconciliation_block(
+            "post_submit_snapshot_unavailable", submitted, order_send_called=True
+        )
+    after_positions = after.get("positions")
+    after_orders = after.get("orders")
+    assert isinstance(after_positions, list) and isinstance(after_orders, list)
+    reconciled = recovery_gate(
+        ledger_path=ledger_path,
+        broker_positions=after_positions,
+        broker_orders=after_orders,
+        terminal_connected=True,
+    )
+    if reconciled["status"] != "RECONCILED":
+        return _reconciliation_block(
+            str(reconciled.get("reason")), submitted, order_send_called=True
+        )
+    position_id = None
+    if len(after_positions) == 1:
+        position_id = _integer(after_positions[0], "identifier") or _integer(
+            after_positions[0], "ticket"
+        )
+    ledger_reconciliation = confirm_execution_reconciliation(
+        path=ledger_path,
+        proposal_id=proposal.proposal_id,
+        reconciliation_result=reconciled,
+        position_id=position_id,
+    )
+    if ledger_reconciliation["status"] not in {"RECONCILED", "ALREADY_RECONCILED"}:
+        return _reconciliation_block(
+            "ledger_reconciliation_persistence_failed",
+            submitted,
+            order_send_called=True,
+        )
+    return {
+        "status": "AUTONOMOUS_DEMO_SUBMITTED_AND_RECONCILED",
+        "submission": submitted,
+        "reconciliation": reconciled,
+        "ledger_reconciliation": ledger_reconciliation,
+        "order_send_called": True,
+        "execution_allowed_scope": "ODIN_AUTONOMOUS_DEMO_RC2",
         "execution_allowed": False,
         "safe_to_trade": False,
         "real_trading": False,

@@ -1,4 +1,4 @@
-"""Single, isolated MT5 DEMO execution boundary for RC1.
+"""Single, isolated MT5 DEMO execution boundary for RC1 and limited RC2.
 
 The module is dependency-injected so offline tests never import or contact the
 MetaTrader5 runtime.  The only order submission call in ODIN is intentionally
@@ -28,7 +28,13 @@ def perform_order_check(
     identity_reasons = _live_identity_blocks(mt5, evidence)
     if identity_reasons:
         return _hard_block(identity_reasons)
-    request_result = _build_request(mt5, proposal, evidence, limits or DemoRiskLimits())
+    request_result = _build_request(
+        mt5,
+        proposal,
+        evidence,
+        limits or DemoRiskLimits(),
+        execution_scope=str(gate_result.get("execution_allowed_scope", "DEMO_DRY_RUN")),
+    )
     if request_result["status"] != "OK":
         return request_result
     request = request_result["request"]
@@ -64,9 +70,54 @@ def submit_demo_canary(
     submission_reservation: dict[str, object],
 ) -> dict[str, object]:
     """Submit exactly once after a one-shot human-gated DEMO authorization."""
+    return _submit_demo_order(
+        mt5,
+        proposal,
+        evidence,
+        gate_result,
+        checked,
+        submission_reservation,
+        expected_gate_status="CANARY_READY",
+        expected_scope="DEMO_CANARY_ONE_SHOT",
+    )
+
+
+def submit_autonomous_demo_order(
+    mt5: Any,
+    proposal: TradeProposal,
+    evidence: DemoAccountEvidence,
+    gate_result: dict[str, object],
+    checked: dict[str, object],
+    submission_reservation: dict[str, object],
+) -> dict[str, object]:
+    """Submit one reserved order inside the account-bound limited RC2 scope."""
+    return _submit_demo_order(
+        mt5,
+        proposal,
+        evidence,
+        gate_result,
+        checked,
+        submission_reservation,
+        expected_gate_status="AUTONOMOUS_DEMO_READY",
+        expected_scope="ODIN_AUTONOMOUS_DEMO_RC2",
+    )
+
+
+def _submit_demo_order(
+    mt5: Any,
+    proposal: TradeProposal,
+    evidence: DemoAccountEvidence,
+    gate_result: dict[str, object],
+    checked: dict[str, object],
+    submission_reservation: dict[str, object],
+    *,
+    expected_gate_status: str,
+    expected_scope: str,
+) -> dict[str, object]:
+    """Shared submission boundary; the literal order_send call exists only here."""
     gate_reasons = []
     required = {
-        "status": "CANARY_READY",
+        "status": expected_gate_status,
         "demo_execution_enabled": True,
         "order_send_allowed": True,
         "account_is_demo": True,
@@ -78,6 +129,8 @@ def submit_demo_canary(
     for key, expected in required.items():
         if gate_result.get(key) != expected:
             gate_reasons.append(f"gate_{key}_invalid")
+    if gate_result.get("execution_allowed_scope") != expected_scope:
+        gate_reasons.append("gate_execution_scope_invalid")
     if checked.get("status") != "ORDER_CHECKED" or checked.get("accepted") is not True:
         gate_reasons.append("order_check_not_accepted")
     expected_proposal_hash = hashlib.sha256(proposal.proposal_id.encode()).hexdigest()
@@ -115,7 +168,7 @@ def submit_demo_canary(
         "retry_allowed": False,
         "requires_reconciliation": True,
         "order_send_called": True,
-        "execution_allowed_scope": "DEMO_CANARY_ONE_SHOT",
+        "execution_allowed_scope": expected_scope,
         "execution_allowed": False,
         "safe_to_trade": False,
         "real_trading": False,
@@ -181,6 +234,8 @@ def _build_request(
     proposal: TradeProposal,
     evidence: DemoAccountEvidence,
     limits: DemoRiskLimits,
+    *,
+    execution_scope: str,
 ) -> dict[str, object]:
     symbol_info = _as_mapping(mt5.symbol_info(evidence.broker_symbol))
     tick = _as_mapping(mt5.symbol_info_tick(evidence.broker_symbol))
@@ -211,7 +266,11 @@ def _build_request(
         "tp": round(proposal.take_profit, evidence.digits),
         "deviation": limits.maximum_execution_slippage_points,
         "magic": magic,
-        "comment": f"ODIN_RC1_{proposal.proposal_id[:12]}",
+        "comment": (
+            f"ODIN_RC2_{proposal.proposal_id[:12]}"
+            if execution_scope == "ODIN_AUTONOMOUS_DEMO_RC2"
+            else f"ODIN_RC1_{proposal.proposal_id[:12]}"
+        ),
         "type_time": getattr(mt5, "ORDER_TIME_GTC"),
         "type_filling": filling_mode,
     }

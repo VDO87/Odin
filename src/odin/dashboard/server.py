@@ -28,7 +28,12 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path != "/trading/replay/config":
+        handlers = {
+            "/trading/replay/config": self.routes.configure_replay,
+            "/operations/autonomous-demo/control": self.routes.configure_autonomous_demo_control,
+        }
+        handler = handlers.get(path)
+        if handler is None:
             self._send_json(404, {"status": "NOT_FOUND", "execution_allowed": False})
             return
         try:
@@ -43,7 +48,7 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError):
             self._send_json(400, {"status": "BLOCKED", "reason": "replay_config_json_invalid", "execution_allowed": False})
             return
-        status, payload = self.routes.configure_replay(value)
+        status, payload = handler(value)
         self._send_json(status, payload)
 
     def log_message(self, format: str, *args: Any) -> None:

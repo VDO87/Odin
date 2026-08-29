@@ -42,6 +42,7 @@ class DemoRiskLimits:
     allowed_future_clock_skew_seconds: int = 2
     maximum_order_retries: int = 1
     maximum_execution_slippage_points: int = 20
+    max_completed_trades_per_day: int = 3
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -97,6 +98,7 @@ class DemoAccountEvidence:
     expected_server_offset_seconds: int | None = None
     normalization_confidence: str = "NONE"
     market_time_source_profile: str | None = None
+    completed_trades_today: int = 0
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -110,6 +112,24 @@ class CanaryAuthorization:
     expires_at_utc: str
     single_use: bool
     consumed: bool
+
+    def to_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class DemoAutomationAuthorization:
+    """Persistent, account-bound authorization for the limited RC2 DEMO scope."""
+
+    authorization_id: str
+    account_fingerprint: str
+    issued_at_utc: str
+    strategy_id: str
+    max_position_size: float
+    max_completed_trades_per_day: int
+    max_daily_demo_loss: float
+    scope: str = "ODIN_AUTONOMOUS_DEMO_RC2"
+    enabled: bool = True
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)

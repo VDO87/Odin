@@ -8,6 +8,7 @@ import hashlib
 from odin.contracts.demo_execution import (
     CanaryAuthorization,
     DemoAccountEvidence,
+    DemoAutomationAuthorization,
     DemoRiskLimits,
     TradeProposal,
 )
@@ -34,9 +35,10 @@ def evaluate_demo_execution_gate(
     duplicate_detected: bool,
     limits: DemoRiskLimits | None = None,
     canary_authorization: CanaryAuthorization | None = None,
+    automation_authorization: DemoAutomationAuthorization | None = None,
     now_utc: datetime | None = None,
 ) -> dict[str, object]:
-    """Authorize order_check or one CANARY proposal; never change global flags."""
+    """Authorize dry-run, one CANARY, or tightly scoped RC2 DEMO execution."""
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
     policy = limits or DemoRiskLimits()
     hard_blocks = _identity_blocks(evidence)
@@ -50,6 +52,34 @@ def evaluate_demo_execution_gate(
     )
     if reasons:
         return _blocked("HARD_BLOCK" if hard_blocks else "BLOCK", reasons)
+    if canary_authorization is not None and automation_authorization is not None:
+        return _blocked("BLOCK", ["conflicting_demo_authorizations"])
+    if automation_authorization is not None:
+        authorization_reasons = _automation_authorization_blocks(
+            authorization=automation_authorization,
+            proposal=proposal,
+            evidence=evidence,
+            limits=policy,
+            now=now,
+        )
+        if authorization_reasons:
+            return _blocked("BLOCK", authorization_reasons)
+        return {
+            "status": "AUTONOMOUS_DEMO_READY",
+            "reason_codes": [],
+            "order_check_allowed": True,
+            "order_send_allowed": True,
+            "demo_execution_enabled": True,
+            "account_is_demo": True,
+            "risk_approved": True,
+            "reconciliation_ok": True,
+            "account_fingerprint": account_fingerprint(evidence),
+            "authorization_id": automation_authorization.authorization_id,
+            "execution_allowed_scope": "ODIN_AUTONOMOUS_DEMO_RC2",
+            "execution_allowed": False,
+            "safe_to_trade": False,
+            "real_trading": False,
+        }
     authorization_reasons = _authorization_blocks(
         authorization=canary_authorization,
         proposal=proposal,
@@ -139,6 +169,10 @@ def _operational_blocks(
         (evidence.open_positions >= limits.max_simultaneous_positions, "position_limit_reached"),
         (evidence.active_orders >= limits.max_simultaneous_orders, "order_limit_reached"),
         (evidence.free_margin < limits.minimum_free_margin, "minimum_free_margin_not_met"),
+        (
+            evidence.completed_trades_today >= limits.max_completed_trades_per_day,
+            "daily_completed_trade_limit",
+        ),
     )
     reasons.extend(reason for failed, reason in checks if failed)
     if evidence.market_time_status == "BLOCKED":
@@ -218,6 +252,56 @@ def _authorization_blocks(
     else:
         if issued > now or expires <= now:
             reasons.append("canary_expired_or_not_yet_valid")
+    return reasons
+
+
+def _automation_authorization_blocks(
+    *,
+    authorization: DemoAutomationAuthorization,
+    proposal: TradeProposal,
+    evidence: DemoAccountEvidence,
+    limits: DemoRiskLimits,
+    now: datetime,
+) -> list[str]:
+    reasons: list[str] = []
+    if authorization.scope != "ODIN_AUTONOMOUS_DEMO_RC2":
+        reasons.append("automation_scope_invalid")
+    if not authorization.enabled:
+        reasons.append("automation_authorization_disabled")
+    if authorization.account_fingerprint != account_fingerprint(evidence):
+        reasons.append("automation_account_mismatch")
+    if authorization.strategy_id != proposal.strategy_id:
+        reasons.append("automation_strategy_mismatch")
+    if not authorization.authorization_id:
+        reasons.append("automation_authorization_id_missing")
+    try:
+        issued = datetime.fromisoformat(
+            authorization.issued_at_utc.replace("Z", "+00:00")
+        ).astimezone(UTC)
+    except ValueError:
+        reasons.append("automation_timestamp_invalid")
+    else:
+        if issued > now:
+            reasons.append("automation_not_yet_valid")
+    if (
+        authorization.max_position_size <= 0
+        or authorization.max_position_size > limits.max_position_size
+        or authorization.max_position_size > 0.01
+    ):
+        reasons.append("automation_position_limit_invalid")
+    if (
+        authorization.max_completed_trades_per_day <= 0
+        or authorization.max_completed_trades_per_day
+        > limits.max_completed_trades_per_day
+        or authorization.max_completed_trades_per_day > 3
+    ):
+        reasons.append("automation_trade_count_limit_invalid")
+    if (
+        authorization.max_daily_demo_loss <= 0
+        or authorization.max_daily_demo_loss > limits.max_daily_demo_loss
+        or authorization.max_daily_demo_loss > 5.0
+    ):
+        reasons.append("automation_daily_loss_limit_invalid")
     return reasons
 
 

@@ -130,3 +130,30 @@ Conta REAL, UNKNOWN, identidade divergente ou fallback de conta sao `HARD_BLOCK`
 Antes da confirmacao humana, RC1 termina em dry-run/pre-flight sem enviar ordem.
 Decision Ledger e Execution Ledger ligam proposta, risco, check, eventual envio
 DEMO, resultado e reconciliacao. Trading real permanece estruturalmente ausente.
+
+## ODIN AUTONOMOUS DEMO OPERATIONS RC2 Architecture Lock
+
+Esta secao e mais recente e complementa o lock RC1. RC2 acrescenta uma
+autorizacao DEMO persistente, account-bound e nao promovivel, depois do primeiro
+canary completo e reconciliado. A unica chamada literal a `mt5.order_send`
+continua confinada a `src/odin/adapters/mt5/demo_execution_adapter.py`;
+supervisor, Strategy, Hermes, LLM, n8n, dashboards e Risk nao a podem chamar.
+
+A identidade permitida e exclusivamente conta DEMO, broker
+`OANDA TMS Brokers S.A.`, server `OANDATMS-MT5`, terminal
+`C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe`, logical symbol
+`EURUSD` e broker symbol `EURUSD.pro`. A instancia
+`D:\ODIN_LOCAL\mt5\terminal64.exe`, qualquer fallback e qualquer conta REAL ou
+UNKNOWN produzem `HARD_BLOCK`.
+
+Antes de cada envio DEMO, o sistema revalida identidade live, permissao do
+terminal e conta, perfil temporal, freshness, sessao, spread, reconciliacao,
+Risk, kill switch, margem, SL/TP, zero posicoes/ordens concorrentes e reserva
+atomica idempotente. Os limites maximos sao 0.01 lot, uma posicao, uma ordem em
+voo, tres trades concluidos por dia e perda realizada diaria de 5 EUR. Timeout
+ou resultado ambiguo nunca provoca retry; provoca reconciliacao e pausa.
+
+`safe_to_trade=false`, `real_trading=false` e `execution_allowed=false`
+continuam globais e imutaveis. A autoridade RC2 e apenas DEMO e nao pode ser
+reutilizada para REAL. Supervisor e dashboard permanecem ativos quando a
+execucao estiver paused, waiting market, degraded ou em recovery.

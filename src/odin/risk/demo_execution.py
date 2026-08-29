@@ -40,6 +40,8 @@ def evaluate_demo_risk(
         reasons.append("excessive_spread")
     if evidence.daily_realized_pnl <= -policy.max_daily_demo_loss:
         reasons.append("daily_demo_loss_limit")
+    if evidence.completed_trades_today >= policy.max_completed_trades_per_day:
+        reasons.append("daily_completed_trade_limit")
     if evidence.drawdown_percent >= policy.max_drawdown_percent:
         reasons.append("demo_drawdown_limit")
     if proposal.volume > policy.max_position_size:

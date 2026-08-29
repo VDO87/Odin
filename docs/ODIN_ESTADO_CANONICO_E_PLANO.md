@@ -1241,3 +1241,39 @@ safe_to_trade=false
 real_trading=false
 execution_allowed=false
 ```
+
+---
+
+# 25. ODIN AUTONOMOUS DEMO OPERATIONS RC2 — EXCEÇÃO LIMITADA (2026-08-29)
+
+Esta é a decisão canónica mais recente para a branch
+`feature/autonomous-demo-operations-rc2`. Preserva RC1 e autoriza, depois do
+primeiro canary `COMPLETE_AND_RECONCILED`, operação DEMO persistente sem
+confirmação humana por trade.
+
+A autoridade é exclusivamente `ODIN_AUTONOMOUS_DEMO_RC2`, vinculada a conta
+comprovadamente DEMO, `OANDA TMS Brokers S.A.`, `OANDATMS-MT5`, terminal
+`C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe`, `EURUSD` lógico e
+`EURUSD.pro` no broker. A instância `D:\ODIN_LOCAL\mt5\terminal64.exe` é
+explicitamente excluída e nunca pode ser fallback.
+
+Limites máximos: 0.01 lot, uma posição, uma ordem em voo, três trades concluídos
+por dia e perda realizada diária de 5 EUR. SL é obrigatório; TP ou saída
+determinística é obrigatória. Cada envio passa por Strategy, TradeProposal,
+Risk Engine, Demo Execution Gate, `order_check`, reserva atómica, adapter
+isolado, broker truth e reconciliação. Timeout/resultado ambíguo nunca permite
+retry antes de reconstrução factual por positions/orders/deals/history.
+
+Conta REAL/UNKNOWN, broker/server/terminal/símbolo divergente, fallback, dados
+stale, timestamp futuro ou offset inesperado, mercado fechado, spread excessivo,
+reconciliação incompleta, posição/ordem concorrente, limite diário ou kill
+switch implicam BLOCK/HARD_BLOCK. O supervisor e dashboard continuam em
+monitor-only/paused e não ativam Algo Trading automaticamente.
+
+Os flags globais permanecem imutáveis:
+
+```text
+safe_to_trade=false
+real_trading=false
+execution_allowed=false
+```

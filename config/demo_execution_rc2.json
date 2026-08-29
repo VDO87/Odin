@@ -1,0 +1,32 @@
+{
+  "mode": "ODIN_AUTONOMOUS_DEMO_RC2",
+  "authorization_scope": "LIMITED_DEMO_ONLY",
+  "broker": "OANDA TMS Brokers S.A.",
+  "server": "OANDATMS-MT5",
+  "terminal_path": "C:\\Program Files\\OANDA TMS MT5 Terminal\\terminal64.exe",
+  "logical_symbol": "EURUSD",
+  "broker_symbol": "EURUSD.pro",
+  "strategy_id": "trend_mean_v1",
+  "fixed_volume": 0.01,
+  "max_simultaneous_positions": 1,
+  "max_simultaneous_orders": 1,
+  "max_completed_trades_per_day": 3,
+  "max_daily_demo_loss_eur": 5.0,
+  "max_risk_per_trade_eur": 5.0,
+  "max_drawdown_percent": 5.0,
+  "minimum_free_margin_eur": 1000.0,
+  "max_spread": 0.0003,
+  "stale_data_threshold_seconds": 60,
+  "allowed_future_clock_skew_seconds": 2,
+  "maximum_order_retries": 1,
+  "maximum_execution_slippage_points": 20,
+  "kill_switch_engaged": false,
+  "autonomous_demo_authorized": true,
+  "fallback_allowed": false,
+  "excluded_terminal_paths": [
+    "D:\\ODIN_LOCAL\\mt5\\terminal64.exe"
+  ],
+  "safe_to_trade": false,
+  "real_trading": false,
+  "execution_allowed": false
+}

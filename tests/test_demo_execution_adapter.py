@@ -10,12 +10,23 @@ from odin.trading import demo_execution_service
 from odin.adapters.mt5.demo_execution_adapter import (
     perform_order_check,
     read_broker_execution_state,
+    submit_autonomous_demo_order,
     submit_demo_canary,
 )
-from odin.contracts.demo_execution import CanaryAuthorization, DemoAccountEvidence, TradeProposal
+from odin.contracts.demo_execution import (
+    CanaryAuthorization,
+    DemoAccountEvidence,
+    DemoAutomationAuthorization,
+    DemoRiskLimits,
+    TradeProposal,
+)
 from odin.risk.demo_execution import evaluate_demo_risk
 from odin.trading.demo_execution_gate import account_fingerprint, evaluate_demo_execution_gate
-from odin.trading.demo_execution_service import run_demo_canary, run_demo_dry_run
+from odin.trading.demo_execution_service import (
+    run_autonomous_demo_order,
+    run_demo_canary,
+    run_demo_dry_run,
+)
 from odin.trading.demo_reconciliation import reconcile_broker_truth, recovery_gate
 from odin.trading.execution_ledger import (
     analyze_execution_ledger,
@@ -214,7 +225,28 @@ def canary_gate() -> dict[str, object]:
         "status": "CANARY_READY",
         "order_send_allowed": True,
         "demo_execution_enabled": True,
+        "execution_allowed_scope": "DEMO_CANARY_ONE_SHOT",
     }
+
+
+def rc2_limits() -> DemoRiskLimits:
+    return DemoRiskLimits(
+        max_risk_per_trade=5.0,
+        max_daily_demo_loss=5.0,
+        max_completed_trades_per_day=3,
+    )
+
+
+def automation_authorization() -> DemoAutomationAuthorization:
+    return DemoAutomationAuthorization(
+        authorization_id="human-authorized-rc2",
+        account_fingerprint=account_fingerprint(evidence()),
+        issued_at_utc=(NOW - timedelta(seconds=1)).isoformat(),
+        strategy_id="trend_mean_v1",
+        max_position_size=0.01,
+        max_completed_trades_per_day=3,
+        max_daily_demo_loss=5.0,
+    )
 
 
 def risk() -> dict[str, object]:
@@ -414,6 +446,105 @@ def test_synthetic_canary_calls_fake_send_once_and_requires_reconciliation() -> 
     assert result["retry_allowed"] is False
     assert result["real_trading"] is False
     assert mt5.send_calls == 1
+
+
+def test_rc2_authorization_is_account_bound_and_keeps_global_flags_false() -> None:
+    prop = proposal()
+    ev = evidence()
+    result = evaluate_demo_execution_gate(
+        prop,
+        ev,
+        evaluate_demo_risk(prop, ev, limits=rc2_limits()),
+        duplicate_detected=False,
+        limits=rc2_limits(),
+        automation_authorization=automation_authorization(),
+        now_utc=NOW,
+    )
+
+    assert result["status"] == "AUTONOMOUS_DEMO_READY"
+    assert result["execution_allowed_scope"] == "ODIN_AUTONOMOUS_DEMO_RC2"
+    assert result["order_send_allowed"] is True
+    assert result["execution_allowed"] is False
+    assert result["safe_to_trade"] is False
+    assert result["real_trading"] is False
+
+
+@pytest.mark.parametrize(
+    ("ev_changes", "reason"),
+    [
+        ({"account_mode": "REAL"}, "account_not_proven_demo"),
+        ({"account_mode": "UNKNOWN"}, "account_not_proven_demo"),
+        ({"server": "WRONG"}, "server_identity_mismatch"),
+        ({"completed_trades_today": 3}, "daily_completed_trade_limit"),
+        ({"daily_realized_pnl": -5.0}, "risk_not_allow_demo"),
+    ],
+)
+def test_rc2_gate_fails_closed_before_submission(
+    ev_changes: dict[str, object], reason: str
+) -> None:
+    prop = proposal()
+    ev = evidence(**ev_changes)
+    result = evaluate_demo_execution_gate(
+        prop,
+        ev,
+        evaluate_demo_risk(prop, ev, limits=rc2_limits()),
+        duplicate_detected=False,
+        limits=rc2_limits(),
+        automation_authorization=automation_authorization(),
+        now_utc=NOW,
+    )
+
+    assert result["status"] in {"HARD_BLOCK", "BLOCK"}
+    assert reason in result["reason_codes"]
+    assert result["order_send_allowed"] is False
+
+
+def test_rc2_adapter_requires_rc2_scope_and_submits_fake_once() -> None:
+    mt5 = FakeMT5()
+    prop = proposal()
+    ev = evidence()
+    gate = evaluate_demo_execution_gate(
+        prop,
+        ev,
+        evaluate_demo_risk(prop, ev, limits=rc2_limits()),
+        duplicate_detected=False,
+        limits=rc2_limits(),
+        automation_authorization=automation_authorization(),
+        now_utc=NOW,
+    )
+    checked = perform_order_check(mt5, prop, ev, gate, limits=rc2_limits())
+
+    result = submit_autonomous_demo_order(
+        mt5, prop, ev, gate, checked, reservation()
+    )
+
+    assert checked["request"]["comment"].startswith("ODIN_RC2_")
+    assert result["status"] == "FILLED"
+    assert result["execution_allowed_scope"] == "ODIN_AUTONOMOUS_DEMO_RC2"
+    assert mt5.send_calls == 1
+
+
+def test_rc2_service_reconciles_one_fake_order_without_canary_marker(
+    tmp_path: Path,
+) -> None:
+    mt5 = FakeMT5()
+    mt5.materialize_fill = True
+    path = tmp_path / "execution.jsonl"
+    result = run_autonomous_demo_order(
+        mt5,
+        proposal=proposal(),
+        evidence=evidence(),
+        risk_result=evaluate_demo_risk(proposal(), evidence(), limits=rc2_limits()),
+        authorization=automation_authorization(),
+        ledger_path=path,
+        limits=rc2_limits(),
+        now_utc=NOW,
+    )
+
+    assert result["status"] == "AUTONOMOUS_DEMO_SUBMITTED_AND_RECONCILED"
+    assert result["order_send_called"] is True
+    assert mt5.send_calls == 1
+    assert not (tmp_path / ".demo_canary_attempted.json").exists()
 
 
 def test_synthetic_canary_rejection_is_classified_without_retry() -> None:
