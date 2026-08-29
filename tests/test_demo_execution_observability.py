@@ -156,6 +156,8 @@ def test_tradedesk_and_cockpit_show_demo_execution_without_broker_controls() -> 
     assert "MT5 A CARREGAR" in tradedesk
     assert "HERMES A CARREGAR" in tradedesk
     assert "OPEN COCKPIT / REPORTS" in tradedesk
+    assert "Hermes-versus-Reality" in tradedesk
+    assert "CONFIRMED / PARTIAL / NOT_CONFIRMED / CONTRADICTED" in tradedesk
     assert "/operations/autonomous-demo" in tradedesk
     assert "/trading/demo-execution" in tradedesk
     assert "DEMO EXECUTION RC2" in cockpit
