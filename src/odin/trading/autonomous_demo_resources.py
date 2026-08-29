@@ -44,6 +44,8 @@ def evaluate_resource_snapshot(snapshot: Mapping[str, object]) -> dict[str, obje
         warnings.append("process_handle_telemetry_unavailable")
     if not isinstance(snapshot.get("wsl_fd_soft_limit"), int):
         warnings.append("wsl_fd_telemetry_unavailable")
+    if snapshot.get("wsl_telemetry_degraded") is True:
+        warnings.append("wsl_resource_telemetry_degraded")
 
     status = "BLOCK" if reasons else "WARNING" if warnings else "OK"
     return {

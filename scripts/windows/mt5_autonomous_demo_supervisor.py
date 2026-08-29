@@ -117,7 +117,9 @@ def main() -> int:
             control = read_control(control_path)
             try:
                 observation = _observe_once()
-                observation["resources"] = _resource_gate()
+                observation["resources"] = _resource_gate(
+                    dashboard_status=str(observation.get("dashboard", ""))
+                )
                 resource_gate = observation["resources"]
                 resource_status = (
                     str(resource_gate.get("status", "BLOCK"))
@@ -1041,7 +1043,7 @@ def _hard_block_observation(reason: str, terminal_path: str) -> dict[str, object
     }
 
 
-def _resource_gate() -> dict[str, object]:
+def _resource_gate(*, dashboard_status: str) -> dict[str, object]:
     script = Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])
     started = time.monotonic()
     try:
@@ -1073,7 +1075,10 @@ def _resource_gate() -> dict[str, object]:
             raise ValueError("resource_probe_payload_invalid")
         value["probe_duration_ms"] = round((time.monotonic() - started) * 1000)
         if value.get("probe_status") == "OK":
-            wsl_snapshot = _wsl_resource_snapshot()
+            wsl_snapshot = _merge_wsl_runtime_evidence(
+                _wsl_resource_snapshot(),
+                dashboard_status=dashboard_status,
+            )
             value.update(wsl_snapshot)
             value["hermes_running"] = value.get("hermes_running") is True or (
                 wsl_snapshot.get("wsl_hermes_running") is True
@@ -1096,6 +1101,24 @@ def _resource_gate() -> dict[str, object]:
             started=started,
         )
     return evaluate_resource_snapshot(value)
+
+
+def _merge_wsl_runtime_evidence(
+    snapshot: dict[str, object],
+    *,
+    dashboard_status: str,
+) -> dict[str, object]:
+    value = dict(snapshot)
+    if value.get("wsl_running") is True:
+        return value
+    if (
+        value.get("wsl_probe_error_code") == "wsl_resource_probe_timeout"
+        and dashboard_status == "RUNNING"
+    ):
+        value["wsl_running"] = True
+        value["wsl_runtime_evidence"] = "odin_dashboard_healthcheck"
+        value["wsl_telemetry_degraded"] = True
+    return value
 
 
 def _wsl_resource_snapshot() -> dict[str, object]:

@@ -65,7 +65,10 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "previous_request_id" in source
     assert "current_request_id != previous_request_id" in source
     assert 'incident_type="RESOURCE_GUARD_BLOCK"' in source
-    assert 'observation["resources"] = _resource_gate()' in source
+    assert 'observation["resources"] = _resource_gate(' in source
+    assert 'dashboard_status=str(observation.get("dashboard", ""))' in source
+    assert "_merge_wsl_runtime_evidence" in source
+    assert '"wsl_runtime_evidence"] = "odin_dashboard_healthcheck"' in source
     assert 'Path(os.environ["ODIN_RC2_RESOURCE_PROBE_PATH"])' in source
     assert "get_odin_autonomous_demo_resources.py" in source
     assert 'sys.executable,' in source
@@ -87,6 +90,38 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "DASHBOARD_RUNNING" in source
     assert "_bootstrap_runtime_environment()" in source
     assert "_VENV_SITE_PACKAGES" in source
+
+
+def test_wsl_timeout_uses_only_current_odin_dashboard_health_as_runtime_evidence() -> None:
+    supervisor = ROOT / "scripts/windows/mt5_autonomous_demo_supervisor.py"
+    tree = ast.parse(supervisor.read_text(encoding="utf-8"))
+    merge = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_merge_wsl_runtime_evidence"
+    )
+    namespace: dict[str, object] = {}
+    exec(
+        compile(ast.Module(body=[merge], type_ignores=[]), str(supervisor), "exec"),
+        namespace,
+    )
+    merge_evidence = namespace["_merge_wsl_runtime_evidence"]
+    timeout = {
+        "wsl_running": False,
+        "wsl_probe_error_code": "wsl_resource_probe_timeout",
+    }
+
+    healthy = merge_evidence(timeout, dashboard_status="RUNNING")
+    offline = merge_evidence(timeout, dashboard_status="RECOVERY_FAILED")
+
+    assert healthy == {
+        "wsl_running": True,
+        "wsl_probe_error_code": "wsl_resource_probe_timeout",
+        "wsl_runtime_evidence": "odin_dashboard_healthcheck",
+        "wsl_telemetry_degraded": True,
+    }
+    assert offline == timeout
 
 
 def test_resource_block_pauses_execution_before_any_decision() -> None:

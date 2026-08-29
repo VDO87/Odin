@@ -77,6 +77,23 @@ def test_invalid_wsl_resource_sample_fails_closed_without_fake_metrics() -> None
     }
 
 
+def test_live_wsl_with_degraded_telemetry_warns_without_hiding_evidence() -> None:
+    result = evaluate_resource_snapshot(
+        _snapshot(
+            wsl_fd_soft_limit=None,
+            wsl_probe_error_code="wsl_resource_probe_timeout",
+            wsl_runtime_evidence="odin_dashboard_healthcheck",
+            wsl_telemetry_degraded=True,
+        )
+    )
+
+    assert result["status"] == "WARNING"
+    assert result["reason_codes"] == []
+    assert "wsl_fd_telemetry_unavailable" in result["warning_codes"]
+    assert "wsl_resource_telemetry_degraded" in result["warning_codes"]
+    assert result["snapshot"]["wsl_probe_error_code"] == "wsl_resource_probe_timeout"
+
+
 @pytest.mark.parametrize(("marker", "expected"), [("HERMES:1", True), ("HERMES:0", False)])
 def test_wsl_resource_sample_reports_hermes_without_exposing_process_arguments(
     marker: str, expected: bool

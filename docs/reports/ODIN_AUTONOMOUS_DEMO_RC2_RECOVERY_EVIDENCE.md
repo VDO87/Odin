@@ -297,6 +297,28 @@ Branch: `feature/autonomous-demo-operations-rc2`
   uma vez, sem exposição. O bootstrap passou por isso a supervisionar um único
   filho real, com relançamentos bounded 5/30/60 s e ledger watchdog disarmado;
   quatro falhas consecutivas esgotam o orçamento e terminam fail-closed.
+- A validação real do watchdog local no bundle `5a4527a5643a` iniciou o bootstrap
+  PID `19720` pelo Task Scheduler (eventos Operational 110/129/200), terminou
+  controladamente apenas o supervisor filho PID `11092` e preservou o pai. O
+  watchdog registou `SUPERVISOR_RESTART_SCHEDULED`, `restart_attempt=1` e
+  `restart_delay_seconds=5`; o novo filho PID `16580` iniciou 5,9 s depois e
+  retomou heartbeat no ciclo 1. Não existiam posições nem ordens, a
+  reconciliação permaneceu íntegra, `broker_submission_called=false` e os três
+  guardrails globais permaneceram `false`.
+- Num ciclo posterior, o subprobe WSL excedeu isoladamente o timeout bounded de
+  10 s e produziu `EXECUTION_PAUSED` / `wsl_runtime_unavailable`. Sem qualquer
+  retry externo ou relaxamento do gate, o ciclo seguinte observou novamente o
+  WSL, recuperou para `WAITING_MARKET` e manteve resource gate `WARNING`. Esta é
+  a recuperação fail-closed pretendida; o mercado continuava stale/fechado e
+  nenhuma submissão ao broker ocorreu.
+- A recorrência do timeout foi separada de indisponibilidade factual do WSL: no
+  mesmo período, o TradeDesk alojado no WSL manteve `/health` em HTTP 200 e a
+  sonda idêntica respondeu diretamente em 522--615 ms. O resource gate passou a
+  aceitar apenas a combinação exata `wsl_resource_probe_timeout` + dashboard
+  ODIN já observado como `RUNNING` como evidência de runtime vivo, preservando o
+  timeout e marcando `wsl_resource_telemetry_degraded` como `WARNING`. Sem esse
+  healthcheck atual, WSL falso/desconhecido continua `BLOCK`. Testes dirigidos:
+  `61 passed`; Ruff, mypy no módulo tipado alterado e `git diff --check`: PASS.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
