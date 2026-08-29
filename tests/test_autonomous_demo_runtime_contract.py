@@ -71,6 +71,7 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "RESOURCE_PROBE_TIMEOUT_SECONDS = 45" in source
     assert "timeout=RESOURCE_PROBE_TIMEOUT_SECONDS" in source
     assert "WSL_RESOURCE_PROBE_TIMEOUT_SECONDS = 10" in source
+    assert source.count("creationflags=subprocess.CREATE_NO_WINDOW") >= 2
     assert "parse_wsl_resource_snapshot" in source
     assert 'incident_type="DASHBOARD_RECOVERY"' in source
     assert "dashboard_restarted_by_bounded_launcher" in source

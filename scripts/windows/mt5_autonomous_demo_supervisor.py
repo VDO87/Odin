@@ -1057,6 +1057,7 @@ def _resource_gate() -> dict[str, object]:
             ],
             check=False,
             capture_output=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
             text=True,
             timeout=RESOURCE_PROBE_TIMEOUT_SECONDS,
         )
@@ -1110,6 +1111,7 @@ def _wsl_resource_snapshot() -> dict[str, object]:
             ],
             check=False,
             capture_output=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
             text=True,
             timeout=WSL_RESOURCE_PROBE_TIMEOUT_SECONDS,
         )
