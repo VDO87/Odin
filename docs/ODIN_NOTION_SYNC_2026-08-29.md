@@ -19,7 +19,9 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - Terminal MetaQuotes-Demo em `D:\ODIN_LOCAL\mt5\terminal64.exe`: excluído do
   caminho ativo e de qualquer fallback.
 - Estado de mercado na atualização: `WAITING_MARKET`; tick de fim de semana
-  stale; `terminal_trade_allowed=false`; zero posições e zero ordens.
+  stale; `terminal_trade_allowed=true`, `account_trade_allowed=true` e
+  `account_trade_expert=true`; zero posições e zero ordens. A permissão foi
+  observada, não alterada automaticamente pelo ODIN.
 - Trades autónomos RC2 completos: 0.
 - Soak de mercado aberto acumulado: 0 horas.
 - Resource guardian: ativo; GPU/VRAM, CPU/RAM, disco, WSL, FD/handles,
@@ -37,6 +39,10 @@ MT5, histórico do broker e ledgers locais prevalecem.
   original permanece guardada com hash no dossier de recovery.
 - Acceptance RC2: `NOT_READY` até 24 horas de mercado aberto e pelo menos cinco
   trades autónomos completos/reconciliados, além da suite final e recovery.
+- O audit trail histórico do dashboard foi verificado (`SQLite quick_check=ok`)
+  e arquivado em `D:\ODIN_LOCAL\archives\dashboard-audit-20260829T2325Z`.
+  Cockpit, overview e healthcheck passaram a ler snapshots persistentes sem
+  reconstruir pipelines; o overview live caiu de 11,955 s para 0,186 s.
 
 ## Componentes consolidados
 
@@ -87,11 +93,17 @@ MT5, histórico do broker e ledgers locais prevalecem.
   autónomo do dashboard comprovado em 34,8 s.
 - `4bce696` — timeline real e redigida do Execution Ledger na Visão Geral.
 - `de289fd` — paths SVG válidos para a curva financeira MT5 DEMO.
+- `d02af7b` — publicação dos relatórios tolera contenção Windows bounded.
+- `06166ab` — terminal MetaQuotes-Demo retirado do caminho ativo de observação.
+- `c455828` — writers SQLite do dashboard serializados e WAL ativado.
+- `7178dd6` — Cockpit deixou de fazer polling recursivo do overview.
+- `28e3ffd` — overview passou a projetar apenas estado persistente RC2.
+- `25fb4e1` — healthcheck tornou-se puro e sem reconstrução do runtime.
 
 ## Próximos gates
 
-1. Operador ativa manualmente Algo Trading no terminal DEMO autorizado.
-2. Mercado EURUSD abre com ticks FRESH e spread dentro do limite.
+1. Preservar a permissão Algo Trading já observada; o ODIN não a altera.
+2. Aguardar sessão EURUSD elegível com ticks FRESH e spread dentro do limite.
 3. Supervisor observa decisões legítimas sem forçar sinal.
 4. Cada trade passa Strategy → Risk → Demo Gate → broker → ledgers → reconciliação.
 5. Acumular 24h de mercado aberto e pelo menos cinco trades autónomos completos.

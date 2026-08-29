@@ -29,6 +29,7 @@ não foram envolvidos por novos agentes ou daemons.
 | `Get-ODIN-Autonomous-Demo-Resources.ps1` | ACTIVE_REQUIRED | Probe read-only de recursos Windows. O supervisor recolhe WSL/FD/memória/processos num subprobe isolado com timeout de 10 s; qualquer falha bloqueia execução. |
 | `Start-ODIN-Dashboard-Persistent.ps1` + `run_dashboard_local.sh` | ACTIVE_REQUIRED | Um dashboard loopback com watchdog bounded. |
 | TradeDesk e Cockpit em `127.0.0.1:8765` | ACTIVE_REQUIRED | Duas vistas da mesma aplicação, não dois runtimes. |
+| JSONL/SQLite do dashboard | ACTIVE_REQUIRED | Audit trail atual bounded; leitura live usa snapshots. Arquivos históricos ficam fora de `logs`/`reports` ativos em `D:\ODIN_LOCAL\archives`. |
 | `Set-ODIN-Autonomous-Demo-Control.ps1` e controlos HTTP | ACTIVE_REQUIRED | Um contrato persistente comum para PAUSE, RESUME e SAFE_STOP. |
 | Demo Execution Gate + adapter MT5 | ACTIVE_REQUIRED | Fronteira financeira determinística única. |
 | Risk Engine | ACTIVE_REQUIRED | Autoridade final de bloqueio; não criar “Agente de Risco” duplicado. |
@@ -57,6 +58,9 @@ não foram envolvidos por novos agentes ou daemons.
   deixava processos órfãos fora do Task Scheduler.
 - TradeDesk e Cockpit partilham o mesmo servidor local; não existe um segundo
   dashboard daemon.
+- O Cockpit, o overview de compatibilidade e o healthcheck não reconstroem
+  pipelines em cada GET; usam estado persistente e produzem apenas auditoria de
+  request/response. Isto evita que clientes antigos amplifiquem JSONL/SQLite.
 - O Risk Engine, Demo Gate e Data Quality Gate já satisfazem as capacidades antes
   descritas como “agentes”; não criar wrappers inteligentes duplicados.
 - O probe PowerShell e o subprobe WSL são partes da mesma medição, não dois
