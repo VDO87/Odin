@@ -214,19 +214,17 @@ def _next_candidate(
 
 def _prompt(candidate: dict[str, Any], context: object) -> str:
     allowed = sorted(_ALLOWED_KINDS[str(candidate["trigger_type"])])
-    expected_types = {
-        kind: "string_list" if kind in _LIST_KINDS else "scalar" for kind in allowed
-    }
     return "\n".join(
         (
             "You are Hermes in ODIN read-only diagnostic mode.",
             "You have no financial authority. Never suggest or request an order, position, volume, SL, TP, or permission change.",
             "Return JSON only: {\"claims\":[{\"kind\":str,\"expected\":scalar_or_string_list,\"claim\":str,\"action\":str}]}",
             "Use only the supplied facts. Produce 1 to 4 concise factual claims. Do not invent missing values.",
+            "Expected must be a literal value from facts. Only decision_reason_codes may be a string list.",
+            "Never use the schema words scalar or string_list as an expected value.",
             f"trigger_type={candidate['trigger_type']}",
             f"subject_id={candidate['subject_id']}",
             f"allowed_kinds={json.dumps(allowed)}",
-            f"expected_types={json.dumps(expected_types, sort_keys=True)}",
             f"facts={json.dumps(context, sort_keys=True, separators=(',', ':'))}",
         )
     )
@@ -352,6 +350,8 @@ def _expected_value(
     if isinstance(value, (int, float)):
         return value
     if isinstance(value, str) and value and len(value) <= 160:
+        if value.casefold() in {"scalar", "string_list"}:
+            return None
         return value
     if kind in _LIST_KINDS and (
         isinstance(value, list)
