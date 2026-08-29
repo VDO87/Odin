@@ -45,6 +45,8 @@ def test_demo_dashboard_exposes_finance_and_permanent_blocks(tmp_path) -> None:
     )
 
     assert result["status"] == "OK"
+    assert result["evidence_scope"] == "HISTORICAL_EXECUTION_LEDGER_AND_CANARY"
+    assert result["current_runtime_authority"] == "/operations/autonomous-demo"
     assert result["banner"] == "DEMO MONEY — NO REAL CAPITAL"
     assert result["real_trading_banner"] == "REAL TRADING BLOCKED"
     assert result["account"] == {
@@ -63,6 +65,8 @@ def test_demo_dashboard_exposes_finance_and_permanent_blocks(tmp_path) -> None:
     assert result["execution"]["anomalies"] == []
     assert result["execution"]["records_count"] == 0
     assert result["execution"]["metrics"]["closed_trades"] == 0
+    assert result["decision"]["scope"] == "HISTORICAL_LEDGER_RECORD"
+    assert result["risk"]["scope"] == "HISTORICAL_LEDGER_RECORD"
     assert result["timeline"] == []
     assert result["canary_confirmation_required"] is True
     assert result["execution_allowed"] is False
@@ -199,8 +203,9 @@ def test_tradedesk_and_cockpit_show_demo_execution_without_broker_controls() -> 
     assert "CONFIRMED / PARTIAL / NOT_CONFIRMED / CONTRADICTED" in tradedesk
     assert "/operations/autonomous-demo" in tradedesk
     assert "/trading/demo-execution" in tradedesk
-    assert "DEMO EXECUTION RC2" in cockpit
     assert "AUTONOMOUS DEMO RC2" in cockpit
+    assert "DEMO EXECUTION LEDGER · histórico RC1/RC2" in cockpit
+    assert "Live operational summary · autoridade runtime atual" in cockpit
     assert "/trading/demo-execution" in cockpit
     for page in (tradedesk, cockpit):
         assert "order_send" not in page

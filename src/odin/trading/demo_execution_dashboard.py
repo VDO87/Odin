@@ -54,6 +54,8 @@ def demo_execution_dashboard_state(
         else "BLOCKED",
         "component": "demo_execution_dashboard",
         "mode": "ODIN_AUTONOMOUS_DEMO_RC2",
+        "evidence_scope": "HISTORICAL_EXECUTION_LEDGER_AND_CANARY",
+        "current_runtime_authority": "/operations/autonomous-demo",
         "banner": "DEMO MONEY — NO REAL CAPITAL",
         "real_trading_banner": "REAL TRADING BLOCKED",
         "mt5_status": mt5.get("status", "BLOCKED"),
@@ -69,11 +71,13 @@ def demo_execution_dashboard_state(
             "drawdown_percent": _drawdown(account),
         },
         "decision": {
+            "scope": "HISTORICAL_LEDGER_RECORD",
             "decision_id": latest.get("decision_id"),
             "proposal_id": latest.get("proposal_id"),
             "signal": latest.get("side", "NO_TRADE"),
         },
         "risk": {
+            "scope": "HISTORICAL_LEDGER_RECORD",
             "status": risk.get("status", "BLOCK"),
             "approved": risk.get("risk_approved", False),
             "reason_codes": risk.get("reason_codes", []),
