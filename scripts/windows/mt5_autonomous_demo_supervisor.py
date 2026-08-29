@@ -87,6 +87,7 @@ def main() -> int:
     try:
         while not STOP_REQUESTED:
             cycle += 1
+            control = read_control(control_path)
             try:
                 observation = _observe_once()
                 control = read_control(control_path)
@@ -166,7 +167,11 @@ def main() -> int:
                 ),
                 flush=True,
             )
-            _sleep_bounded(delay)
+            _sleep_bounded(
+                delay,
+                control_path=control_path,
+                previous_request_id=str(control.get("request_id", "")),
+            )
     finally:
         ctypes.windll.kernel32.CloseHandle(mutex)
     return 0
@@ -822,9 +827,18 @@ def _install_signal_handlers() -> None:
     signal.signal(signal.SIGTERM, stop)
 
 
-def _sleep_bounded(seconds: int) -> None:
+def _sleep_bounded(
+    seconds: int,
+    *,
+    control_path: Path,
+    previous_request_id: str,
+) -> None:
     deadline = time.monotonic() + seconds
     while not STOP_REQUESTED and time.monotonic() < deadline:
+        current = read_control(control_path)
+        current_request_id = str(current.get("request_id", ""))
+        if current_request_id and current_request_id != previous_request_id:
+            return
         time.sleep(min(1.0, deadline - time.monotonic()))
 
 

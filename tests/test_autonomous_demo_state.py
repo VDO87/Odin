@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 
@@ -82,6 +82,34 @@ def test_heartbeat_and_incident_memory_are_non_secret(tmp_path: Path) -> None:
     assert heartbeat["execution_allowed"] is False
     assert len(incident["fingerprint"]) == 64
     assert "must disappear" not in (tmp_path / "incidents.jsonl").read_text()
+
+
+def test_incident_fingerprint_accumulates_occurrences_without_new_diagnosis(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "incidents.jsonl"
+    first = append_incident(
+        path,
+        incident_type="MT5_DISCONNECTED",
+        component="mt5",
+        error_code="-10005",
+        root_cause="ipc_timeout",
+        evidence={"status": "offline"},
+        now_utc=NOW,
+    )
+    second = append_incident(
+        path,
+        incident_type="MT5_DISCONNECTED",
+        component="mt5",
+        error_code="-10005",
+        root_cause="ipc_timeout",
+        evidence={"status": "offline"},
+        now_utc=NOW + timedelta(minutes=1),
+    )
+
+    assert first["fingerprint"] == second["fingerprint"]
+    assert second["occurrences"] == 2
+    assert second["first_seen"] == first["first_seen"]
 
 
 def test_operator_control_fails_to_pause_and_never_enables_global_execution(

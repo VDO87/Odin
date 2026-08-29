@@ -157,6 +157,12 @@ def append_incident(
         "root_cause": root_cause,
     }
     fingerprint = _content_hash(fingerprint_seed)
+    previous = [
+        item
+        for item in _read_jsonl_tail(Path(path), limit=1000)
+        if item.get("fingerprint") == fingerprint
+    ]
+    latest = previous[-1] if previous else {}
     record: dict[str, object] = {
         "schema": "odin.autonomous_demo_incident/v1",
         "fingerprint": fingerprint,
@@ -165,12 +171,15 @@ def append_incident(
         "error_code": error_code,
         "root_cause": root_cause,
         "evidence_hash": _content_hash(safe_evidence),
-        "first_seen": now,
+        "first_seen": latest.get("first_seen", now),
         "last_seen": now,
-        "occurrences": 1,
-        "repair_attempts": max(0, int(repair_attempts)),
-        "successful_fix": successful_fix,
-        "checkpoint": checkpoint,
+        "occurrences": _nonnegative_int(latest.get("occurrences")) + 1,
+        "repair_attempts": max(
+            _nonnegative_int(latest.get("repair_attempts")),
+            max(0, int(repair_attempts)),
+        ),
+        "successful_fix": successful_fix or str(latest.get("successful_fix", "")),
+        "checkpoint": checkpoint or str(latest.get("checkpoint", "")),
         "regression_status": regression_status,
         **GLOBAL_GUARDRAILS,
     }
@@ -236,7 +245,7 @@ def autonomous_demo_dashboard_state(
     """Read a bounded operational summary for the local dashboards."""
     current = read_state(state_path)
     heartbeat = _read_json(Path(heartbeat_path))
-    incidents = _read_jsonl_tail(Path(incidents_path), limit=20)
+    incidents = _deduplicate_incidents(_read_jsonl_tail(Path(incidents_path), limit=1000))[-20:]
     reports = Path(report_root) if report_root is not None else None
     metrics = _read_json(reports / "ODIN_AUTONOMOUS_DEMO_METRICS.json") if reports else {}
     hermes_vs_reality = (
@@ -331,6 +340,19 @@ def _read_jsonl_tail(path: Path, *, limit: int) -> list[dict[str, object]]:
     return result
 
 
+def _deduplicate_incidents(records: list[dict[str, object]]) -> list[dict[str, object]]:
+    latest: dict[str, dict[str, object]] = {}
+    order: list[str] = []
+    for record in records:
+        fingerprint = str(record.get("fingerprint", ""))
+        if not fingerprint:
+            continue
+        if fingerprint not in latest:
+            order.append(fingerprint)
+        latest[fingerprint] = record
+    return [latest[fingerprint] for fingerprint in order]
+
+
 def _parse_utc(value: object) -> datetime | None:
     if not isinstance(value, str):
         return None
@@ -341,6 +363,10 @@ def _parse_utc(value: object) -> datetime | None:
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         return None
     return parsed.astimezone(UTC)
+
+
+def _nonnegative_int(value: object) -> int:
+    return max(0, int(value)) if isinstance(value, (int, float)) else 0
 
 
 def _content_hash(value: Mapping[str, object]) -> str:

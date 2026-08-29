@@ -58,6 +58,8 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "daily_broker_history_unavailable" in source
     assert "reconcile_latest_broker_close" in source
     assert "update_autonomous_demo_reports" in source
+    assert "previous_request_id" in source
+    assert "current_request_id != previous_request_id" in source
 
 
 def test_only_isolated_adapter_still_contains_one_order_send_call() -> None:
