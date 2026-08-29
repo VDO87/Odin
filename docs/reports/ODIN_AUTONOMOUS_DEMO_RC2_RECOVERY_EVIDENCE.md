@@ -155,6 +155,16 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - Testes dirigidos do ledger, Demo Gate, observabilidade e TradeDesk:
   `95 passed`. Ruff e mypy dirigidos: PASS.
 
+### Renderização da curva MT5 DEMO
+
+- A validação no browser detetou que o primeiro path SVG emitia comandos `L`
+  sem pares x/y completos, embora os dados fossem corretos.
+- O checkpoint `de289fd` passou a construir paths line/area com comandos
+  explícitos `M x y` e `L x y`; não houve alteração de dados ou métricas.
+- Revalidação renderizada: line e area válidas, label `MT5 DEMO equity`, valor
+  `49999.12 EUR`, timeline com 10 linhas, guardrails false e zero erros de
+  consola. Testes dirigidos: `12 passed`; Ruff e mypy: PASS.
+
 ### Restart do WSL
 
 - Pré-condições: zero posições, zero ordens, mercado stale e nenhuma submissão.

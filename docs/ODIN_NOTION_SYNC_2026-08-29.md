@@ -86,6 +86,7 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `3c7dfdc` — curva MT5 DEMO reconciliada e bounded no TradeDesk; recovery
   autónomo do dashboard comprovado em 34,8 s.
 - `4bce696` — timeline real e redigida do Execution Ledger na Visão Geral.
+- `de289fd` — paths SVG válidos para a curva financeira MT5 DEMO.
 
 ## Próximos gates
 
