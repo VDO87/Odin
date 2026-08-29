@@ -193,13 +193,21 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - A retoma final em monitorização direta produziu três ciclos consecutivos em
   `WAITING_MARKET`, com resource gate `WARNING`, probe `OK`, WSL em 234--485 ms,
   MT5 ligado, reconciliação `RECONCILED` e os três guardrails a `false`.
-- Duas variantes de arranque pelo Task Scheduler não atingiram o primeiro
-  heartbeat no contexto atual. O bounded loop foi respeitado: não houve terceira
-  tentativa, a definição foi reposta no modelo anterior e a tarefa ficou
-  registada mas parada, aguardando evidência nova ou validação num próximo logon.
-- Estado operacional preservado no checkpoint `29a0749`: uma única instância
-  direta independente mantém observação e dashboard; o autoarranque após reboot
-  continua pendente e impede acceptance.
+- O canal `Microsoft-Windows-TaskScheduler/Operational` estava desativado e o
+  utilizador não elevado recebeu `ACCESS_DENIED` ao tentar ativá-lo; não foram
+  alteradas permissões nem privilégios. A tarefa mantém `InteractiveToken` e
+  `RunLevel=LeastPrivilege`, conforme o contrato de segurança do Windows.
+- Evidência histórica mostrou que o wrapper CMD chegara a iniciar o supervisor.
+  Uma revalidação limpa do mesmo caminho alcançou `SUPERVISOR_STARTING`, mas o
+  filho criado no contexto do Scheduler não publicou heartbeat e voltou a
+  bloquear no probe de recursos. A documentação oficial da Microsoft também
+  classifica `\\wsl.localhost` como acesso 9P lento, apropriado para acesso
+  ocasional e não para loops apertados.
+- O ramo experimental foi encerrado e revertido nos checkpoints `7fe3ce5` e
+  `4994f3c`; a definição anterior ficou instalada mas não voltou a ser executada.
+  Uma única instância direta independente retomou `WAITING_MARKET`, probe `OK`,
+  zero exposição e checkpoint alinhado. O autoarranque após reboot continua
+  pendente, requer evidência administrativa/logon nova e impede acceptance.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
