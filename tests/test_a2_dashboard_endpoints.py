@@ -82,6 +82,33 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
         self.assertEqual(payload["alerts_count"], 0)
         self.assertEqual(payload["alerts"], [])
 
+    def test_autonomous_report_inventory_is_metadata_only_and_read_only(self):
+        root = Path(self.tmp.name) / "reports"
+        root.mkdir()
+        (root / "ODIN_AUTONOMOUS_DEMO_STATUS.md").write_text(
+            "safe_to_trade=false\n",
+            encoding="utf-8",
+        )
+        routes = DashboardRoutes(
+            log_path=str(Path(self.tmp.name) / "report-events.jsonl"),
+            sqlite_path=str(Path(self.tmp.name) / "report.sqlite"),
+            autonomous_report_root=str(root),
+        )
+
+        status, payload = routes.serve("/operations/autonomous-demo/reports")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "WARNING")
+        self.assertEqual(payload["component"], "autonomous_demo_report_inventory")
+        self.assertEqual(payload["available_reports"], 1)
+        self.assertEqual(payload["expected_reports"], 8)
+        self.assertEqual(len(payload["reports"]), 8)
+        self.assertNotIn("content", payload["reports"][0])
+        self.assertIs(payload["read_only"], True)
+        self.assertIs(payload["safe_to_trade"], False)
+        self.assertIs(payload["real_trading"], False)
+        self.assertIs(payload["execution_allowed"], False)
+
     def test_route_audit_reuses_initialized_sqlite_store(self):
         with patch.object(self.routes.store, "initialize") as initialize:
             self.get_payload("/health")
@@ -157,6 +184,8 @@ class A2DashboardEndpointTests(DashboardRoutesCase):
         self.assertIn("/data/history/canonical", page)
         self.assertIn("/mt5/demo/audit", page)
         self.assertIn("/hermes/summary", page)
+        self.assertIn('id="reports"', page)
+        self.assertIn("/operations/autonomous-demo/reports", page)
         self.assertNotIn("order_send", page)
         self.assertNotIn("POST", page)
 

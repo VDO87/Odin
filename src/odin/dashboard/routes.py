@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import json
 import os
 from pathlib import Path
@@ -85,6 +86,18 @@ from odin.storage.sqlite_store import SQLiteStore
 from odin.treasury.engine import treasury_status
 
 
+_AUTONOMOUS_REPORT_FILENAMES = (
+    "ODIN_AUTONOMOUS_DEMO_STATUS.md",
+    "ODIN_AUTONOMOUS_DEMO_METRICS.json",
+    "ODIN_AUTONOMOUS_DEMO_TRADES.jsonl",
+    "ODIN_AUTONOMOUS_DEMO_INCIDENTS.md",
+    "ODIN_AUTONOMOUS_DEMO_REPAIRS.md",
+    "ODIN_HERMES_VS_REALITY.jsonl",
+    "ODIN_RUNTIME_RATIONALIZATION_REPORT.md",
+    "ODIN_AUTONOMOUS_DEMO_ACCEPTANCE_REPORT.md",
+)
+
+
 class DashboardRoutes:
     def __init__(
         self,
@@ -155,6 +168,11 @@ class DashboardRoutes:
                 incidents_path=self.autonomous_incidents_path,
                 report_root=self.autonomous_report_root,
             )
+            self._audit(DASHBOARD_STATE_SERVED, {"path": path})
+            return 200, payload
+
+        if path == "/operations/autonomous-demo/reports":
+            payload = self._autonomous_report_inventory()
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
 
@@ -476,6 +494,45 @@ class DashboardRoutes:
 
     def tradedesk_html(self) -> str:
         return tradedesk_html()
+
+    def _autonomous_report_inventory(self) -> dict[str, object]:
+        root = Path(self.autonomous_report_root)
+        reports: list[dict[str, object]] = []
+        for filename in _AUTONOMOUS_REPORT_FILENAMES:
+            path = root / filename
+            try:
+                stat = path.stat()
+                available = path.is_file()
+            except OSError:
+                stat = None
+                available = False
+            reports.append(
+                {
+                    "filename": filename,
+                    "available": available,
+                    "size_bytes": stat.st_size if available and stat is not None else 0,
+                    "modified_at_utc": (
+                        datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat()
+                        if available and stat is not None
+                        else None
+                    ),
+                }
+            )
+        available_reports = sum(item["available"] is True for item in reports)
+        return {
+            "status": "OK"
+            if available_reports == len(_AUTONOMOUS_REPORT_FILENAMES)
+            else "WARNING",
+            "component": "autonomous_demo_report_inventory",
+            "report_root": str(root),
+            "available_reports": available_reports,
+            "expected_reports": len(_AUTONOMOUS_REPORT_FILENAMES),
+            "reports": reports,
+            "read_only": True,
+            "safe_to_trade": False,
+            "real_trading": False,
+            "execution_allowed": False,
+        }
 
     def _operational_overview(self) -> dict[str, object]:
         """Return a read-only summary from already-persisted operational evidence.
