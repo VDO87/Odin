@@ -1,6 +1,9 @@
 {
   "mode": "ODIN_AUTONOMOUS_DEMO_RC2",
   "authorization_scope": "LIMITED_DEMO_ONLY",
+  "authorization_id": "user-authorized-rc2-2026-08-29",
+  "authorized_at_utc": "2026-08-29T11:05:36Z",
+  "required_canary_decision_id": "rc1-canary-human-confirmed",
   "broker": "OANDA TMS Brokers S.A.",
   "server": "OANDATMS-MT5",
   "terminal_path": "C:\\Program Files\\OANDA TMS MT5 Terminal\\terminal64.exe",

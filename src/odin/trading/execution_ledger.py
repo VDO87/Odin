@@ -121,11 +121,27 @@ def read_execution_ledger(path: str | Path) -> dict[str, object]:
 
 def submission_already_attempted(path: str | Path, proposal_id: str) -> bool:
     records = _read_records(Path(path))
+    return (
+        any(
+            record.get("proposal_id") == proposal_id
+            and record.get("execution_status") in _SUBMISSION_STATES
+            for record in records
+        )
+        or _reservation_path(Path(path), proposal_id).exists()
+    )
+
+
+def completed_reconciled_lifecycle(path: str | Path, decision_id: str) -> bool:
+    """Prove that a specific DEMO decision reached a broker-reconciled close."""
+    target = Path(path)
+    if read_execution_ledger(target)["status"] != "OK":
+        return False
     return any(
-        record.get("proposal_id") == proposal_id
-        and record.get("execution_status") in _SUBMISSION_STATES
-        for record in records
-    ) or _reservation_path(Path(path), proposal_id).exists()
+        record.get("decision_id") == decision_id
+        and record.get("execution_status") == "CLOSED"
+        and record.get("reconciliation_status") == "RECONCILED"
+        for record in _read_records(target)
+    )
 
 
 def analyze_execution_ledger(path: str | Path) -> dict[str, object]:
@@ -229,9 +245,7 @@ def confirm_execution_reconciliation(
         and current_position_id != position_id
     ):
         return _reconciliation_confirmation_block("broker_position_id_mismatch")
-    if already_reconciled and (
-        position_id is None or current_position_id == position_id
-    ):
+    if already_reconciled and (position_id is None or current_position_id == position_id):
         return {
             "status": "ALREADY_RECONCILED",
             "appended": False,
@@ -348,9 +362,8 @@ def confirm_execution_close(
         return _reconciliation_confirmation_block("exit_price_invalid")
     if not isinstance(realized_pnl, (int, float)):
         return _reconciliation_confirmation_block("realized_pnl_missing")
-    if (
-        not isinstance(closed_volume, (int, float))
-        or closed_volume != latest.get("executed_volume")
+    if not isinstance(closed_volume, (int, float)) or closed_volume != latest.get(
+        "executed_volume"
     ):
         return _reconciliation_confirmation_block("closed_volume_mismatch")
 

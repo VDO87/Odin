@@ -325,9 +325,7 @@ def test_order_check_classifies_rejection_and_unknown_result_without_retry() -> 
         ("TRADE_RETCODE_INVALID_FILL", "filling_mode_error"),
     ],
 )
-def test_order_check_classifies_all_known_mt5_failures_once(
-    retcode_name: str, reason: str
-) -> None:
+def test_order_check_classifies_all_known_mt5_failures_once(retcode_name: str, reason: str) -> None:
     mt5 = FakeMT5()
     mt5.check_result = {"retcode": getattr(mt5, retcode_name), "comment": "fixture"}
 
@@ -437,9 +435,7 @@ def test_canary_adapter_refuses_missing_gate_or_check() -> None:
 def test_synthetic_canary_calls_fake_send_once_and_requires_reconciliation() -> None:
     mt5 = FakeMT5()
     checked = perform_order_check(mt5, proposal(), evidence(), dry_gate())
-    result = submit_demo_canary(
-        mt5, proposal(), evidence(), canary_gate(), checked, reservation()
-    )
+    result = submit_demo_canary(mt5, proposal(), evidence(), canary_gate(), checked, reservation())
     assert result["status"] == "FILLED"
     assert result["requires_reconciliation"] is True
     assert result["order_send_called"] is True
@@ -514,9 +510,7 @@ def test_rc2_adapter_requires_rc2_scope_and_submits_fake_once() -> None:
     )
     checked = perform_order_check(mt5, prop, ev, gate, limits=rc2_limits())
 
-    result = submit_autonomous_demo_order(
-        mt5, prop, ev, gate, checked, reservation()
-    )
+    result = submit_autonomous_demo_order(mt5, prop, ev, gate, checked, reservation())
 
     assert checked["request"]["comment"].startswith("ODIN_RC2_")
     assert result["status"] == "FILLED"
@@ -547,6 +541,31 @@ def test_rc2_service_reconciles_one_fake_order_without_canary_marker(
     assert not (tmp_path / ".demo_canary_attempted.json").exists()
 
 
+def test_rc2_service_reconciles_broker_rejection_without_retry(tmp_path: Path) -> None:
+    mt5 = FakeMT5()
+    mt5.send_result = {
+        "retcode": mt5.TRADE_RETCODE_NO_MONEY,
+        "comment": "fixture",
+    }
+    path = tmp_path / "execution.jsonl"
+
+    result = run_autonomous_demo_order(
+        mt5,
+        proposal=proposal(),
+        evidence=evidence(),
+        risk_result=evaluate_demo_risk(proposal(), evidence(), limits=rc2_limits()),
+        authorization=automation_authorization(),
+        ledger_path=path,
+        limits=rc2_limits(),
+        now_utc=NOW,
+    )
+
+    assert result["status"] == "AUTONOMOUS_DEMO_REJECTED_RECONCILED"
+    assert result["order_send_called"] is True
+    assert result["retry_allowed"] is False
+    assert mt5.send_calls == 1
+
+
 def test_synthetic_canary_rejection_is_classified_without_retry() -> None:
     mt5 = FakeMT5()
     mt5.send_result = {
@@ -555,9 +574,7 @@ def test_synthetic_canary_rejection_is_classified_without_retry() -> None:
     }
     checked = perform_order_check(mt5, proposal(), evidence(), dry_gate())
 
-    result = submit_demo_canary(
-        mt5, proposal(), evidence(), canary_gate(), checked, reservation()
-    )
+    result = submit_demo_canary(mt5, proposal(), evidence(), canary_gate(), checked, reservation())
 
     assert result["status"] == "REJECTED"
     assert result["reason"] == "insufficient_margin"
@@ -589,9 +606,7 @@ def test_identity_change_after_check_blocks_before_submission() -> None:
     checked = perform_order_check(mt5, proposal(), evidence(), dry_gate())
     mt5.account["trade_mode"] = 2
 
-    result = submit_demo_canary(
-        mt5, proposal(), evidence(), canary_gate(), checked, reservation()
-    )
+    result = submit_demo_canary(mt5, proposal(), evidence(), canary_gate(), checked, reservation())
 
     assert result["status"] == "HARD_BLOCK"
     assert result["order_send_called"] is False
@@ -600,9 +615,7 @@ def test_identity_change_after_check_blocks_before_submission() -> None:
 
 def test_broker_execution_state_is_read_only_and_identity_guarded() -> None:
     mt5 = FakeMT5()
-    mt5.positions = [
-        {"ticket": 1, "symbol": "EURUSD.pro", "volume": 0.01, "password": "hidden"}
-    ]
+    mt5.positions = [{"ticket": 1, "symbol": "EURUSD.pro", "volume": 0.01, "password": "hidden"}]
     result = read_broker_execution_state(mt5, evidence())
     assert result["status"] == "OK"
     assert result["positions"][0]["ticket"] == 1
@@ -700,9 +713,12 @@ def test_filled_position_reconciles_all_protection_fields(tmp_path: Path) -> Non
         "sl": 1.099,
         "tp": 1.102,
     }
-    assert reconcile_broker_truth(
-        ledger_path=path, broker_positions=[position], broker_orders=[]
-    )["status"] == "RECONCILED"
+    assert (
+        reconcile_broker_truth(ledger_path=path, broker_positions=[position], broker_orders=[])[
+            "status"
+        ]
+        == "RECONCILED"
+    )
     position["sl"] = 0.0
     mismatch = reconcile_broker_truth(
         ledger_path=path, broker_positions=[position], broker_orders=[]
@@ -880,9 +896,7 @@ def test_submission_boundary_block_consumes_one_shot_without_false_call_claim(
             "order_send_called": False,
         }
 
-    monkeypatch.setattr(
-        demo_execution_service, "submit_demo_canary", blocked_submission
-    )
+    monkeypatch.setattr(demo_execution_service, "submit_demo_canary", blocked_submission)
     result = run_demo_canary(
         mt5,
         proposal=proposal(),

@@ -97,6 +97,19 @@ def read_demo_decision_ledger(path: str | Path) -> dict[str, object]:
     return _status("OK", records, "")
 
 
+def demo_decision_already_recorded(path: str | Path, decision_id: str) -> bool:
+    """Return true only when the verified ledger already contains the decision."""
+    target = Path(path)
+    verified = read_demo_decision_ledger(target)
+    if verified["status"] != "OK":
+        return True
+    for record in _read_records(target):
+        decision = record.get("decision")
+        if isinstance(decision, dict) and decision.get("decision_id") == decision_id:
+            return True
+    return False
+
+
 def _read_records(path: Path) -> list[dict[str, object]]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -124,9 +137,7 @@ def _record_hash(record: dict[str, object]) -> str:
     ).hexdigest()
 
 
-def _status(
-    status: str, records: list[dict[str, object]], reason: str
-) -> dict[str, object]:
+def _status(status: str, records: list[dict[str, object]], reason: str) -> dict[str, object]:
     return {
         "status": status,
         "reason": reason,

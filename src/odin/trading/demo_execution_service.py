@@ -175,9 +175,7 @@ def run_demo_canary(
         reconciliation_status="RECONCILED",
         order_check_result=_dict_or_none(checked.get("order_check_result")),
     )
-    submitted = submit_demo_canary(
-        mt5, proposal, evidence, gate, checked, reservation
-    )
+    submitted = submit_demo_canary(mt5, proposal, evidence, gate, checked, reservation)
     order_send_called = submitted.get("order_send_called") is True
     if not order_send_called:
         return {
@@ -186,7 +184,9 @@ def run_demo_canary(
         }
     broker_result = _dict_or_none(submitted.get("order_send_result"))
     attempted_status = str(submitted.get("status"))
-    ledger_status = attempted_status if attempted_status in {"FILLED", "SUBMITTED", "REJECTED"} else "SUBMITTED"
+    ledger_status = (
+        attempted_status if attempted_status in {"FILLED", "SUBMITTED", "REJECTED"} else "SUBMITTED"
+    )
     append_execution_event(
         path=ledger_path,
         proposal=proposal,
@@ -314,18 +314,14 @@ def run_autonomous_demo_order(
         reconciliation_status="RECONCILED",
         order_check_result=_dict_or_none(checked.get("order_check_result")),
     )
-    submitted = submit_autonomous_demo_order(
-        mt5, proposal, evidence, gate, checked, reservation
-    )
+    submitted = submit_autonomous_demo_order(mt5, proposal, evidence, gate, checked, reservation)
     order_send_called = submitted.get("order_send_called") is True
     if not order_send_called:
         return _service_block("broker_submission_blocked", submitted)
     broker_result = _dict_or_none(submitted.get("order_send_result"))
     attempted_status = str(submitted.get("status"))
     ledger_status = (
-        attempted_status
-        if attempted_status in {"FILLED", "SUBMITTED", "REJECTED"}
-        else "SUBMITTED"
+        attempted_status if attempted_status in {"FILLED", "SUBMITTED", "REJECTED"} else "SUBMITTED"
     )
     append_execution_event(
         path=ledger_path,
@@ -358,6 +354,18 @@ def run_autonomous_demo_order(
         return _reconciliation_block(
             str(reconciled.get("reason")), submitted, order_send_called=True
         )
+    if ledger_status == "REJECTED":
+        return {
+            "status": "AUTONOMOUS_DEMO_REJECTED_RECONCILED",
+            "submission": submitted,
+            "reconciliation": reconciled,
+            "order_send_called": True,
+            "retry_allowed": False,
+            "execution_allowed_scope": "ODIN_AUTONOMOUS_DEMO_RC2",
+            "execution_allowed": False,
+            "safe_to_trade": False,
+            "real_trading": False,
+        }
     position_id = None
     if len(after_positions) == 1:
         position_id = _integer(after_positions[0], "identifier") or _integer(

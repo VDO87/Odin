@@ -52,6 +52,11 @@ def test_persistent_supervisor_has_no_direct_financial_submission() -> None:
     assert "orders_get" in source
     assert "recovery_gate" in source
     assert "broker_submission_called" in source
+    assert "run_autonomous_demo_order" in source
+    assert "completed_reconciled_lifecycle" in source
+    assert "demo_decision_already_recorded" in source
+    assert "daily_broker_history_unavailable" in source
+    assert "reconcile_latest_broker_close" in source
 
 
 def test_only_isolated_adapter_still_contains_one_order_send_call() -> None:
@@ -65,12 +70,12 @@ def test_only_isolated_adapter_still_contains_one_order_send_call() -> None:
 
 
 def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
-    installer = (
-        ROOT / "scripts/windows/Install-ODIN-Autonomous-Demo-RC2-Task.ps1"
-    ).read_text(encoding="utf-8")
-    launcher = (
-        ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.ps1"
-    ).read_text(encoding="utf-8")
+    installer = (ROOT / "scripts/windows/Install-ODIN-Autonomous-Demo-RC2-Task.ps1").read_text(
+        encoding="utf-8"
+    )
+    launcher = (ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.ps1").read_text(
+        encoding="utf-8"
+    )
 
     assert "-AtLogOn" in installer
     assert "-RunLevel Limited" in installer
@@ -83,14 +88,14 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "installedDashboardLauncher" in installer
     assert 'New-ScheduledTaskAction -Execute "cmd.exe"' in installer
     assert 'replace "`r?`n", "`r`n"' in installer
-    wrapper = (
-        ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.cmd"
-    ).read_text(encoding="utf-8")
+    wrapper = (ROOT / "scripts/windows/Start-ODIN-Autonomous-Demo-RC2.cmd").read_text(
+        encoding="utf-8"
+    )
     assert "-NonInteractive" in wrapper
     assert "ODIN_RC2_EXIT" in wrapper
-    dashboard_launcher = (
-        ROOT / "scripts/windows/Start-ODIN-Dashboard-Persistent.ps1"
-    ).read_text(encoding="utf-8")
+    dashboard_launcher = (ROOT / "scripts/windows/Start-ODIN-Dashboard-Persistent.ps1").read_text(
+        encoding="utf-8"
+    )
     assert "/home/odin/projects/odin/scripts/run_dashboard_local.sh" in dashboard_launcher
     assert '"43200"' in dashboard_launcher
     assert "installed launcher hash mismatch" in installer
@@ -101,9 +106,9 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
 
 
 def test_safe_stop_and_pause_controls_do_not_stop_observability() -> None:
-    control = (
-        ROOT / "scripts/windows/Set-ODIN-Autonomous-Demo-Control.ps1"
-    ).read_text(encoding="utf-8")
+    control = (ROOT / "scripts/windows/Set-ODIN-Autonomous-Demo-Control.ps1").read_text(
+        encoding="utf-8"
+    )
 
     assert "PAUSE" in control
     assert "SAFE_STOP" in control

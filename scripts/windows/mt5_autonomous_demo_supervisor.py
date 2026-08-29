@@ -7,6 +7,7 @@ this supervisor module itself contains no direct ``order_send`` call.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 import ctypes
 import hashlib
@@ -28,6 +29,7 @@ os.environ.setdefault("ODIN_RC1_REPO_SRC", os.environ["ODIN_RC2_REPO_SRC"])
 import MetaTrader5 as mt5  # type: ignore[import-not-found]  # noqa: E402
 
 import mt5_demo_dry_run as stage0  # noqa: E402
+from odin.contracts.demo_execution import TradeProposal  # noqa: E402
 from odin.trading.autonomous_demo_state import (  # noqa: E402
     append_incident,
     build_supervisor_state,
@@ -35,7 +37,23 @@ from odin.trading.autonomous_demo_state import (  # noqa: E402
     write_heartbeat,
     write_state,
 )
+from odin.trading.autonomous_demo_cycle import (  # noqa: E402
+    build_market_bars,
+    build_trade_candidate,
+    load_autonomous_demo_policy,
+    summarize_daily_deals,
+)
+from odin.trading.demo_decision_ledger import (  # noqa: E402
+    append_demo_decision,
+    demo_decision_already_recorded,
+)
+from odin.risk.demo_execution import evaluate_demo_risk  # noqa: E402
+from odin.trading.demo_execution_service import run_autonomous_demo_order  # noqa: E402
+from odin.trading.demo_position_lifecycle import (  # noqa: E402
+    reconcile_latest_broker_close,
+)
 from odin.trading.demo_reconciliation import recovery_gate  # noqa: E402
+from odin.trading.execution_ledger import completed_reconciled_lifecycle  # noqa: E402
 
 
 EXPECTED_BROKER = "OANDA TMS Brokers S.A."
@@ -68,7 +86,15 @@ def main() -> int:
             cycle += 1
             try:
                 observation = _observe_once()
-                state, reasons = _classify_state(observation, read_control(control_path))
+                control = read_control(control_path)
+                state, reasons = _classify_state(observation, control)
+                if state == "READY_FOR_DECISION":
+                    autonomous = _run_autonomous_demo_cycle(control)
+                    state = str(autonomous["state"])
+                    reasons = [str(item) for item in autonomous["reason_codes"]]
+                    details = autonomous.get("observed")
+                    if isinstance(details, dict):
+                        observation.update(details)
                 failure_count = 0 if state not in {"DEGRADED", "RECOVERING"} else failure_count + 1
             except Exception as error:  # fail closed, persist, and continue
                 failure_count += 1
@@ -106,7 +132,18 @@ def main() -> int:
                 started_at_utc=started.isoformat(),
                 next_check_at_utc=next_check.isoformat(),
             )
-            print(json.dumps(_public_event(state, reasons, cycle=cycle)), flush=True)
+            print(
+                json.dumps(
+                    _public_event(
+                        state,
+                        reasons,
+                        cycle=cycle,
+                        broker_submission_called=observation.get("broker_submission_called")
+                        is True,
+                    )
+                ),
+                flush=True,
+            )
             _sleep_bounded(delay)
     finally:
         ctypes.windll.kernel32.CloseHandle(mutex)
@@ -175,6 +212,15 @@ def _observe_once() -> dict[str, object]:
         positions = [stage0._mapping(item) for item in positions_value]
         orders = [stage0._mapping(item) for item in orders_value]
         ledger_path = Path(os.environ["ODIN_RC2_LEDGER_PATH"])
+        lifecycle = reconcile_latest_broker_close(
+            mt5,
+            ledger_path=ledger_path,
+            broker_positions=positions,
+            broker_orders=orders,
+            broker=str(account.get("company", "")),
+            server=str(account.get("server", "")),
+            point=stage0._number(symbol.get("point")),
+        )
         recovery = recovery_gate(
             ledger_path=ledger_path,
             broker_positions=positions,
@@ -195,6 +241,12 @@ def _observe_once() -> dict[str, object]:
             expected_server=EXPECTED_SERVER,
             control=control,
         )
+        daily = _daily_trade_summary()
+        evidence = replace(
+            evidence,
+            daily_realized_pnl=float(daily["daily_realized_pnl"]),
+            completed_trades_today=int(daily["completed_trades_today"]),
+        )
         candles = _recent_candles()
         _persist_readonly_snapshot(account, tick, evidence, positions, candles)
         return {
@@ -205,6 +257,9 @@ def _observe_once() -> dict[str, object]:
             "terminal_path": terminal_path,
             "terminal_connected": evidence.terminal_connected,
             "terminal_trade_allowed": evidence.terminal_trade_allowed,
+            "account_trade_allowed": account.get("trade_allowed") is True,
+            "account_trade_expert": account.get("trade_expert") is True,
+            "terminal_tradeapi_disabled": terminal.get("tradeapi_disabled") is True,
             "logical_symbol": CANONICAL_SYMBOL,
             "broker_symbol": evidence.broker_symbol,
             "market_open": evidence.market_open,
@@ -220,6 +275,17 @@ def _observe_once() -> dict[str, object]:
             "positions_count": len(positions),
             "orders_count": len(orders),
             "reconciliation": recovery.get("status"),
+            "position_lifecycle": lifecycle.get("status"),
+            "latest_close_reason": lifecycle.get("close_reason"),
+            "latest_closed_realized_pnl": lifecycle.get("realized_pnl"),
+            "daily_history_status": daily.get("status"),
+            "daily_realized_pnl": evidence.daily_realized_pnl,
+            "completed_trades_today": evidence.completed_trades_today,
+            "bid": tick.get("bid"),
+            "ask": tick.get("ask"),
+            "point": symbol.get("point"),
+            "digits": symbol.get("digits"),
+            "symbol_trade_mode": symbol.get("trade_mode"),
             "balance": account.get("balance"),
             "equity": account.get("equity"),
             "margin": account.get("margin"),
@@ -254,9 +320,309 @@ def _classify_state(
         return "WAITING_MARKET", ["market_closed_or_stale"]
     if observation.get("terminal_trade_allowed") is not True:
         return "EXECUTION_PAUSED", ["terminal_trading_not_allowed"]
+    if observation.get("daily_history_status") != "OK":
+        return "EXECUTION_PAUSED", ["daily_broker_history_unavailable"]
     if action != "RESUME":
         return "MONITOR_ONLY", ["operator_resume_required"]
     return "READY_FOR_DECISION", ["all_runtime_preconditions_revalidated"]
+
+
+def _run_autonomous_demo_cycle(control: dict[str, object]) -> dict[str, object]:
+    """Revalidate all evidence and delegate at most one proposal to the service."""
+    if control.get("action") != "RESUME":
+        return _cycle_result("EXECUTION_PAUSED", ["operator_resume_required"])
+    try:
+        policy = load_autonomous_demo_policy(os.environ["ODIN_RC2_CONFIG_PATH"])
+    except (KeyError, ValueError) as error:
+        return _cycle_result("SECURITY_HARD_BLOCK", [str(error)])
+    if not completed_reconciled_lifecycle(
+        os.environ["ODIN_RC2_LEDGER_PATH"], policy.required_canary_decision_id
+    ):
+        return _cycle_result("EXECUTION_PAUSED", ["initial_canary_not_reconciled"])
+    connected = mt5.initialize(policy.terminal_path, timeout=120_000)
+    try:
+        if not connected:
+            return _cycle_result("RECOVERING", ["mt5_revalidation_failed"])
+        account = stage0._mapping(mt5.account_info())
+        terminal = stage0._mapping(mt5.terminal_info())
+        symbol = stage0._mapping(mt5.symbol_info(policy.broker_symbol))
+        tick = stage0._mapping(mt5.symbol_info_tick(policy.broker_symbol))
+        if not all((account, terminal, symbol, tick)):
+            return _cycle_result("SECURITY_HARD_BLOCK", ["execution_preflight_evidence_missing"])
+        expected_login = os.environ["ODIN_RC2_EXPECTED_LOGIN"]
+        expected_terminal_info_path = str(Path(policy.terminal_path).parent)
+        identity_reasons = stage0._identity_blocks(
+            account=account,
+            terminal=terminal,
+            expected_terminal_info_path=expected_terminal_info_path,
+            expected_login=expected_login,
+            expected_server=policy.server,
+        )
+        if account.get("company") != policy.broker:
+            identity_reasons.append("broker_mismatch")
+        if str(symbol.get("name", "")) != policy.broker_symbol:
+            identity_reasons.append("broker_symbol_mismatch")
+        if identity_reasons:
+            return _cycle_result("SECURITY_HARD_BLOCK", sorted(set(identity_reasons)))
+        positions_value = mt5.positions_get()
+        orders_value = mt5.orders_get()
+        if positions_value is None or orders_value is None:
+            return _cycle_result("DEGRADED", ["broker_execution_snapshot_unavailable"])
+        positions = [stage0._mapping(item) for item in positions_value]
+        orders = [stage0._mapping(item) for item in orders_value]
+        recovery = recovery_gate(
+            ledger_path=os.environ["ODIN_RC2_LEDGER_PATH"],
+            broker_positions=positions,
+            broker_orders=orders,
+            terminal_connected=terminal.get("connected") is True,
+        )
+        evidence = stage0._evidence(
+            account=account,
+            terminal=terminal,
+            symbol=symbol,
+            tick=tick,
+            positions=positions,
+            orders=orders,
+            recovery=recovery,
+            expected_terminal_info_path=expected_terminal_info_path,
+            expected_login=expected_login,
+            expected_server=policy.server,
+            control={"kill_switch_engaged": False, "fixed_volume": policy.fixed_volume},
+        )
+        daily = _daily_trade_summary()
+        evidence = replace(
+            evidence,
+            daily_realized_pnl=float(daily["daily_realized_pnl"]),
+            completed_trades_today=int(daily["completed_trades_today"]),
+        )
+        if daily["status"] != "OK":
+            return _cycle_result(
+                "EXECUTION_PAUSED",
+                ["daily_broker_history_unavailable"],
+                evidence=evidence,
+            )
+        rates = _recent_candles()
+        bars_result = build_market_bars(
+            rates,
+            broker=policy.broker,
+            server=policy.server,
+            logical_symbol=policy.logical_symbol,
+            point=evidence.point,
+            now_utc=datetime.now(UTC),
+        )
+        bars = bars_result.get("bars")
+        if bars_result.get("status") != "VALIDATED" or not isinstance(bars, list):
+            return _cycle_result(
+                "DEGRADED",
+                [str(bars_result.get("reason", "market_bars_blocked"))],
+                evidence=evidence,
+            )
+        candidate = build_trade_candidate(
+            bars,
+            tick=tick,
+            symbol=symbol,
+            policy=policy,
+            now_utc=datetime.now(UTC),
+        )
+        decision = candidate.get("decision")
+        if not isinstance(decision, dict):
+            return _cycle_result(
+                "NO_TRADE",
+                [str(candidate.get("reason", "decision_unavailable"))],
+                evidence=evidence,
+            )
+        decision_id = str(decision.get("decision_id", ""))
+        decision_path = os.environ["ODIN_RC2_DECISION_LEDGER_PATH"]
+        if demo_decision_already_recorded(decision_path, decision_id):
+            return _cycle_result(
+                "NO_TRADE",
+                ["decision_already_processed"],
+                evidence=evidence,
+                decision=decision,
+            )
+        proposal = candidate.get("proposal")
+        risk: dict[str, object] | None = None
+        if candidate.get("status") == "PROPOSAL_CREATED":
+            if not isinstance(proposal, TradeProposal):
+                return _cycle_result(
+                    "EXECUTION_PAUSED",
+                    ["trade_proposal_contract_invalid"],
+                    evidence=evidence,
+                    decision=decision,
+                )
+            risk = evaluate_demo_risk(proposal, evidence, limits=policy.limits())
+        recorded = _record_runtime_decision(
+            decision_path=decision_path,
+            decision=decision,
+            proposal=proposal,
+            evidence=evidence,
+            risk=risk,
+        )
+        if recorded.get("status") != "RECORDED":
+            return _cycle_result(
+                "EXECUTION_PAUSED",
+                ["demo_decision_ledger_blocked"],
+                evidence=evidence,
+                decision=decision,
+                risk=risk,
+            )
+        if candidate.get("status") != "PROPOSAL_CREATED":
+            return _cycle_result(
+                "NO_TRADE",
+                [str(item) for item in candidate.get("reason_codes", [])]
+                or ["decision_not_actionable"],
+                evidence=evidence,
+                decision=decision,
+            )
+        if risk is None or risk.get("status") != "ALLOW_DEMO":
+            reasons = risk.get("reason_codes", []) if isinstance(risk, dict) else []
+            return _cycle_result(
+                "EXECUTION_PAUSED" if "kill_switch_engaged" in reasons else "NO_TRADE",
+                [str(item) for item in reasons] or ["risk_not_allow_demo"],
+                evidence=evidence,
+                decision=decision,
+                risk=risk,
+            )
+        result = run_autonomous_demo_order(
+            mt5,
+            proposal=proposal,
+            evidence=evidence,
+            risk_result=risk,
+            authorization=policy.authorization(evidence),
+            ledger_path=os.environ["ODIN_RC2_LEDGER_PATH"],
+            limits=policy.limits(),
+            now_utc=datetime.now(UTC),
+        )
+        result_status = str(result.get("status", "BLOCKED"))
+        submission_called = result.get("order_send_called") is True
+        if result_status == "AUTONOMOUS_DEMO_SUBMITTED_AND_RECONCILED":
+            state = "POSITION_OPEN"
+            reasons = ["demo_position_submitted_and_reconciled"]
+        elif result_status == "AUTONOMOUS_DEMO_REJECTED_RECONCILED":
+            state = "NO_TRADE"
+            reasons = ["broker_rejected_without_retry"]
+        elif result_status == "RECONCILIATION_BLOCK":
+            state = "RECONCILING"
+            reasons = [str(result.get("reason", "post_submit_reconciliation_block"))]
+        else:
+            state = "EXECUTION_PAUSED"
+            reasons = [str(result.get("reason", "execution_service_blocked"))]
+        return _cycle_result(
+            state,
+            reasons,
+            evidence=evidence,
+            decision=decision,
+            risk=risk,
+            execution=result,
+            broker_submission_called=submission_called,
+        )
+    finally:
+        mt5.shutdown()
+
+
+def _record_runtime_decision(
+    *,
+    decision_path: str,
+    decision: dict[str, object],
+    proposal: object,
+    evidence: Any,
+    risk: dict[str, object] | None,
+) -> dict[str, object]:
+    proposal_id = getattr(proposal, "proposal_id", None)
+    if not isinstance(proposal_id, str):
+        proposal_id = "no-proposal:" + str(decision.get("decision_id", ""))
+    return append_demo_decision(
+        path=decision_path,
+        decision={
+            **decision,
+            "proposal_id": proposal_id,
+            "decision_status": "AUTONOMOUS_DEMO_EVALUATED",
+            "account_mode": "DEMO",
+            "broker": evidence.broker,
+            "server": evidence.server,
+            "broker_symbol": evidence.broker_symbol,
+            "risk_status": risk.get("status") if isinstance(risk, dict) else None,
+            "risk_reason_codes": risk.get("reason_codes") if isinstance(risk, dict) else [],
+            "execution_allowed": False,
+            "safe_to_trade": False,
+            "real_trading": False,
+        },
+    )
+
+
+def _cycle_result(
+    state: str,
+    reasons: list[str],
+    *,
+    evidence: Any | None = None,
+    decision: dict[str, object] | None = None,
+    risk: dict[str, object] | None = None,
+    execution: dict[str, object] | None = None,
+    broker_submission_called: bool = False,
+) -> dict[str, object]:
+    observed: dict[str, object] = {
+        "broker_submission_called": broker_submission_called,
+        "latest_decision": _public_decision(decision),
+        "risk": _public_status(risk),
+        "execution": _public_status(execution),
+    }
+    if evidence is not None:
+        observed.update(
+            {
+                "daily_realized_pnl": evidence.daily_realized_pnl,
+                "completed_trades_today": evidence.completed_trades_today,
+            }
+        )
+    return {"state": state, "reason_codes": reasons, "observed": observed}
+
+
+def _public_decision(value: dict[str, object] | None) -> dict[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        key: value.get(key)
+        for key in (
+            "decision_id",
+            "timestamp",
+            "symbol",
+            "timeframe",
+            "strategy_id",
+            "signal",
+            "confidence",
+            "reason_codes",
+            "data_quality",
+            "freshness",
+        )
+    }
+
+
+def _public_status(value: dict[str, object] | None) -> dict[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        "status": value.get("status"),
+        "reason": value.get("reason"),
+        "reason_codes": value.get("reason_codes", []),
+        "order_send_called": value.get("order_send_called", False),
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
+
+
+def _daily_trade_summary() -> dict[str, object]:
+    now = datetime.now(UTC)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    deals_value = mt5.history_deals_get(start, now)
+    deals = [stage0._mapping(item) for item in deals_value] if deals_value is not None else None
+    return summarize_daily_deals(
+        deals,
+        broker_symbol=BROKER_SYMBOL,
+        exit_entries={
+            getattr(mt5, "DEAL_ENTRY_OUT", 1),
+            getattr(mt5, "DEAL_ENTRY_OUT_BY", 3),
+        },
+    )
 
 
 def _ensure_dashboard() -> str:
@@ -303,6 +669,9 @@ def _recent_candles() -> list[dict[str, object]]:
                 "high": value.get("high"),
                 "low": value.get("low"),
                 "close": value.get("close"),
+                "tick_volume": value.get("tick_volume"),
+                "real_volume": value.get("real_volume"),
+                "spread": value.get("spread"),
             }
         )
     return result
@@ -399,13 +768,14 @@ def _public_event(
     reason_codes: list[str] | None = None,
     *,
     cycle: int = 0,
+    broker_submission_called: bool = False,
 ) -> dict[str, object]:
     return {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "state": state,
         "cycle": cycle,
         "reason_codes": reason_codes or [],
-        "broker_submission_called": False,
+        "broker_submission_called": broker_submission_called,
         "safe_to_trade": False,
         "real_trading": False,
         "execution_allowed": False,

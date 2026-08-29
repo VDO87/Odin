@@ -69,6 +69,7 @@ $env:ODIN_RC2_REPO_SRC = Join-Path $RepoRoot "src"
 $env:ODIN_RC2_WINDOWS_SCRIPTS = Join-Path $RepoRoot "scripts\windows"
 $env:ODIN_RC2_CONFIG_PATH = $config
 $env:ODIN_RC2_LEDGER_PATH = "D:\ODIN_LOCAL\runtime\demo_execution_ledger.jsonl"
+$env:ODIN_RC2_DECISION_LEDGER_PATH = "D:\ODIN_LOCAL\runtime\demo_decision_ledger.jsonl"
 $env:ODIN_RC2_MT5_STATE_PATH = "D:\ODIN_LOCAL\runtime\mt5_demo_readonly.json"
 $env:ODIN_RC2_STATE_PATH = Join-Path $StateRoot "autonomous_demo_state.json"
 $env:ODIN_RC2_HEARTBEAT_PATH = Join-Path $StateRoot "autonomous_demo_heartbeat.json"
@@ -101,6 +102,7 @@ finally {
     @(
         'ODIN_RC2_EXPECTED_LOGIN', 'ODIN_RC2_TERMINAL_PATH', 'ODIN_RC2_REPO_SRC',
         'ODIN_RC2_WINDOWS_SCRIPTS', 'ODIN_RC2_CONFIG_PATH', 'ODIN_RC2_LEDGER_PATH',
+        'ODIN_RC2_DECISION_LEDGER_PATH',
         'ODIN_RC2_MT5_STATE_PATH', 'ODIN_RC2_STATE_PATH', 'ODIN_RC2_HEARTBEAT_PATH',
         'ODIN_RC2_CONTROL_PATH', 'ODIN_RC2_INCIDENTS_PATH',
         'ODIN_RC2_DASHBOARD_LAUNCHER', 'ODIN_RC2_CYCLE_SECONDS',
