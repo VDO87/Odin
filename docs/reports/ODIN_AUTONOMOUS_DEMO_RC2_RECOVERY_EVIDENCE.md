@@ -371,7 +371,7 @@ Branch: `feature/autonomous-demo-operations-rc2`
   allowlisted e a auditoria recursiva do Desktop encontrou zero atalhos para
   `D:\ODIN_LOCAL\mt5\terminal64.exe`. O processo/instalação MetaQuotes não foi
   terminado nem apagado; ficou apenas fora do caminho operacional.
-- A auditoria live do Cockpit mediu `/operations/overview` em 28.053 ms e
+- A auditoria live do Cockpit mediu `/operations/overview` em 28.053 s e
   encontrou `sqlite3.OperationalError: database is locked`: cada GET voltava a
   executar a inicialização de schema e múltiplas instâncias do store escreviam
   em paralelo no mesmo ficheiro. O store passou a partilhar um `RLock` por
@@ -380,6 +380,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   pedido. Testes dirigidos: `37 passed`; Ruff e `git diff --check`: PASS. Os três
   erros mypy preexistentes em `upsert_hermes_goal` foram reproduzidos no
   checkpoint anterior e não foram alterados por esta correção.
+- O lock de SQLite ficou resolvido, mas duas medições seguintes ainda excederam
+  15 s. O profiling separou a causa restante: sobre o log/SQLite live,
+  `observation_frame_status` consumia 6,243 s e o Cockpit voltava a chamar
+  `/operations/overview` a cada 30 s, reexecutando o pipeline técnico e gerando
+  auditoria recursiva. O Cockpit deixou de fazer esse polling automático e
+  passou a compor `Live operational summary` exclusivamente com o estado RC2,
+  heartbeat, Risk, Execution e recursos já persistidos. O endpoint técnico
+  continua disponível para diagnóstico explícito. Testes dirigidos:
+  `17 passed`; Ruff, mypy dirigido, compilação e `git diff --check`: PASS.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
