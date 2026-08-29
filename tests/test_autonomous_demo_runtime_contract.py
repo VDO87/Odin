@@ -283,6 +283,23 @@ def test_local_runtime_bootstrap_is_non_financial_and_uses_versioned_sources() -
     assert "broker_submission_called" in source
 
 
+def test_manual_observation_refresh_uses_only_persistent_oanda_rc2_state() -> None:
+    refresh = (ROOT / "scripts/windows/Refresh-ODIN-Observations.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Read-ODIN-MT5-Demo.ps1" not in refresh
+    assert "autonomous_demo_state.json" in refresh
+    assert "autonomous_demo_heartbeat.json" in refresh
+    assert "OANDA TMS Brokers S.A." in refresh
+    assert "OANDATMS-MT5" in refresh
+    assert r"C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe" in refresh
+    assert r"D:\ODIN_LOCAL\mt5\terminal64.exe" not in refresh
+    assert "broker_submission_called" in refresh
+    assert "ValidateMt5Only" in refresh
+    assert "order_send" not in refresh
+
+
 def test_local_runtime_watchdog_restarts_once_then_preserves_clean_exit() -> None:
     bootstrap = ROOT / "scripts/windows/mt5_autonomous_demo_bootstrap.py"
     specification = importlib.util.spec_from_file_location("rc2_bootstrap", bootstrap)

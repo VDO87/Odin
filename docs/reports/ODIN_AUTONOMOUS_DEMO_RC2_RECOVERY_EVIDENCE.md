@@ -354,6 +354,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `bounded_report_atomic_replace_retry`; a reparação apareceu em
   `ODIN_AUTONOMOUS_DEMO_REPAIRS.md`. O supervisor permaneceu em
   `WAITING_MARKET`, sem posições/ordens ou submissão ao broker.
+- A auditoria da superfície operacional encontrou um atalho manual legado que
+  ainda chamava `Read-ODIN-MT5-Demo.ps1` e podia publicar observações da
+  instalação MetaQuotes-Demo excluída. Nenhuma tarefa agendada ou launcher RC2
+  usava essa instalação, mas o atalho podia criar ambiguidade visual. O refresh
+  manual passou a validar apenas o estado/heartbeat persistente do supervisor
+  OANDA allowlisted; o collector legado permanece apenas como artefacto
+  histórico e saiu do caminho ativo. A matriz RC2 alargada passou com
+  `222 passed, 20 subtests`; a alteração dirigida passou com `55 passed`, Ruff,
+  parser PowerShell, validação live `-ValidateMt5Only` e `git diff --check`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um

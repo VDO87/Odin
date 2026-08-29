@@ -57,9 +57,9 @@ O dashboard e read-only e nao disponibiliza accoes de trading.
 
 ## Bounded manual observation refresh
 
-`scripts/windows/Refresh-ODIN-Observations.ps1` is the operator-run refresh path. It first collects the already-authorized MT5 DEMO state in read-only mode, then refreshes the bounded ECB observation and writes an operational report. Every stage has a timeout and failure stops later stages. It does not run continuously, send orders, generate a trading decision or modify execution flags.
+`scripts/windows/Refresh-ODIN-Observations.ps1` is the operator-run refresh path. It first validates the fresh state and heartbeat already produced by the persistent OANDA DEMO RC2 supervisor, then refreshes the bounded ECB observation and writes an operational report. It never initializes the excluded MetaQuotes-Demo terminal. Every stage has a timeout and failure stops later stages. It does not send orders, generate a trading decision or modify execution flags. `-ValidateMt5Only` performs only the local supervisor/identity/guardrail validation.
 
-The Windows installer creates `ODIN TradeDesk (Demo).lnk` and `ODIN Refresh DEMO Observations.lnk` on the Desktop. The latter is a manual read-only collection action and contains no credentials.
+The Windows installer creates `ODIN TradeDesk (Demo).lnk` and `ODIN Refresh DEMO Observations.lnk` on the Desktop. The latter validates the current OANDA DEMO supervisor and performs the remaining manual read-only refresh; it contains no credentials.
 
 The complete operator walkthrough is [OPERATOR_DEMO_WALKTHROUGH.md](OPERATOR_DEMO_WALKTHROUGH.md).
 

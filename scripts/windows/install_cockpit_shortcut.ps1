@@ -25,7 +25,7 @@ $refreshShortcut.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\p
 $refreshShortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$refresh`""
 $refreshShortcut.WorkingDirectory = "D:\ODIN_LOCAL\cockpit"
 $refreshShortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,238"
-$refreshShortcut.Description = "Collect local MT5 DEMO and public observations; no execution"
+$refreshShortcut.Description = "Validate persistent OANDA DEMO state and refresh public observations; no execution"
 $refreshShortcut.Save()
 
 Write-Output $shortcutPath

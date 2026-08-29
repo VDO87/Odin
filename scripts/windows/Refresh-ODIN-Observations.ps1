@@ -1,14 +1,17 @@
 [CmdletBinding()]
 param(
-    [ValidateRange(5, 30)]
-    [int]$Mt5TimeoutSeconds = 10,
+    [switch]$ValidateMt5Only,
     [ValidateRange(5, 60)]
     [int]$PublicDataTimeoutSeconds = 30
 )
 
 $ErrorActionPreference = "Stop"
 $Distro = "Ubuntu-ODIN"
-$Collector = Join-Path $PSScriptRoot "Read-ODIN-MT5-Demo.ps1"
+$StatePath = "D:\ODIN_LOCAL\state\autonomous_demo_state.json"
+$HeartbeatPath = "D:\ODIN_LOCAL\state\autonomous_demo_heartbeat.json"
+$ExpectedBroker = "OANDA TMS Brokers S.A."
+$ExpectedServer = "OANDATMS-MT5"
+$ExpectedTerminal = "C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe"
 
 function Assert-ODINHardwareSafe {
     $gpuCommand = Get-Command nvidia-smi.exe -ErrorAction SilentlyContinue
@@ -25,14 +28,61 @@ function Assert-ODINHardwareSafe {
     Write-Output "Hardware guard: GPU ${gpuTemp}C; CPU telemetry $(if ($cpuTemps.Count) { $cpuTemps -join ',' } else { 'unavailable' })."
 }
 
-if (-not (Test-Path -LiteralPath $Collector)) {
-    throw "The bounded MT5 DEMO collector is unavailable."
+function Assert-ODINAutonomousDemoObservation {
+    if (-not (Test-Path -LiteralPath $StatePath) -or -not (Test-Path -LiteralPath $HeartbeatPath)) {
+        throw "The persistent OANDA DEMO observation is unavailable."
+    }
+    try {
+        $state = Get-Content -Raw -LiteralPath $StatePath | ConvertFrom-Json
+        $heartbeat = Get-Content -Raw -LiteralPath $HeartbeatPath | ConvertFrom-Json
+        $heartbeatAt = [DateTimeOffset]::Parse([string]$heartbeat.heartbeat_at_utc)
+    }
+    catch {
+        throw "The persistent OANDA DEMO observation is invalid."
+    }
+    $observed = $state.observed
+    if (
+        $observed.account_mode -ne "DEMO" -or
+        $observed.broker -ne $ExpectedBroker -or
+        $observed.server -ne $ExpectedServer -or
+        $observed.terminal_path -ne $ExpectedTerminal -or
+        $observed.terminal_connected -ne $true
+    ) {
+        throw "The persistent OANDA DEMO identity is blocked."
+    }
+    if (
+        $state.safe_to_trade -ne $false -or
+        $state.real_trading -ne $false -or
+        $state.execution_allowed -ne $false -or
+        $observed.broker_submission_called -ne $false
+    ) {
+        throw "The persistent OANDA DEMO guardrails are invalid."
+    }
+    $heartbeatAge = ([DateTimeOffset]::UtcNow - $heartbeatAt).TotalSeconds
+    if ($heartbeatAge -lt 0 -or $heartbeatAge -gt 120) {
+        throw "The persistent OANDA DEMO heartbeat is stale or future-dated."
+    }
+    if ($null -eq (Get-Process -Id ([int]$heartbeat.process_id) -ErrorAction SilentlyContinue)) {
+        throw "The persistent OANDA DEMO supervisor process is unavailable."
+    }
+    Write-Output (
+        "OANDA DEMO supervisor: checkpoint {0}; state {1}; heartbeat {2:N1}s; positions/orders {3}/{4}; reconciliation {5}." -f
+        $state.checkpoint,
+        $state.state,
+        $heartbeatAge,
+        $observed.positions_count,
+        $observed.orders_count,
+        $observed.reconciliation
+    )
 }
 
 Assert-ODINHardwareSafe
-Write-Output "[1/5] Collecting MT5 DEMO observation (read-only)."
-& $Collector -TimeoutSeconds $Mt5TimeoutSeconds
-if ($LASTEXITCODE -ne 0) { throw "MT5 DEMO observation failed; no further collection was attempted." }
+Write-Output "[1/5] Validating persistent MT5/OANDA DEMO observation (read-only)."
+Assert-ODINAutonomousDemoObservation
+if ($ValidateMt5Only) {
+    Write-Output "Persistent MT5/OANDA DEMO observation validated. No collection or execution was run."
+    exit 0
+}
 
 Assert-ODINHardwareSafe
 Write-Output "[2/5] Refreshing bounded public ECB observation."
