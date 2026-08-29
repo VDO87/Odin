@@ -191,9 +191,8 @@ def test_task_is_user_scoped_single_instance_and_bounded_restart() -> None:
     assert "wsl.exe -d Ubuntu-ODIN --user odin --exec git" not in launcher
     assert "ODIN_RUNTIME_RATIONALIZATION_REPORT.md" in launcher
     assert "Copy-Item -LiteralPath $rationalizationSource" in launcher
-    assert "Start-Process -FilePath $basePython" in launcher
-    assert "-PassThru" in launcher
-    assert "-Wait" in launcher
+    assert "& $basePython $probe" in launcher
+    assert "Start-Process -FilePath $PythonPath" not in launcher
     assert "ODIN_RC2_RESOURCE_PROBE_PATH" in launcher
     resource_probe = (
         ROOT / "scripts/windows/Get-ODIN-Autonomous-Demo-Resources.ps1"
