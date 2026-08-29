@@ -26,6 +26,15 @@ MT5, histórico do broker e ledgers locais prevalecem.
   processos, logs/SQLite e Hermes/Ollama visíveis no Cockpit. O firmware não
   expõe temperatura CPU; esta ausência aparece como warning explícito. GPU foi
   observada a 38–39 °C, abaixo do limite de 80 °C.
+- O resource probe Windows foi separado do subprobe WSL bounded de 10 s depois
+  de bloqueios transitórios observados. Cinco ciclos reais consecutivos passaram
+  sem BLOCK, com uma única instância e zero exposição.
+- Hermes-versus-Reality está ativo e read-only. A prova mais recente foi
+  `ANALYZED/SCORED`; o histórico preserva quatro claims `CONFIRMED` e quatro
+  `CONTRADICTED`, sem apagar alucinações anteriores.
+- O incident ledger sofreu um reset acidental documentado, foi reconstruído com
+  marcadores de recuperação e voltou a receber append normal. A linha pós-reset
+  original permanece guardada com hash no dossier de recovery.
 - Acceptance RC2: `NOT_READY` até 24 horas de mercado aberto e pelo menos cinco
   trades autónomos completos/reconciliados, além da suite final e recovery.
 
@@ -62,6 +71,13 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `c422557` — resource guardian fail-closed.
 - `bf14f19` — processo direto controlado pelo Task Scheduler.
 - `cf5112c` — observabilidade financeira live completa.
+- `d2cb9c7` — probe local verificado e primeira estabilização WSL.
+- `9195ab7` — contenção bounded da disputa de startup.
+- `6492e59` — análise Hermes-versus-Reality bounded.
+- `6d7d7ba` — output Hermes limitado e normalização de tipos.
+- `6dc91a9` — subprobe WSL isolado com timeout de 10 s.
+- `4a202de` — rejeição fail-closed de placeholders do modelo.
+- `06d4023` — contrato Hermes reduzido a uma claim factual por trigger.
 
 ## Próximos gates
 

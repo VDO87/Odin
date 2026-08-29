@@ -42,6 +42,11 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - Revalidação no checkpoint `cf5112c`: o listener anterior foi terminado e o
   watchdog recuperou `127.0.0.1:8765` com novo PID, ambas as páginas HTTP 200,
   resource gate e painéis RISK/EXECUTION visíveis.
+- Revalidação no checkpoint `06d4023`: o listener foi terminado apenas com
+  `SIGTERM` e recuperado pelo launcher bounded. Health, TradeDesk e Cockpit
+  voltaram a HTTP 200; o TradeDesk expôs o cartão `Analysis` e a rota
+  `/operations/autonomous-demo` publicou `ANALYZED/SCORED`, sem posições,
+  ordens ou submissão ao broker.
 
 ### Resource guardian
 
@@ -51,6 +56,37 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `WARNING=cpu_temperature_telemetry_unavailable`, sem valor inventado.
 - Testes offline provam BLOCK a 80 °C, sem telemetria térmica total, WSL offline,
   memória/disco críticos e instância lógica duplicada.
+- A falha intermitente `resource_probe_unavailable` foi reproduzida com o probe
+  PowerShell a bloquear em chamadas WSL aninhadas. A correção separou o probe
+  Windows do subprobe WSL, que passou a ter processo e timeout próprios de 10 s.
+- Cinco ciclos reais consecutivos observaram WSL em 234--625 ms, uma instância
+  lógica, zero exposição e gate sem BLOCK. Um timeout futuro do subprobe continua
+  fail-closed com reason code específico.
+
+### Integridade do incident ledger
+
+- Durante uma limpeza de namespace Windows/WSL, o ficheiro JSONL de incidentes
+  foi acidentalmente truncado. A ocorrência foi registada explicitamente como
+  `INCIDENT_LEDGER_ACCIDENTAL_RESET`; não foi ocultada.
+- A linha que existia depois do reset foi preservada em
+  `D:\ODIN_LOCAL\reports\recovery\autonomous_demo_incidents_after_accidental_reset_20260829T143916Z.jsonl`
+  com SHA-256
+  `6b49075f15994b22bcfcc6e657145d435c869adf559dd30ee9a471031af679c6`.
+- O ledger foi reconstruído a partir da saída JSONL exata anteriormente
+  observada e da semântica determinística de append. Os registos recuperados
+  têm marcadores `recovered_after_accidental_reset=true` e `recovery_basis`;
+  o supervisor continuou depois a acrescentar incidentes normalmente.
+
+### Hermes-versus-Reality
+
+- O adapter local bounded processa no máximo um trigger novo por ciclo e não tem
+  autoridade sobre Strategy, Risk ou execução.
+- O primeiro trigger do canary terminou em `MODEL_TIMEOUT` e não foi repetido.
+  Saídas truncadas ou placeholders de schema passaram a ser rejeitadas.
+- A última prova real no checkpoint `06d4023` produziu uma claim factual para
+  `nested_wsl_probe_blocked_parent`, classificada `CONFIRMED`, em 2,344 s.
+- As quatro claims anteriores classificadas `CONTRADICTED/HALLUCINATION` foram
+  preservadas como evidência; não foram apagadas para melhorar métricas.
 
 ### Restart do WSL
 

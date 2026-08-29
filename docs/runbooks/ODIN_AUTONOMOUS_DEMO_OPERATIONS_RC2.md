@@ -13,8 +13,12 @@
 - Heartbeat: `D:\ODIN_LOCAL\state\autonomous_demo_heartbeat.json`
 - Incidentes: `D:\ODIN_LOCAL\state\autonomous_demo_incidents.jsonl`
 - Logs: `D:\ODIN_LOCAL\logs\autonomous-demo`
-- Resource probe: `Get-ODIN-Autonomous-Demo-Resources.ps1`; o Cockpit mostra o
-  gate e a telemetria disponível. Temperatura observada >=80 °C pausa execução.
+- Hermes triggers: `D:\ODIN_LOCAL\runtime\hermes_analysis_events.jsonl`
+- Hermes claims: `D:\ODIN_LOCAL\runtime\hermes_claims.jsonl`
+- Resource probe Windows: `Get-ODIN-Autonomous-Demo-Resources.ps1`; o supervisor
+  acrescenta WSL/FD/memória/processos através de um subprobe isolado com timeout
+  de 10 s. O Cockpit mostra o gate e a telemetria disponível. Temperatura
+  observada >=80 °C pausa execução; timeout do subprobe também bloqueia.
 
 ## Controlos seguros
 

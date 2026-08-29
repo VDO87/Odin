@@ -26,7 +26,7 @@ não foram envolvidos por novos agentes ou daemons.
 | `C:\Program Files\OANDA TMS MT5 Terminal\terminal64.exe` | ACTIVE_REQUIRED | Único terminal allowlisted para execução DEMO. |
 | `D:\ODIN_LOCAL\mt5\terminal64.exe` | REMOVE_CANDIDATE | MetaQuotes-Demo excluído de launchers, discovery e fallback. Não terminar nem apagar automaticamente. |
 | `mt5_autonomous_demo_supervisor.py` | ACTIVE_REQUIRED | Supervisor, heartbeat, reconciliação, bounded recovery, Strategy/Risk/Gate orchestration. Não contém chamada direta a `order_send`. |
-| `Get-ODIN-Autonomous-Demo-Resources.ps1` | ACTIVE_REQUIRED | Probe read-only de CPU/RAM/GPU/VRAM/disco/WSL/FD/processos/logs/SQLite/Hermes/Ollama; gate térmico a 80 °C. |
+| `Get-ODIN-Autonomous-Demo-Resources.ps1` | ACTIVE_REQUIRED | Probe read-only de recursos Windows. O supervisor recolhe WSL/FD/memória/processos num subprobe isolado com timeout de 10 s; qualquer falha bloqueia execução. |
 | `Start-ODIN-Dashboard-Persistent.ps1` + `run_dashboard_local.sh` | ACTIVE_REQUIRED | Um dashboard loopback com watchdog bounded. |
 | TradeDesk e Cockpit em `127.0.0.1:8765` | ACTIVE_REQUIRED | Duas vistas da mesma aplicação, não dois runtimes. |
 | `Set-ODIN-Autonomous-Demo-Control.ps1` e controlos HTTP | ACTIVE_REQUIRED | Um contrato persistente comum para PAUSE, RESUME e SAFE_STOP. |
@@ -35,7 +35,7 @@ não foram envolvidos por novos agentes ou daemons.
 | Time profile `oanda_tms_mt5_cet_cest_v1` | ACTIVE_REQUIRED | Única normalização ativa para OANDA TMS MT5. |
 | Decision Ledger + Execution Ledger | ACTIVE_REQUIRED | Cadeias hash e reconciliação broker-first. |
 | Incident memory JSONL | ACTIVE_REQUIRED | Memória durável simples, sem acesso ao broker. |
-| Hermes/Ollama local read-only | ACTIVE_OPTIONAL | Indisponibilidade não interrompe mercado, supervisor ou dashboard. |
+| Hermes/Ollama local read-only | ACTIVE_OPTIONAL | Adapter bounded, uma claim factual por trigger e sem autoridade financeira. Indisponibilidade não interrompe mercado, supervisor ou dashboard. |
 | Scripts Stage 0, canary one-shot e lifecycle audit RC1 | DEPRECATED | Preservados como evidência/runbook histórico; não são chamados pelo runtime RC2. |
 | `Start-ODIN-Autonomous-Demo-RC2.cmd` e launcher PowerShell | DEPRECATED | Preservados para diagnóstico/manual; a tarefa persistente já não os chama. |
 | Post-canary soak RC1 | DEPRECATED | Substituído pelo supervisor e métricas RC2 persistentes. |
@@ -59,6 +59,8 @@ não foram envolvidos por novos agentes ou daemons.
   dashboard daemon.
 - O Risk Engine, Demo Gate e Data Quality Gate já satisfazem as capacidades antes
   descritas como “agentes”; não criar wrappers inteligentes duplicados.
+- O probe PowerShell e o subprobe WSL são partes da mesma medição, não dois
+  guardians. A separação existe para conter bloqueios transitórios do WSL.
 
 ## Remoção
 
