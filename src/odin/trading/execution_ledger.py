@@ -157,6 +157,20 @@ def closed_execution_records(path: str | Path) -> list[dict[str, object]]:
     ]
 
 
+def recent_execution_records(
+    path: str | Path, *, limit: int = 20
+) -> list[dict[str, object]]:
+    """Return a bounded verified ledger tail for read-only observability."""
+    target = Path(path)
+    if read_execution_ledger(target)["status"] != "OK":
+        return []
+    bounded = max(0, min(int(limit), 100))
+    return [
+        dict(redact_for_audit(record))
+        for record in _read_records(target)[-bounded:]
+    ] if bounded else []
+
+
 def analyze_execution_ledger(path: str | Path) -> dict[str, object]:
     """Return bounded anomalies for dashboards/supervision; never mutate ledger."""
     ledger_path = Path(path)

@@ -63,10 +63,48 @@ def test_demo_dashboard_exposes_finance_and_permanent_blocks(tmp_path) -> None:
     assert result["execution"]["anomalies"] == []
     assert result["execution"]["records_count"] == 0
     assert result["execution"]["metrics"]["closed_trades"] == 0
+    assert result["timeline"] == []
     assert result["canary_confirmation_required"] is True
     assert result["execution_allowed"] is False
     assert result["safe_to_trade"] is False
     assert result["real_trading"] is False
+
+
+def test_demo_dashboard_exposes_bounded_masked_execution_timeline(tmp_path) -> None:
+    mt5_state = tmp_path / "mt5.json"
+    ledger = tmp_path / "ledger.jsonl"
+    _write_mt5_state(mt5_state)
+    record = {
+        "sequence": 1,
+        "previous_record_hash": "GENESIS",
+        "decision_id": "decision-1",
+        "proposal_id": "proposal-1",
+        "timestamp": "2026-08-28T09:14:46+00:00",
+        "symbol": "EURUSD",
+        "side": "BUY",
+        "ticket": 12345678,
+        "execution_status": "CLOSED",
+        "reconciliation_status": "RECONCILED",
+        "close_time": "2026-08-28T09:20:00+00:00",
+        "close_reason": "SL",
+        "realized_pnl": -0.88,
+    }
+    canonical = json.dumps(record, sort_keys=True, separators=(",", ":"))
+    record["record_hash"] = hashlib.sha256(canonical.encode()).hexdigest()
+    ledger.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    result = demo_execution_dashboard_state(
+        ledger_path=ledger,
+        mt5_state_path=str(mt5_state),
+    )
+
+    assert len(result["timeline"]) == 1
+    event = result["timeline"][0]
+    assert event["execution_status"] == "CLOSED"
+    assert event["reconciliation_status"] == "RECONCILED"
+    assert event["timestamp_utc"] == "2026-08-28T09:20:00+00:00"
+    assert event["ticket_masked"] == "••••5678"
+    assert "12345678" not in json.dumps(result["timeline"])
 
 
 def test_unexpected_broker_position_is_reconciliation_block(tmp_path) -> None:
@@ -157,6 +195,7 @@ def test_tradedesk_and_cockpit_show_demo_execution_without_broker_controls() -> 
     assert "HERMES A CARREGAR" in tradedesk
     assert "OPEN COCKPIT / REPORTS" in tradedesk
     assert "Hermes-versus-Reality" in tradedesk
+    assert "execution.timeline" in tradedesk
     assert "CONFIRMED / PARTIAL / NOT_CONFIRMED / CONTRADICTED" in tradedesk
     assert "/operations/autonomous-demo" in tradedesk
     assert "/trading/demo-execution" in tradedesk

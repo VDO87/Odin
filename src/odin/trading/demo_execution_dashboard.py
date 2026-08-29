@@ -8,6 +8,7 @@ from odin.adapters.mt5.demo_readonly_state import read_demo_readonly_state
 from odin.trading.execution_ledger import (
     analyze_execution_ledger,
     completed_reconciled_lifecycle,
+    recent_execution_records,
 )
 
 
@@ -46,6 +47,7 @@ def demo_execution_dashboard_state(
     initial_canary_complete = completed_reconciled_lifecycle(
         ledger_path, "rc1-canary-human-confirmed"
     )
+    timeline = _execution_timeline(recent_execution_records(ledger_path, limit=20))
     return {
         "status": "OK"
         if mt5.get("status") == "CONNECTED_DEMO_READ_ONLY" and not anomalies
@@ -84,6 +86,7 @@ def demo_execution_dashboard_state(
             "metrics": ledger.get("metrics", {}),
         },
         "positions": safe_positions,
+        "timeline": timeline,
         "demo_execution_enabled": False,
         "autonomous_demo_scope": "ODIN_AUTONOMOUS_DEMO_RC2",
         "initial_canary_complete": initial_canary_complete,
@@ -108,3 +111,28 @@ def _drawdown(account: dict[str, object]) -> float | None:
 
 def _as_dict(value: object) -> dict[str, object]:
     return value if isinstance(value, dict) else {}
+
+
+def _execution_timeline(records: list[dict[str, object]]) -> list[dict[str, object]]:
+    result: list[dict[str, object]] = []
+    for record in records:
+        ticket = record.get("ticket")
+        ticket_text = str(ticket) if isinstance(ticket, (str, int)) else ""
+        result.append(
+            {
+                "sequence": record.get("sequence"),
+                "timestamp_utc": record.get("close_time")
+                or record.get("open_time")
+                or record.get("timestamp"),
+                "decision_id": record.get("decision_id"),
+                "proposal_id": record.get("proposal_id"),
+                "symbol": record.get("symbol"),
+                "side": record.get("side"),
+                "execution_status": record.get("execution_status"),
+                "reconciliation_status": record.get("reconciliation_status"),
+                "realized_pnl": record.get("realized_pnl"),
+                "close_reason": record.get("close_reason"),
+                "ticket_masked": f"••••{ticket_text[-4:]}" if ticket_text else None,
+            }
+        )
+    return result
