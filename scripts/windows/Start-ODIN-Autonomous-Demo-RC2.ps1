@@ -88,6 +88,8 @@ $env:ODIN_RC2_CONTROL_PATH = Join-Path $StateRoot "autonomous_demo_control.json"
 $env:ODIN_RC2_INCIDENTS_PATH = Join-Path $StateRoot "autonomous_demo_incidents.jsonl"
 $env:ODIN_RC2_REPORT_ROOT = $ReportRoot
 $env:ODIN_RC2_HERMES_CLAIMS_PATH = "D:\ODIN_LOCAL\runtime\hermes_claims.jsonl"
+$env:ODIN_RC2_HERMES_ANALYSIS_EVENTS_PATH = "D:\ODIN_LOCAL\runtime\hermes_analysis_events.jsonl"
+$env:ODIN_RC2_HERMES_AUDIT_PATH = "D:\ODIN_LOCAL\logs\autonomous-demo\hermes_ollama.jsonl"
 $env:ODIN_RC2_DASHBOARD_LAUNCHER = $dashboardLauncher
 $env:ODIN_RC2_RESOURCE_PROBE_PATH = $resourceProbe
 $env:ODIN_RC2_CYCLE_SECONDS = [string]$CycleSeconds
@@ -114,6 +116,7 @@ finally {
         'ODIN_RC2_MT5_STATE_PATH', 'ODIN_RC2_STATE_PATH', 'ODIN_RC2_HEARTBEAT_PATH',
         'ODIN_RC2_CONTROL_PATH', 'ODIN_RC2_INCIDENTS_PATH',
         'ODIN_RC2_REPORT_ROOT', 'ODIN_RC2_HERMES_CLAIMS_PATH',
+        'ODIN_RC2_HERMES_ANALYSIS_EVENTS_PATH', 'ODIN_RC2_HERMES_AUDIT_PATH',
         'ODIN_RC2_DASHBOARD_LAUNCHER', 'ODIN_RC2_RESOURCE_PROBE_PATH',
         'ODIN_RC2_CYCLE_SECONDS',
         'ODIN_RC2_BRANCH', 'ODIN_RC2_CHECKPOINT'

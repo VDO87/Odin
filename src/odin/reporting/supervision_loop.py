@@ -25,12 +25,27 @@ _GUARDRAILS: dict[str, bool] = {
     "real_trading": False,
     "execution_allowed": False,
 }
-_CLAIM_KEYS = {"claim_id", "kind", "expected", "source", "observed_at"}
+_CLAIM_KEYS = {
+    "action",
+    "claim",
+    "claim_id",
+    "context_hash",
+    "expected",
+    "kind",
+    "latency_ms",
+    "model",
+    "observed_at",
+    "source",
+    "subject_id",
+    "trigger_id",
+    "trigger_type",
+}
 _RESULTS = {"CONFIRMED", "PARTIAL", "NOT_CONFIRMED", "CONTRADICTED"}
 _ROOT_CAUSES = {
     "PROMPT",
     "WEAK_SOURCE",
     "STALE_SOURCE",
+    "STALE_CONTEXT",
     "MISSING_CONTEXT",
     "HALLUCINATION",
     "INTEGRATION",
@@ -281,16 +296,62 @@ def _score_claim(claim: dict[str, object], snapshot: dict[str, object]) -> dict[
         actual = _as_dict(_as_dict(snapshot.get("demo_execution")).get("execution")).get(
             "reconciliation_status"
         )
+    elif kind in {
+        "trade_execution_status",
+        "trade_reconciliation_status",
+        "trade_realized_pnl",
+    }:
+        trade = _subject_record(
+            snapshot.get("closed_trades"),
+            key="decision_id",
+            subject=claim.get("subject_id"),
+        )
+        actual = trade.get(
+            {
+                "trade_execution_status": "execution_status",
+                "trade_reconciliation_status": "reconciliation_status",
+                "trade_realized_pnl": "realized_pnl",
+            }[str(kind)]
+        )
+    elif kind in {
+        "incident_error_code",
+        "incident_occurrences",
+        "incident_regression_status",
+        "incident_root_cause",
+    }:
+        incident = _subject_record(
+            snapshot.get("incidents"),
+            key="fingerprint",
+            subject=claim.get("subject_id"),
+        )
+        actual = incident.get(
+            {
+                "incident_error_code": "error_code",
+                "incident_occurrences": "occurrences",
+                "incident_regression_status": "regression_status",
+                "incident_root_cause": "root_cause",
+            }[str(kind)]
+        )
+    elif kind == "decision_signal":
+        actual = _as_dict(snapshot.get("decision")).get("signal")
+    elif kind == "decision_reason_codes":
+        actual = _as_dict(snapshot.get("decision")).get("reason_codes")
+    elif kind in {"autonomous_trade_count", "daily_realized_pnl", "runtime_state"}:
+        actual = _as_dict(snapshot.get("runtime")).get(str(kind))
     else:
         return _scored(claim, actual=None, result="NOT_CONFIRMED", root_cause="MISSING_CONTEXT")
     if actual is None:
         return _scored(claim, actual=None, result="NOT_CONFIRMED", root_cause="MISSING_CONTEXT")
-    if actual == expected:
+    if _values_equal(actual, expected):
         return _scored(claim, actual=actual, result="CONFIRMED", root_cause="UNKNOWN")
     if kind == "historical_data_status" and {str(actual), str(expected)} <= {"OK", "VALIDATED"}:
         return _scored(claim, actual=actual, result="PARTIAL", root_cause="INTEGRATION")
     if kind == "mt5_connected" and actual is False:
         root_cause = "STALE_SOURCE"
+    elif isinstance(actual, list) and isinstance(expected, list) and set(actual) & set(expected):
+        return _scored(claim, actual=actual, result="PARTIAL", root_cause="MISSING_CONTEXT")
+    elif claim.get("source") == "HERMES_LOCAL_OLLAMA_READ_ONLY":
+        root_cause = "HALLUCINATION"
     return _scored(claim, actual=actual, result="CONTRADICTED", root_cause=root_cause)
 
 
@@ -301,12 +362,47 @@ def _scored(
         raise ValueError("invalid Hermes score classification")
     return {
         "claim_id": claim.get("claim_id", "UNIDENTIFIED"),
+        "claim": claim.get("claim", claim.get("expected")),
         "kind": claim.get("kind", "UNKNOWN"),
+        "subject_id": claim.get("subject_id"),
         "expected": claim.get("expected"),
         "observed": actual,
         "result": result,
+        "classification": result,
         "root_cause": root_cause,
+        "cause": root_cause,
+        "action": claim.get("action", "NO_ACTION"),
+        "evidence": {
+            "source": "ODIN_FACTUAL_SNAPSHOT",
+            "claim_source": claim.get("source", "UNSPECIFIED"),
+            "observed": actual,
+        },
+        "model": claim.get("model", "NOT_REPORTED"),
+        "timestamp": claim.get("observed_at"),
+        "latency_ms": claim.get("latency_ms"),
+        "context_hash": claim.get("context_hash"),
+        "trigger_id": claim.get("trigger_id"),
+        "trigger_type": claim.get("trigger_type"),
     }
+
+
+def _subject_record(
+    records: object, *, key: str, subject: object
+) -> dict[str, object]:
+    if not isinstance(records, list) or not isinstance(subject, str):
+        return {}
+    for record in records:
+        if isinstance(record, dict) and record.get(key) == subject:
+            return record
+    return {}
+
+
+def _values_equal(actual: object, expected: object) -> bool:
+    if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
+        return abs(float(actual) - float(expected)) <= 1e-9
+    if isinstance(actual, list) and isinstance(expected, list):
+        return actual == expected
+    return actual == expected
 
 
 def _write_report(*, output_dir: str, stem: str, report: dict[str, object], timestamp: datetime) -> dict[str, object]:

@@ -115,3 +115,36 @@ def test_hermes_claim_is_scored_once_per_unchanged_context(tmp_path: Path) -> No
     assert second["hermes_vs_reality"]["status"] == "ALREADY_RECORDED"
     journal = (tmp_path / "reports/ODIN_HERMES_VS_REALITY.jsonl").read_text().splitlines()
     assert len(journal) == 1
+
+
+def test_hermes_claim_arriving_after_empty_scorecard_creates_new_context(
+    tmp_path: Path,
+) -> None:
+    claims = tmp_path / "claims.jsonl"
+    kwargs = {
+        "report_root": tmp_path / "reports",
+        "supervisor_state": _state(),
+        "ledger_path": tmp_path / "execution.jsonl",
+        "decision_ledger_path": tmp_path / "decision.jsonl",
+        "incidents_path": tmp_path / "incidents.jsonl",
+        "hermes_claims_path": claims,
+    }
+
+    first = update_autonomous_demo_reports(**kwargs, now_utc=NOW)
+    claims.write_text(
+        json.dumps(
+            {
+                "claim_id": "connected-after-start",
+                "kind": "mt5_connected",
+                "expected": True,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    second = update_autonomous_demo_reports(**kwargs, now_utc=NOW + timedelta(seconds=1))
+
+    assert first["hermes_vs_reality"]["claims_status"] == "NO_CLAIMS_AVAILABLE"
+    assert second["hermes_vs_reality"]["claims_status"] == "SCORED"
+    journal = (tmp_path / "reports/ODIN_HERMES_VS_REALITY.jsonl").read_text().splitlines()
+    assert len(journal) == 2

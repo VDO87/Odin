@@ -61,6 +61,9 @@ from odin.risk.demo_execution import evaluate_demo_risk  # noqa: E402
 from odin.reporting.autonomous_demo_reports import (  # noqa: E402
     update_autonomous_demo_reports,
 )
+from odin.reporting.autonomous_demo_hermes import (  # noqa: E402
+    run_next_hermes_reality_analysis,
+)
 from odin.trading.demo_execution_service import run_autonomous_demo_order  # noqa: E402
 from odin.trading.demo_position_lifecycle import (  # noqa: E402
     reconcile_latest_broker_close,
@@ -170,6 +173,27 @@ def main() -> int:
             )
             write_state(state_path, snapshot)
             try:
+                run_next_hermes_reality_analysis(
+                    supervisor_state=snapshot,
+                    ledger_path=os.environ["ODIN_RC2_LEDGER_PATH"],
+                    incidents_path=incidents_path,
+                    claims_path=os.environ["ODIN_RC2_HERMES_CLAIMS_PATH"],
+                    analysis_events_path=os.environ[
+                        "ODIN_RC2_HERMES_ANALYSIS_EVENTS_PATH"
+                    ],
+                    audit_log_path=os.environ["ODIN_RC2_HERMES_AUDIT_PATH"],
+                )
+            except Exception as error:  # Hermes is non-authoritative and non-blocking
+                append_incident(
+                    incidents_path,
+                    incident_type="HERMES_REALITY_ANALYSIS_EXCEPTION",
+                    component="autonomous_demo_hermes",
+                    error_code=type(error).__name__,
+                    root_cause="hermes_analysis_integration_failed",
+                    evidence={"error_type": type(error).__name__},
+                    checkpoint=os.environ.get("ODIN_RC2_CHECKPOINT", ""),
+                )
+            try:
                 update_autonomous_demo_reports(
                     report_root=os.environ["ODIN_RC2_REPORT_ROOT"],
                     supervisor_state=snapshot,
@@ -177,6 +201,9 @@ def main() -> int:
                     decision_ledger_path=os.environ["ODIN_RC2_DECISION_LEDGER_PATH"],
                     incidents_path=incidents_path,
                     hermes_claims_path=os.environ.get("ODIN_RC2_HERMES_CLAIMS_PATH"),
+                    hermes_analysis_events_path=os.environ.get(
+                        "ODIN_RC2_HERMES_ANALYSIS_EVENTS_PATH"
+                    ),
                 )
             except Exception as error:  # reporting is non-authoritative and fail-visible
                 append_incident(
@@ -251,6 +278,12 @@ def _bootstrap_runtime_environment() -> None:
         "ODIN_RC2_INCIDENTS_PATH": r"D:\ODIN_LOCAL\state\autonomous_demo_incidents.jsonl",
         "ODIN_RC2_REPORT_ROOT": r"D:\ODIN_LOCAL\reports",
         "ODIN_RC2_HERMES_CLAIMS_PATH": r"D:\ODIN_LOCAL\runtime\hermes_claims.jsonl",
+        "ODIN_RC2_HERMES_ANALYSIS_EVENTS_PATH": (
+            r"D:\ODIN_LOCAL\runtime\hermes_analysis_events.jsonl"
+        ),
+        "ODIN_RC2_HERMES_AUDIT_PATH": (
+            r"D:\ODIN_LOCAL\logs\autonomous-demo\hermes_ollama.jsonl"
+        ),
         "ODIN_RC2_DASHBOARD_LAUNCHER": (
             r"D:\ODIN_LOCAL\runtime\Start-ODIN-Dashboard-Persistent.ps1"
         ),

@@ -89,6 +89,58 @@ def test_hermes_demo_execution_claims_are_scored_against_read_only_reality() -> 
     assert scores["items"][1]["result"] == "CONTRADICTED"
 
 
+def test_hermes_trade_and_incident_claims_retain_auditable_context() -> None:
+    scores = score_hermes_vs_reality(
+        claims=[
+            {
+                "claim_id": "trade-pnl",
+                "kind": "trade_realized_pnl",
+                "subject_id": "decision-1",
+                "expected": -0.88,
+                "claim": "Trade realized minus 0.88 EUR.",
+                "action": "Review the deterministic exit.",
+                "source": "HERMES_LOCAL_OLLAMA_READ_ONLY",
+                "model": "local-model",
+                "observed_at": "2026-08-29T15:00:00Z",
+                "latency_ms": 125,
+                "context_hash": "context-1",
+                "trigger_id": "trade:decision-1",
+                "trigger_type": "TRADE_CLOSED",
+            },
+            {
+                "claim_id": "incident-status",
+                "kind": "incident_regression_status",
+                "subject_id": "fingerprint-1",
+                "expected": "NEW",
+                "source": "HERMES_LOCAL_OLLAMA_READ_ONLY",
+            },
+        ],
+        snapshot={
+            "closed_trades": [
+                {
+                    "decision_id": "decision-1",
+                    "realized_pnl": -0.88,
+                    "execution_status": "CLOSED",
+                    "reconciliation_status": "RECONCILED",
+                }
+            ],
+            "incidents": [
+                {"fingerprint": "fingerprint-1", "regression_status": "RESOLVED"}
+            ],
+        },
+    )
+
+    confirmed, contradicted = scores["items"]
+    assert confirmed["classification"] == "CONFIRMED"
+    assert confirmed["evidence"]["observed"] == -0.88
+    assert confirmed["action"] == "Review the deterministic exit."
+    assert confirmed["model"] == "local-model"
+    assert confirmed["latency_ms"] == 125
+    assert confirmed["context_hash"] == "context-1"
+    assert contradicted["classification"] == "CONTRADICTED"
+    assert contradicted["cause"] == "HALLUCINATION"
+
+
 def test_weekly_gate_proposes_at_most_one_human_reviewed_initiative(tmp_path) -> None:
     now = datetime(2026, 8, 22, tzinfo=UTC)
     daily = {

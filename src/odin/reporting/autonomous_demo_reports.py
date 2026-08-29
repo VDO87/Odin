@@ -33,6 +33,7 @@ def update_autonomous_demo_reports(
     decision_ledger_path: str | Path,
     incidents_path: str | Path,
     hermes_claims_path: str | Path | None = None,
+    hermes_analysis_events_path: str | Path | None = None,
     now_utc: datetime | None = None,
 ) -> dict[str, object]:
     """Update the bounded RC2 evidence set; never control or contact the broker."""
@@ -105,6 +106,13 @@ def update_autonomous_demo_reports(
         root / "ODIN_HERMES_VS_REALITY.jsonl",
         supervisor_state=supervisor_state,
         claims=_read_jsonl(Path(hermes_claims_path)) if hermes_claims_path else [],
+        analyses=(
+            _read_jsonl(Path(hermes_analysis_events_path))
+            if hermes_analysis_events_path
+            else []
+        ),
+        closed=closed,
+        incidents=incidents,
         now=now,
     )
     return {
@@ -200,9 +208,13 @@ def _update_hermes_journal(
     *,
     supervisor_state: dict[str, object],
     claims: Iterable[dict[str, object]],
+    analyses: list[dict[str, object]],
+    closed: list[dict[str, object]],
+    incidents: list[dict[str, object]],
     now: datetime,
 ) -> dict[str, object]:
     observed = _as_dict(supervisor_state.get("observed"))
+    claim_items = list(claims)
     snapshot = {
         "mt5": {"connected": observed.get("terminal_connected")},
         "operations": {"execution_allowed": False},
@@ -214,20 +226,44 @@ def _update_hermes_journal(
                 "reconciliation_status": observed.get("reconciliation"),
             }
         },
+        "closed_trades": closed,
+        "incidents": incidents,
+        "decision": _as_dict(observed.get("latest_decision")),
+        "runtime": {
+            "runtime_state": supervisor_state.get("state"),
+            "daily_realized_pnl": observed.get("daily_realized_pnl"),
+            "autonomous_trade_count": len(
+                [
+                    item
+                    for item in closed
+                    if item.get("decision_id") != _CANARY_DECISION_ID
+                ]
+            ),
+        },
     }
-    scorecard = score_hermes_vs_reality(claims=claims, snapshot=snapshot)
+    scorecard = score_hermes_vs_reality(claims=claim_items, snapshot=snapshot)
     context_hash = hashlib.sha256(
-        json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode()
+        json.dumps(
+            {"snapshot": snapshot, "claims": claim_items, "analyses": analyses[-20:]},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
     ).hexdigest()
+    latest_analysis = analyses[-1] if analyses else {}
     record: dict[str, object] = {
         "schema": "odin.hermes_vs_reality/v1",
         "timestamp_utc": now.isoformat(),
-        "trigger": "DAILY_OR_STATE_CHANGE",
+        "trigger": latest_analysis.get("trigger_type", "DAILY_OR_STATE_CHANGE"),
+        "analysis_status": latest_analysis.get("status", "NO_ANALYSIS_AVAILABLE"),
         "claims_status": scorecard.get("claims_status"),
         "items": scorecard.get("items", []),
         "counts": scorecard.get("counts", {}),
-        "model": observed.get("hermes_model", "NOT_REPORTED"),
-        "latency_ms": observed.get("hermes_latency_ms"),
+        "model": latest_analysis.get(
+            "model", observed.get("hermes_model", "NOT_REPORTED")
+        ),
+        "latency_ms": latest_analysis.get(
+            "latency_ms", observed.get("hermes_latency_ms")
+        ),
         "context_hash": context_hash,
         "financial_authority": False,
         **_GUARDRAILS,
