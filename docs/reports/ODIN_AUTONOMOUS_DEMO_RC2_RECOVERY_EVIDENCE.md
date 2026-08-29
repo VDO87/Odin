@@ -345,6 +345,15 @@ Branch: `feature/autonomous-demo-operations-rc2`
   50/100/150 ms; contenção persistente conserva o relatório anterior e propaga a
   falha. A validação dirigida passou com `67 passed`; Ruff, mypy dirigido e
   `git diff --check`: PASS.
+- O bundle `d02af7bf9c6b` foi instalado após uma rotação limpa do Job Object e
+  publicado no Task Scheduler com inventário SHA-256
+  `3FE4C4E1609323AD186E09975ACE72C670E5CD0636651B904835D19CF8C8DFCF`.
+  Uma prova live fez 4.007 leituras concorrentes durante vários ciclos: houve
+  uma contenção visível no leitor e zero novas exceções do writer. O incidente
+  foi anotado canonicamente como resolvido por
+  `bounded_report_atomic_replace_retry`; a reparação apareceu em
+  `ODIN_AUTONOMOUS_DEMO_REPAIRS.md`. O supervisor permaneceu em
+  `WAITING_MARKET`, sem posições/ordens ou submissão ao broker.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
