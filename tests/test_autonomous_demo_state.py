@@ -179,6 +179,10 @@ def test_dashboard_exposes_state_and_operator_controls_without_broker_capability
                 "logical_symbol": "EURUSD",
                 "broker_symbol": "EURUSD.pro",
                 "data_freshness": "FRESH",
+                "spread_pips": 1.2,
+                "spread_limit_points": 30.0,
+                "floating_pnl": -0.25,
+                "drawdown_percent": 0.01,
                 "latest_decision": {"signal": "NO_TRADE"},
             },
         ),
@@ -212,6 +216,8 @@ def test_dashboard_exposes_state_and_operator_controls_without_broker_capability
     assert payload["supervisor"]["state"] == "MONITOR_ONLY"
     assert payload["financial"]["balance"] == 50_000.0
     assert payload["market"]["logical_symbol"] == "EURUSD"
+    assert payload["market"]["spread_pips"] == 1.2
+    assert payload["financial"]["floating_pnl"] == -0.25
     assert payload["decision"]["signal"] == "NO_TRADE"
     assert payload["execution_allowed"] is False
     assert resume_status == 400

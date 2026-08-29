@@ -57,6 +57,8 @@ def update_autonomous_demo_reports(
     market_open_seconds = _number(prior.get("market_open_seconds"))
     market_open_seconds += monitored_increment
     ledger_metrics = _as_dict(ledger.get("metrics"))
+    current_drawdown = _number(observed.get("drawdown_percent"))
+    max_drawdown = max(_number(prior.get("max_drawdown_percent")), current_drawdown)
     metrics: dict[str, object] = {
         "schema": "odin.autonomous_demo_metrics/v1",
         "generated_at_utc": now.isoformat(),
@@ -81,7 +83,13 @@ def update_autonomous_demo_reports(
         "expectancy": ledger_metrics.get("expectancy"),
         "average_spread": ledger_metrics.get("average_spread"),
         "average_slippage": ledger_metrics.get("average_slippage"),
+        "rejection_rate_percent": ledger_metrics.get("rejection_rate_percent", 0.0),
         "reconciliation_errors": ledger_metrics.get("reconciliation_errors", 0),
+        "floating_pnl": observed.get("floating_pnl"),
+        "current_drawdown_percent": current_drawdown,
+        "max_drawdown_percent": round(max_drawdown, 4),
+        "positions_count": observed.get("positions_count", 0),
+        "orders_count": observed.get("orders_count", 0),
         "decision_ledger_status": decision_ledger.get("status"),
         "execution_ledger_status": ledger.get("status"),
         **_GUARDRAILS,

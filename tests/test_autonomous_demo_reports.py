@@ -30,6 +30,8 @@ def _state() -> dict[str, object]:
             "orders_count": 0,
             "daily_realized_pnl": 0.0,
             "completed_trades_today": 0,
+            "floating_pnl": -1.25,
+            "drawdown_percent": 0.05,
             "reconciliation": "RECONCILED",
         },
     )
@@ -69,6 +71,10 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
     assert first["status"] == "UPDATED"
     assert second["metrics"]["market_open_seconds"] == 60.0
     assert second["metrics"]["autonomous_demo_trades"] == 0
+    assert second["metrics"]["floating_pnl"] == -1.25
+    assert second["metrics"]["current_drawdown_percent"] == 0.05
+    assert second["metrics"]["max_drawdown_percent"] == 0.05
+    assert second["metrics"]["rejection_rate_percent"] == 0.0
     assert second["safe_to_trade"] is False
     acceptance = (reports / "ODIN_AUTONOMOUS_DEMO_ACCEPTANCE_REPORT.md").read_text()
     assert "Status: NOT_READY" in acceptance

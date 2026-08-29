@@ -130,6 +130,7 @@ def main() -> int:
                 active_resource_incident = resource_incident
                 control = read_control(control_path)
                 state, reasons = _classify_state(observation, control)
+                _attach_current_gate_summaries(observation, state, reasons)
                 if state == "READY_FOR_DECISION":
                     autonomous = _run_autonomous_demo_cycle(control)
                     state = str(autonomous["state"])
@@ -277,6 +278,7 @@ def _bootstrap_runtime_environment() -> None:
     if checkpoint.returncode != 0 or not checkpoint.stdout.strip():
         raise RuntimeError("rc2_checkpoint_lookup_failed")
     os.environ["ODIN_RC2_CHECKPOINT"] = checkpoint.stdout.strip()
+    load_autonomous_demo_policy(os.environ["ODIN_RC2_CONFIG_PATH"])
     report_root = Path(os.environ["ODIN_RC2_REPORT_ROOT"])
     report_root.mkdir(parents=True, exist_ok=True)
     rationalization = _REPO_ROOT / "docs" / "ODIN_RUNTIME_RATIONALIZATION_REPORT.md"
@@ -400,6 +402,19 @@ def _observe_once() -> dict[str, object]:
             completed_trades_today=int(daily["completed_trades_today"]),
         )
         candles = _recent_candles()
+        policy = load_autonomous_demo_policy(os.environ["ODIN_RC2_CONFIG_PATH"])
+        floating_pnl = sum(
+            float(item.get("profit", 0.0))
+            for item in positions
+            if isinstance(item.get("profit", 0.0), (int, float))
+        )
+        balance = stage0._number(account.get("balance"))
+        equity = stage0._number(account.get("equity"))
+        drawdown_percent = (
+            round(max(0.0, (balance - equity) / balance * 100), 4) if balance > 0 else None
+        )
+        digits = int(symbol.get("digits", 0))
+        pip_size = evidence.point * 10 if digits in {3, 5} else evidence.point
         _persist_readonly_snapshot(account, tick, evidence, positions, candles)
         return {
             "status": "OK",
@@ -424,6 +439,11 @@ def _observe_once() -> dict[str, object]:
             "spread_points": round(evidence.spread / evidence.point, 2)
             if evidence.point > 0
             else None,
+            "spread_pips": round(evidence.spread / pip_size, 2) if pip_size > 0 else None,
+            "spread_limit": policy.max_spread,
+            "spread_limit_points": round(policy.max_spread / evidence.point, 2)
+            if evidence.point > 0
+            else None,
             "positions_count": len(positions),
             "orders_count": len(orders),
             "reconciliation": recovery.get("status"),
@@ -433,15 +453,23 @@ def _observe_once() -> dict[str, object]:
             "daily_history_status": daily.get("status"),
             "daily_realized_pnl": evidence.daily_realized_pnl,
             "completed_trades_today": evidence.completed_trades_today,
+            "daily_loss_remaining_eur": max(
+                0.0, policy.max_daily_demo_loss_eur + evidence.daily_realized_pnl
+            ),
+            "max_completed_trades_per_day": policy.max_completed_trades_per_day,
+            "max_simultaneous_positions": policy.max_simultaneous_positions,
+            "kill_switch_engaged": False,
             "bid": tick.get("bid"),
             "ask": tick.get("ask"),
             "point": symbol.get("point"),
-            "digits": symbol.get("digits"),
+            "digits": digits,
             "symbol_trade_mode": symbol.get("trade_mode"),
             "balance": account.get("balance"),
             "equity": account.get("equity"),
             "margin": account.get("margin"),
             "free_margin": account.get("margin_free"),
+            "floating_pnl": round(floating_pnl, 2),
+            "drawdown_percent": drawdown_percent,
             "broker_submission_called": False,
             "dashboard": dashboard_status,
         }
@@ -487,6 +515,34 @@ def _classify_state(
     if action != "RESUME":
         return "MONITOR_ONLY", ["operator_resume_required"]
     return "READY_FOR_DECISION", ["all_runtime_preconditions_revalidated"]
+
+
+def _attach_current_gate_summaries(
+    observation: dict[str, object], state: str, reasons: list[str]
+) -> None:
+    if not isinstance(observation.get("risk"), dict):
+        observation["risk"] = {
+            "status": "RESTRICT" if state == "NO_TRADE" else "BLOCK",
+            "gate": "RUNTIME_PRECONDITIONS",
+            "reason_codes": list(reasons),
+            "daily_loss_remaining_eur": observation.get("daily_loss_remaining_eur"),
+            "drawdown_percent": observation.get("drawdown_percent"),
+            "position_limit": observation.get("max_simultaneous_positions", 1),
+            "kill_switch_engaged": observation.get("kill_switch_engaged", False),
+        }
+    if not isinstance(observation.get("execution"), dict):
+        status_by_state = {
+            "POSITION_OPEN": "POSITION_OPEN",
+            "POSITION_MONITOR": "POSITION_OPEN",
+            "RECONCILING": "RECONCILIATION_BLOCK",
+            "SECURITY_HARD_BLOCK": "BLOCKED",
+            "EXECUTION_PAUSED": "BLOCKED",
+        }
+        observation["execution"] = {
+            "status": status_by_state.get(state, "NO_ORDER"),
+            "reconciliation_status": observation.get("reconciliation", "NOT_STARTED"),
+            "broker_submission_called": observation.get("broker_submission_called") is True,
+        }
 
 
 def _run_autonomous_demo_cycle(control: dict[str, object]) -> dict[str, object]:

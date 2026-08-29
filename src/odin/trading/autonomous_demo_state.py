@@ -284,6 +284,11 @@ def autonomous_demo_dashboard_state(
                 "completed_trades_today",
                 "positions_count",
                 "orders_count",
+                "floating_pnl",
+                "drawdown_percent",
+                "daily_loss_remaining_eur",
+                "max_completed_trades_per_day",
+                "max_simultaneous_positions",
             )
         },
         "market": {
@@ -295,11 +300,15 @@ def autonomous_demo_dashboard_state(
                 "ask",
                 "spread",
                 "spread_points",
+                "spread_pips",
+                "spread_limit",
+                "spread_limit_points",
                 "data_freshness",
                 "data_age_seconds",
                 "normalized_event_time_utc",
                 "time_profile",
                 "market_open",
+                "symbol_trade_mode",
             )
         },
         "decision": safe_observed.get("latest_decision"),
