@@ -13,6 +13,8 @@
 - Heartbeat: `D:\ODIN_LOCAL\state\autonomous_demo_heartbeat.json`
 - Incidentes: `D:\ODIN_LOCAL\state\autonomous_demo_incidents.jsonl`
 - Logs: `D:\ODIN_LOCAL\logs\autonomous-demo`
+- Resource probe: `Get-ODIN-Autonomous-Demo-Resources.ps1`; o Cockpit mostra o
+  gate e a telemetria disponível. Temperatura observada >=80 °C pausa execução.
 
 ## Controlos seguros
 
@@ -34,6 +36,10 @@ Start-ScheduledTask -TaskName "ODIN Autonomous Demo Operations RC2"
 Stop-ScheduledTask -TaskName "ODIN Autonomous Demo Operations RC2"
 ```
 
+A tarefa chama diretamente o Python base registado no `pyvenv.cfg`; não usa o
+wrapper CMD/PowerShell no caminho persistente. Isto permite ao Task Scheduler
+terminar o processo real sem deixar um supervisor órfão.
+
 Parar a tarefa pausa o supervisor, não fecha posições no broker. Se existir uma
 posição DEMO, MT5 continua com SL/TP no broker; na retoma, MT5 é source of truth e
 a primeira ação é reconciliação. SAFE STOP no dashboard é preferível durante
@@ -44,6 +50,8 @@ operação normal porque mantém observabilidade.
 - Terminal exato OANDA TMS aberto e ligado à conta DEMO allowlisted.
 - Algo Trading ativado manualmente pelo operador; o ODIN nunca o ativa.
 - EURUSD.pro tradable, ticks FRESH e spread <= 0.00030.
+- resource gate sem BLOCK; ausência total de telemetria térmica, WSL offline,
+  instância lógica duplicada ou temperatura >=80 °C bloqueiam execução.
 
 Mercado fechado, NO_TRADE, spread temporário, stale data, Hermes indisponível ou
 reconexão não terminam o supervisor.

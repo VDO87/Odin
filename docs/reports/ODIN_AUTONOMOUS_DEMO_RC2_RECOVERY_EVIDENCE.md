@@ -22,6 +22,16 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - Estado final: `WAITING_MARKET`; `broker_submission_called=false`.
 - Resultado: `PASS`.
 
+### Controlo real pelo Task Scheduler
+
+- O caminho antigo via Python do venv deixava dois processos pai/filho vivos
+  depois de `Stop-ScheduledTask`; o teste foi classificado como falha real.
+- A tarefa passou a executar diretamente o Python base indicado no
+  `pyvenv.cfg`, mantendo o `site-packages` MT5 local sem instalação nem PATH.
+- Após a correção: estado da tarefa `Ready`, processos RC2 após stop `0`;
+  depois do start, tarefa `Running`, processos RC2 `1`, checkpoint `bf14f19`.
+- Resultado: `PASS`; o scheduler controla agora o processo real.
+
 ### Restart do TradeDesk/Cockpit
 
 - O processo WSL do dashboard foi terminado de forma controlada.
@@ -29,6 +39,18 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - `http://127.0.0.1:8765/health` voltou a HTTP 200.
 - A rota `/operations/autonomous-demo` expôs métricas e Hermes-versus-Reality.
 - Resultado: `PASS`.
+- Revalidação no checkpoint `cf5112c`: o listener anterior foi terminado e o
+  watchdog recuperou `127.0.0.1:8765` com novo PID, ambas as páginas HTTP 200,
+  resource gate e painéis RISK/EXECUTION visíveis.
+
+### Resource guardian
+
+- Probe real: GPU Quadro M4000 38–39 °C, 23/8192 MB VRAM, WSL ativo, FD soft
+  limit 10240, uma instância lógica, RAM e disco acima dos mínimos.
+- Temperatura CPU não é exposta por `MSAcpi_ThermalZoneTemperature`; o estado é
+  `WARNING=cpu_temperature_telemetry_unavailable`, sem valor inventado.
+- Testes offline provam BLOCK a 80 °C, sem telemetria térmica total, WSL offline,
+  memória/disco críticos e instância lógica duplicada.
 
 ### Restart do WSL
 

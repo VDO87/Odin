@@ -8,8 +8,9 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - Branch ativa: `feature/autonomous-demo-operations-rc2`.
 - Primeiro canary: `COMPLETE_AND_RECONCILED`, fecho por SL, P/L realizado
   `-0.88 EUR`.
-- Supervisor RC2: persistente via Windows Task Scheduler, single-instance,
-  heartbeat e estado durável.
+- Supervisor RC2: persistente via Windows Task Scheduler, ação direta do Python
+  base, single-instance, heartbeat e estado durável. `Stop-ScheduledTask` foi
+  comprovado com zero processos residuais e restart com uma instância.
 - TradeDesk: `http://127.0.0.1:8765/`.
 - Cockpit: `http://127.0.0.1:8765/cockpit`.
 - Broker: OANDA TMS Brokers S.A.; server `OANDATMS-MT5`; conta comprovadamente
@@ -21,6 +22,10 @@ MT5, histórico do broker e ledgers locais prevalecem.
   stale; `terminal_trade_allowed=false`; zero posições e zero ordens.
 - Trades autónomos RC2 completos: 0.
 - Soak de mercado aberto acumulado: 0 horas.
+- Resource guardian: ativo; GPU/VRAM, CPU/RAM, disco, WSL, FD/handles,
+  processos, logs/SQLite e Hermes/Ollama visíveis no Cockpit. O firmware não
+  expõe temperatura CPU; esta ausência aparece como warning explícito. GPU foi
+  observada a 38–39 °C, abaixo do limite de 80 °C.
 - Acceptance RC2: `NOT_READY` até 24 horas de mercado aberto e pelo menos cinco
   trades autónomos completos/reconciliados, além da suite final e recovery.
 
@@ -49,6 +54,14 @@ MT5, histórico do broker e ledgers locais prevalecem.
 - `59c384a` — ciclo financeiro e lifecycle reconciliation.
 - `ce9aa39` — dashboard financeiro live.
 - `ec6f03f` — relatórios operacionais duráveis.
+- `0d1742e` — racionalização e runbook.
+- `ae5be45` — controlos imediatos e deduplicação de incidentes.
+- `a97150c` — recovery e Hermes-versus-Reality no dashboard.
+- `e14c07b` — isolamento dos smokes e sentinelas do dashboard.
+- `1e945c3` — correção da race de sleep bounded.
+- `c422557` — resource guardian fail-closed.
+- `bf14f19` — processo direto controlado pelo Task Scheduler.
+- `cf5112c` — observabilidade financeira live completa.
 
 ## Próximos gates
 
@@ -57,7 +70,8 @@ MT5, histórico do broker e ledgers locais prevalecem.
 3. Supervisor observa decisões legítimas sem forçar sinal.
 4. Cada trade passa Strategy → Risk → Demo Gate → broker → ledgers → reconciliação.
 5. Acumular 24h de mercado aberto e pelo menos cinco trades autónomos completos.
-6. Validar recovery, suite completa, Ruff, mypy, diff e worktree limpa.
+6. A última suite integral verde antes das extensões finais teve `833 passed` e
+   `42 subtests`; repetir a suite integral no checkpoint final após o soak.
 
 `safe_to_trade=false`  
 `real_trading=false`  
