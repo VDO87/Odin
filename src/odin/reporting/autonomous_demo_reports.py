@@ -97,7 +97,7 @@ def update_autonomous_demo_reports(
     }
     _atomic_json(root / "ODIN_AUTONOMOUS_DEMO_METRICS.json", metrics)
     _write_closed_trades(root / "ODIN_AUTONOMOUS_DEMO_TRADES.jsonl", autonomous_closed)
-    incidents = _read_jsonl(Path(incidents_path))
+    incidents = _deduplicate_incidents(_read_jsonl(Path(incidents_path)))
     _write_status(root / "ODIN_AUTONOMOUS_DEMO_STATUS.md", supervisor_state, metrics)
     _write_incidents(root / "ODIN_AUTONOMOUS_DEMO_INCIDENTS.md", incidents)
     _write_repairs(root / "ODIN_AUTONOMOUS_DEMO_REPAIRS.md", incidents)
@@ -314,6 +314,19 @@ def _read_jsonl(path: Path) -> list[dict[str, object]]:
         if isinstance(value, dict):
             result.append(value)
     return result
+
+
+def _deduplicate_incidents(records: list[dict[str, object]]) -> list[dict[str, object]]:
+    latest: dict[str, dict[str, object]] = {}
+    order: list[str] = []
+    for record in records:
+        fingerprint = str(record.get("fingerprint", ""))
+        if not fingerprint:
+            continue
+        if fingerprint not in latest:
+            order.append(fingerprint)
+        latest[fingerprint] = record
+    return [latest[fingerprint] for fingerprint in order]
 
 
 def _parse_utc(value: object) -> datetime | None:

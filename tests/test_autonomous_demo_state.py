@@ -8,6 +8,7 @@ from odin.dashboard.routes import DashboardRoutes
 from odin.trading.autonomous_demo_state import (
     ALLOWED_STATES,
     append_incident,
+    append_repair_evidence,
     build_supervisor_state,
     read_control,
     read_state,
@@ -122,6 +123,25 @@ def test_incident_fingerprint_accumulates_occurrences_without_new_diagnosis(
     assert first["fingerprint"] == second["fingerprint"]
     assert second["occurrences"] == 2
     assert second["first_seen"] == first["first_seen"]
+
+    annotation = append_repair_evidence(
+        path,
+        fingerprint=str(second["fingerprint"]),
+        successful_fix="bounded_reconnect",
+        repair_attempts=2,
+        repair_files=["scripts/reconnect.py"],
+        repair_tests=["test_reconnect"],
+        state_before="RECOVERING",
+        state_after="MONITOR_ONLY",
+        checkpoint="abc1234",
+        now_utc=NOW + timedelta(minutes=2),
+    )
+
+    assert annotation["occurrences"] == 2
+    assert annotation["last_seen"] == second["last_seen"]
+    assert annotation["repair_annotation"] is True
+    assert annotation["repair_annotated_at"] == (NOW + timedelta(minutes=2)).isoformat()
+    assert annotation["successful_fix"] == "bounded_reconnect"
 
 
 def test_operator_control_fails_to_pause_and_never_enables_global_execution(

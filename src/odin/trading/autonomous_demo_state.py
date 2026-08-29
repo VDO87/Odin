@@ -202,6 +202,57 @@ def append_incident(
     return record
 
 
+def append_repair_evidence(
+    path: str | Path,
+    *,
+    fingerprint: str,
+    successful_fix: str,
+    repair_attempts: int,
+    repair_files: Iterable[str],
+    repair_tests: Iterable[str],
+    state_before: str,
+    state_after: str,
+    checkpoint: str,
+    regression_status: str = "RESOLVED",
+    now_utc: datetime | None = None,
+) -> dict[str, object]:
+    """Append repair metadata without fabricating a new incident occurrence."""
+    target = Path(path)
+    matches = [
+        item
+        for item in _read_jsonl_tail(target, limit=1000)
+        if item.get("fingerprint") == fingerprint
+    ]
+    if not matches:
+        raise ValueError("autonomous_demo_incident_fingerprint_not_found")
+    if not successful_fix:
+        raise ValueError("autonomous_demo_successful_fix_required")
+    latest = dict(matches[-1])
+    now = (now_utc or datetime.now(UTC)).astimezone(UTC).isoformat()
+    latest.update(
+        {
+            "repair_attempts": max(
+                _nonnegative_int(latest.get("repair_attempts")),
+                max(0, int(repair_attempts)),
+            ),
+            "successful_fix": _safe_scalar(successful_fix),
+            "repair_files": _safe_string_list(repair_files),
+            "repair_tests": _safe_string_list(repair_tests),
+            "state_before": _safe_scalar(state_before),
+            "state_after": _safe_scalar(state_after),
+            "checkpoint": _safe_scalar(checkpoint),
+            "regression_status": _safe_scalar(regression_status),
+            "repair_annotation": True,
+            "repair_annotated_at": now,
+            **GLOBAL_GUARDRAILS,
+        }
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(latest, sort_keys=True) + "\n")
+    return latest
+
+
 def read_control(path: str | Path) -> dict[str, object]:
     """Read an operator request. Missing or invalid input fails to PAUSE."""
     try:

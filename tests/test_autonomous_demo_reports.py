@@ -73,6 +73,15 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
         regression_status="RESOLVED",
         now_utc=NOW,
     )
+    append_incident(
+        runtime / "incidents.jsonl",
+        incident_type="DASHBOARD_RECOVERY",
+        component="tradedesk_cockpit",
+        error_code="dashboard_healthcheck_failed",
+        root_cause="dashboard_process_unavailable",
+        evidence={"health_status": "unavailable"},
+        now_utc=NOW + timedelta(seconds=1),
+    )
     kwargs = {
         "report_root": reports,
         "supervisor_state": _state(),
@@ -108,6 +117,7 @@ def test_reports_accumulate_only_fresh_market_open_soak_and_stay_not_ready(
     assert "State before: DASHBOARD_UNAVAILABLE" in repairs
     assert "State after: DASHBOARD_RUNNING" in repairs
     assert "Checkpoint: abc1234" in repairs
+    assert repairs.count("dashboard_restarted_by_bounded_launcher") == 1
 
 
 def test_hermes_claim_is_scored_once_per_unchanged_context(tmp_path: Path) -> None:
