@@ -113,12 +113,14 @@ def test_eu_dst_transitions_apply_the_documented_seasonal_offsets() -> None:
         now_utc=before_autumn + timedelta(seconds=1),
         broker=BROKER,
         server=SERVER,
+        source_observed_offset_seconds=7200,
     )
     winter_after_autumn = normalize_broker_timestamp(
         after_autumn.timestamp() + 3600,
         now_utc=after_autumn + timedelta(seconds=1),
         broker=BROKER,
         server=SERVER,
+        source_observed_offset_seconds=3600,
     )
     assert winter.status == "NORMALIZED"
     assert winter.observed_server_offset_seconds == 3600
@@ -138,7 +140,7 @@ def test_unknown_profile_blocks_future_timestamp() -> None:
         server="Unknown",
     )
     assert result.status == "BLOCKED"
-    assert result.reason_codes == ("broker_time_profile_not_found", "future_market_timestamp")
+    assert result.reason_codes == ("broker_time_profile_not_found",)
 
 
 def test_unexpected_profile_offset_blocks() -> None:
@@ -147,9 +149,11 @@ def test_unexpected_profile_offset_blocks() -> None:
         now_utc=NOW,
         broker=BROKER,
         server=SERVER,
+        source_observed_offset_seconds=10800,
     )
     assert result.status == "BLOCKED"
     assert result.observed_server_offset_seconds == 10800
+    assert result.expected_server_offset_seconds == 7200
     assert result.reason_codes == ("unexpected_broker_time_offset",)
 
 
@@ -185,9 +189,72 @@ def test_oanda_profile_does_not_silently_accept_raw_utc_semantics() -> None:
         now_utc=NOW,
         broker=BROKER,
         server=SERVER,
+        source_observed_offset_seconds=0,
     )
     assert result.status == "BLOCKED"
     assert result.reason_codes == ("unexpected_broker_time_offset",)
+
+
+def test_stale_summer_tick_keeps_profile_valid_and_separates_freshness() -> None:
+    now = datetime(2026, 8, 29, 10, 9, 47, tzinfo=UTC)
+    event_utc = datetime(2026, 8, 28, 20, 58, 59, tzinfo=UTC)
+    raw_server_epoch = event_utc.timestamp() + 7200
+
+    result = assess_market_timestamp(
+        raw_server_epoch,
+        now_utc=now,
+        broker=BROKER,
+        server=SERVER,
+    )
+
+    assert result.status == "STALE"
+    assert result.normalized_event_time_utc == event_utc.isoformat()
+    assert result.expected_server_offset_seconds == 7200
+    assert result.observed_server_offset_seconds == 7200
+    assert result.normalization_confidence == "HIGH"
+    assert result.reason_codes == ("stale_data", "stale_data_threshold_exceeded")
+    assert "unexpected_broker_time_offset" not in result.reason_codes
+    assert result.age_seconds == 47448
+
+
+def test_stale_weekend_tick_is_not_reclassified_as_timezone_mismatch() -> None:
+    friday_close_utc = datetime(2026, 8, 28, 20, 58, 59, tzinfo=UTC)
+    saturday_utc = datetime(2026, 8, 29, 10, 9, 47, tzinfo=UTC)
+
+    result = assess_market_timestamp(
+        friday_close_utc.timestamp() + 7200,
+        now_utc=saturday_utc,
+        broker=BROKER,
+        server=SERVER,
+    )
+
+    assert result.status == "STALE"
+    assert result.source_profile == "oanda_tms_mt5_cet_cest_v1"
+    assert result.normalization_method == "SOURCE_PROFILE_CET_CEST_EU_V1"
+    assert result.reason_codes == ("stale_data", "stale_data_threshold_exceeded")
+
+
+def test_unknown_profile_blocks_even_when_timestamp_is_old() -> None:
+    result = assess_market_timestamp(
+        (NOW - timedelta(hours=4)).timestamp(),
+        now_utc=NOW,
+        broker="Unknown Broker",
+        server="Unknown Server",
+    )
+    assert result.status == "BLOCKED"
+    assert result.reason_codes == ("broker_time_profile_not_found",)
+
+
+def test_dst_fallback_ambiguous_wall_clock_blocks_without_offset_evidence() -> None:
+    event_utc = datetime(2026, 10, 25, 0, 30, tzinfo=UTC)
+    result = normalize_broker_timestamp(
+        event_utc.timestamp() + 7200,
+        now_utc=event_utc + timedelta(seconds=1),
+        broker=BROKER,
+        server=SERVER,
+    )
+    assert result.status == "BLOCKED"
+    assert result.reason_codes == ("broker_time_dst_ambiguous",)
 
 
 def test_real_and_unknown_still_hard_block_with_no_broker_submission() -> None:

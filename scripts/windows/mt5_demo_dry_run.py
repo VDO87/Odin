@@ -273,6 +273,7 @@ def _evidence(
         normalized_event_time_utc=market_time.normalized_event_time_utc,
         normalization_method=market_time.normalization_method,
         observed_server_offset_seconds=market_time.observed_server_offset_seconds,
+        expected_server_offset_seconds=market_time.expected_server_offset_seconds,
         normalization_confidence=market_time.normalization_confidence,
         market_time_source_profile=market_time.source_profile,
     )
@@ -336,6 +337,7 @@ def _public_result(
         "normalized_event_time_utc": evidence.normalized_event_time_utc,
         "normalization_method": evidence.normalization_method,
         "observed_server_offset_seconds": evidence.observed_server_offset_seconds,
+        "expected_server_offset_seconds": evidence.expected_server_offset_seconds,
         "normalization_confidence": evidence.normalization_confidence,
         "market_time_source_profile": evidence.market_time_source_profile,
         "timezone_assumptions": {

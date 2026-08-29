@@ -33,6 +33,7 @@ def test_stage0_probe_is_dry_run_only_and_fail_closed() -> None:
     assert '"broker_timestamp_raw"' in probe
     assert '"normalized_event_time_utc"' in probe
     assert '"normalization_method"' in probe
+    assert '"expected_server_offset_seconds"' in probe
     assert "order_send" not in probe
     assert '"real_trading": False' in probe
     assert '"execution_allowed": False' in probe

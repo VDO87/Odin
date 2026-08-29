@@ -20,6 +20,7 @@ class MarketTimeAssessment:
     normalized_event_time_utc: str | None
     normalization_method: str
     observed_server_offset_seconds: int | None
+    expected_server_offset_seconds: int | None
     normalization_confidence: str
     source_profile: str | None
 
@@ -33,7 +34,6 @@ class BrokerTimeProfile:
     standard_offset_seconds: int
     daylight_offset_seconds: int
     dst_rule: str
-    maximum_live_observation_lag_seconds: int
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,7 @@ class BrokerTimestampNormalization:
     normalized_epoch: float | None
     normalization_method: str
     observed_server_offset_seconds: int | None
+    expected_server_offset_seconds: int | None
     normalization_confidence: str
     source_profile: str | None
     reason_codes: tuple[str, ...]
@@ -59,7 +60,6 @@ OANDA_TMS_CET_CEST = BrokerTimeProfile(
     standard_offset_seconds=3600,
     daylight_offset_seconds=7200,
     dst_rule="EU_LAST_SUNDAY_MARCH_TO_LAST_SUNDAY_OCTOBER_01UTC",
-    maximum_live_observation_lag_seconds=300,
 )
 
 
@@ -93,6 +93,7 @@ def normalize_broker_timestamp(
     now_utc: datetime,
     broker: str | None = None,
     server: str | None = None,
+    source_observed_offset_seconds: int | None = None,
     allowed_future_clock_skew_seconds: int = 2,
 ) -> BrokerTimestampNormalization:
     """Normalize a source timestamp only when an exact audited profile proves the offset."""
@@ -116,13 +117,15 @@ def normalize_broker_timestamp(
             normalized_epoch=None,
             normalization_method="NONE",
             observed_server_offset_seconds=None,
+            expected_server_offset_seconds=None,
             normalization_confidence="NONE",
             source_profile=None,
             reason_codes=("market_timestamp_invalid",),
         )
 
     profile = _profile_for(broker, server)
-    if profile is None and raw <= current.timestamp() + allowed_future_clock_skew_seconds:
+    source_identity_supplied = broker is not None or server is not None
+    if profile is None and not source_identity_supplied:
         return BrokerTimestampNormalization(
             status="ACCEPTED",
             broker_timestamp_raw=raw,
@@ -132,17 +135,13 @@ def normalize_broker_timestamp(
             normalized_epoch=raw,
             normalization_method="RAW_UTC_NO_TRANSFORMATION",
             observed_server_offset_seconds=0,
+            expected_server_offset_seconds=0,
             normalization_confidence="HIGH",
             source_profile=None,
             reason_codes=(),
         )
 
     if profile is None:
-        reasons = (
-            ("broker_time_profile_not_found", "future_market_timestamp")
-            if broker is not None or server is not None
-            else ("future_market_timestamp", "clock_skew_detected")
-        )
         return BrokerTimestampNormalization(
             status="BLOCKED",
             broker_timestamp_raw=raw,
@@ -152,20 +151,17 @@ def normalize_broker_timestamp(
             normalized_epoch=None,
             normalization_method="NONE",
             observed_server_offset_seconds=None,
+            expected_server_offset_seconds=None,
             normalization_confidence="NONE",
             source_profile=None,
-            reason_codes=reasons,
+            reason_codes=("broker_time_profile_not_found",),
         )
 
     candidates: list[tuple[int, datetime]] = []
-    observed_shift = raw - current.timestamp()
-    observed_rounded_hour_offset = int(round(observed_shift / 3600)) * 3600
     for offset in (profile.standard_offset_seconds, profile.daylight_offset_seconds):
         candidate = datetime.fromtimestamp(raw - offset, UTC)
         if _eu_server_offset_seconds(candidate, profile) == offset:
-            residual = abs(observed_shift - offset)
-            if residual <= profile.maximum_live_observation_lag_seconds:
-                candidates.append((offset, candidate))
+            candidates.append((offset, candidate))
     broker_server_time = f"{raw_as_utc.replace(tzinfo=None).isoformat()}[{profile.server_timezone}]"
     if not candidates:
         return BrokerTimestampNormalization(
@@ -176,11 +172,33 @@ def normalize_broker_timestamp(
             normalized_event_time_utc=None,
             normalized_epoch=None,
             normalization_method="SOURCE_PROFILE_REJECTED",
-            observed_server_offset_seconds=observed_rounded_hour_offset,
+            observed_server_offset_seconds=source_observed_offset_seconds,
+            expected_server_offset_seconds=None,
             normalization_confidence="NONE",
             source_profile=profile.profile_id,
             reason_codes=("unexpected_broker_time_offset",),
         )
+    if source_observed_offset_seconds is not None:
+        matching = [
+            item for item in candidates if item[0] == source_observed_offset_seconds
+        ]
+        if len(matching) != 1:
+            expected = candidates[0][0] if len(candidates) == 1 else None
+            return BrokerTimestampNormalization(
+                status="BLOCKED",
+                broker_timestamp_raw=raw,
+                broker_server_time=broker_server_time,
+                raw_datetime_as_utc=raw_as_utc.isoformat(),
+                normalized_event_time_utc=None,
+                normalized_epoch=None,
+                normalization_method="SOURCE_PROFILE_OFFSET_MISMATCH",
+                observed_server_offset_seconds=source_observed_offset_seconds,
+                expected_server_offset_seconds=expected,
+                normalization_confidence="NONE",
+                source_profile=profile.profile_id,
+                reason_codes=("unexpected_broker_time_offset",),
+            )
+        candidates = matching
     if len(candidates) != 1:
         return BrokerTimestampNormalization(
             status="BLOCKED",
@@ -190,7 +208,8 @@ def normalize_broker_timestamp(
             normalized_event_time_utc=None,
             normalized_epoch=None,
             normalization_method="SOURCE_PROFILE_AMBIGUOUS",
-            observed_server_offset_seconds=None,
+            observed_server_offset_seconds=source_observed_offset_seconds,
+            expected_server_offset_seconds=None,
             normalization_confidence="NONE",
             source_profile=profile.profile_id,
             reason_codes=("broker_time_dst_ambiguous",),
@@ -207,6 +226,7 @@ def normalize_broker_timestamp(
             normalized_epoch=normalized.timestamp(),
             normalization_method="SOURCE_PROFILE_CET_CEST_EU_V1",
             observed_server_offset_seconds=offset,
+            expected_server_offset_seconds=offset,
             normalization_confidence="HIGH",
             source_profile=profile.profile_id,
             reason_codes=("future_market_timestamp", "clock_skew_detected"),
@@ -220,6 +240,7 @@ def normalize_broker_timestamp(
         normalized_epoch=normalized.timestamp(),
         normalization_method="SOURCE_PROFILE_CET_CEST_EU_V1",
         observed_server_offset_seconds=offset,
+        expected_server_offset_seconds=offset,
         normalization_confidence="HIGH",
         source_profile=profile.profile_id,
         reason_codes=(),
@@ -234,6 +255,7 @@ def assess_market_timestamp(
     allowed_future_clock_skew_seconds: int = 2,
     broker: str | None = None,
     server: str | None = None,
+    source_observed_offset_seconds: int | None = None,
 ) -> MarketTimeAssessment:
     """Normalize an audited source timestamp, then assess freshness in UTC."""
     if now_utc.tzinfo is None or now_utc.utcoffset() is None:
@@ -245,6 +267,7 @@ def assess_market_timestamp(
         now_utc=current,
         broker=broker,
         server=server,
+        source_observed_offset_seconds=source_observed_offset_seconds,
         allowed_future_clock_skew_seconds=allowed_future_clock_skew_seconds,
     )
     if normalization.status == "BLOCKED" or normalization.normalized_epoch is None:
@@ -264,6 +287,7 @@ def assess_market_timestamp(
             normalized_event_time_utc=normalization.normalized_event_time_utc,
             normalization_method=normalization.normalization_method,
             observed_server_offset_seconds=normalization.observed_server_offset_seconds,
+            expected_server_offset_seconds=normalization.expected_server_offset_seconds,
             normalization_confidence=normalization.normalization_confidence,
             source_profile=normalization.source_profile,
         )
@@ -294,6 +318,7 @@ def assess_market_timestamp(
         normalized_event_time_utc=normalization.normalized_event_time_utc,
         normalization_method=normalization.normalization_method,
         observed_server_offset_seconds=normalization.observed_server_offset_seconds,
+        expected_server_offset_seconds=normalization.expected_server_offset_seconds,
         normalization_confidence=normalization.normalization_confidence,
         source_profile=normalization.source_profile,
     )

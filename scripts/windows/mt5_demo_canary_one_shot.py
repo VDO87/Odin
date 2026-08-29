@@ -24,6 +24,7 @@ from mt5_demo_dry_run import (  # noqa: E402
 )
 from odin.contracts.demo_execution import CanaryAuthorization  # noqa: E402
 from odin.risk.demo_execution import evaluate_demo_risk  # noqa: E402
+from odin.trading.demo_decision_ledger import append_demo_decision  # noqa: E402
 from odin.trading.demo_execution_gate import (  # noqa: E402
     account_fingerprint,
     evaluate_demo_execution_gate,
@@ -146,6 +147,22 @@ def main() -> int:
                 ),
             )
 
+        decision_result = append_demo_decision(
+            path=Path(os.environ["ODIN_RC1_DECISION_LEDGER_PATH"]),
+            decision=_decision_record(proposal, evidence, risk),
+        )
+        if decision_result.get("status") not in {"RECORDED", "ALREADY_RECORDED"}:
+            return _finish(
+                report_path,
+                _public_result(
+                    _blocked("demo_decision_ledger_blocked"),
+                    proposal=proposal,
+                    evidence=evidence,
+                    risk=risk,
+                    authorization=None,
+                ),
+            )
+
         issued = datetime.now(UTC)
         authorization = CanaryAuthorization(
             proposal_id=proposal.proposal_id,
@@ -191,6 +208,31 @@ def _proposal_id(symbol: dict[str, object], tick: dict[str, object]) -> str:
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     return f"rc1-canary-{digest[:20]}"
+
+
+def _decision_record(proposal: Any, evidence: Any, risk: dict[str, object]) -> dict[str, object]:
+    return {
+        "schema": "odin.demo_execution_decision/v1",
+        "decision_id": proposal.decision_id,
+        "proposal_id": proposal.proposal_id,
+        "decision_timestamp_utc": proposal.timestamp_utc,
+        "decision_status": "CANARY_AUTHORIZED_ONE_SHOT",
+        "human_confirmation": "EXPLICIT_DEMO_CANARY_ONE_SHOT",
+        "account_mode": "DEMO",
+        "broker": evidence.broker,
+        "server": evidence.server,
+        "symbol": proposal.symbol,
+        "broker_symbol": evidence.broker_symbol,
+        "side": proposal.side,
+        "volume": proposal.volume,
+        "market_data_hash": proposal.market_data_hash,
+        "data_quality": proposal.data_quality,
+        "freshness": proposal.freshness,
+        "risk_result": risk,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
 
 
 def _public_result(

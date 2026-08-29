@@ -94,6 +94,7 @@ class DemoAccountEvidence:
     normalized_event_time_utc: str | None = None
     normalization_method: str = "NONE"
     observed_server_offset_seconds: int | None = None
+    expected_server_offset_seconds: int | None = None
     normalization_confidence: str = "NONE"
     market_time_source_profile: str | None = None
 

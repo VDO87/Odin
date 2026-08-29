@@ -285,6 +285,119 @@ def confirm_execution_reconciliation(
     }
 
 
+def confirm_execution_close(
+    *,
+    path: str | Path,
+    proposal_id: str,
+    close_evidence: dict[str, object],
+) -> dict[str, object]:
+    """Append one idempotent CLOSED event after MT5 history proves the lifecycle."""
+    target = Path(path)
+    verified = read_execution_ledger(target)
+    if verified["status"] != "OK":
+        return _reconciliation_confirmation_block("execution_ledger_invalid")
+    latest = verified.get("latest")
+    if not isinstance(latest, dict) or latest.get("proposal_id") != proposal_id:
+        return _reconciliation_confirmation_block("close_proposal_mismatch")
+
+    position_id = close_evidence.get("position_id")
+    if not isinstance(position_id, int) or position_id <= 0:
+        return _reconciliation_confirmation_block("close_position_id_invalid")
+    if latest.get("position_id") not in {None, position_id}:
+        return _reconciliation_confirmation_block("close_position_id_mismatch")
+    if latest.get("execution_status") == "CLOSED":
+        if latest.get("position_id") != position_id:
+            return _reconciliation_confirmation_block("closed_position_id_mismatch")
+        return {
+            "status": "ALREADY_CLOSED",
+            "appended": False,
+            "record": latest,
+            "execution_allowed": False,
+            "safe_to_trade": False,
+            "real_trading": False,
+        }
+    if (
+        latest.get("execution_status") != "RECONCILED"
+        or latest.get("reconciliation_status") != "RECONCILED"
+    ):
+        return _reconciliation_confirmation_block("execution_not_open_reconciled")
+    if (
+        close_evidence.get("status") != "CLOSED"
+        or close_evidence.get("broker_is_source_of_truth") is not True
+        or close_evidence.get("position_open") is not False
+        or close_evidence.get("pending_order") is not False
+    ):
+        return _reconciliation_confirmation_block("broker_close_not_proven")
+
+    close_time = close_evidence.get("close_time_utc")
+    close_reason = close_evidence.get("close_reason")
+    exit_price = close_evidence.get("exit_price")
+    realized_pnl = close_evidence.get("realized_pnl")
+    closed_volume = close_evidence.get("volume")
+    if not isinstance(close_time, str) or not close_time:
+        return _reconciliation_confirmation_block("close_time_missing")
+    try:
+        parsed_close = datetime.fromisoformat(close_time)
+    except ValueError:
+        return _reconciliation_confirmation_block("close_time_invalid")
+    if parsed_close.tzinfo is None or parsed_close.utcoffset() is None:
+        return _reconciliation_confirmation_block("close_time_not_utc")
+    if not isinstance(close_reason, str) or not close_reason:
+        return _reconciliation_confirmation_block("close_reason_missing")
+    if not isinstance(exit_price, (int, float)) or exit_price <= 0:
+        return _reconciliation_confirmation_block("exit_price_invalid")
+    if not isinstance(realized_pnl, (int, float)):
+        return _reconciliation_confirmation_block("realized_pnl_missing")
+    if (
+        not isinstance(closed_volume, (int, float))
+        or closed_volume != latest.get("executed_volume")
+    ):
+        return _reconciliation_confirmation_block("closed_volume_mismatch")
+
+    sequence = latest.get("sequence")
+    if not isinstance(sequence, int):
+        return _reconciliation_confirmation_block("execution_ledger_sequence_invalid")
+    record = dict(latest)
+    record.pop("record_hash", None)
+    record.update(
+        {
+            "sequence": sequence + 1,
+            "previous_record_hash": str(latest.get("record_hash", "")),
+            "git_commit": current_commit(),
+            "execution_status": "CLOSED",
+            "reconciliation_status": "RECONCILED",
+            "position_id": position_id,
+            "close_time": parsed_close.astimezone(UTC).isoformat(),
+            "exit_price": float(exit_price),
+            "realized_pnl": float(realized_pnl),
+            "close_reason": close_reason,
+            "close_order_id": close_evidence.get("close_order_id"),
+            "close_deal_id": close_evidence.get("close_deal_id"),
+            "commission": close_evidence.get("commission"),
+            "swap": close_evidence.get("swap"),
+            "fee": close_evidence.get("fee"),
+            "exit_slippage_points": close_evidence.get("exit_slippage_points"),
+            "close_evidence_hash": close_evidence.get("evidence_hash"),
+            "reconciled_at_utc": datetime.now(UTC).isoformat(),
+            "execution_allowed": False,
+            "safe_to_trade": False,
+            "real_trading": False,
+        }
+    )
+    sanitized = redact_for_audit(record)
+    sanitized["record_hash"] = _record_hash(sanitized)
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(sanitized, sort_keys=True) + "\n")
+    return {
+        "status": "CLOSED",
+        "appended": True,
+        "record": sanitized,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
+
+
 def _reservation_path(ledger_path: Path, proposal_id: str) -> Path:
     name = hashlib.sha256(proposal_id.encode()).hexdigest()
     return ledger_path.parent / ".execution_reservations" / f"{name}.json"
