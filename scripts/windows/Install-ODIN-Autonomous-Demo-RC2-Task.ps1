@@ -29,6 +29,10 @@ $basePython = ($basePythonLine -replace '^executable\s*=\s*', '').Trim()
 if (-not (Test-Path -LiteralPath $basePython -PathType Leaf)) {
     throw "ODIN RC2 base Python runtime is unavailable."
 }
+$basePythonw = Join-Path (Split-Path $basePython -Parent) "pythonw.exe"
+if (-not (Test-Path -LiteralPath $basePythonw -PathType Leaf)) {
+    throw "ODIN RC2 windowless Python runtime is unavailable."
+}
 $runtimeRoot = Join-Path $WorkingDirectory "runtime"
 $installedLauncher = Join-Path $runtimeRoot "Start-ODIN-Autonomous-Demo-RC2.ps1"
 $installedDashboardLauncher = Join-Path $runtimeRoot "Start-ODIN-Dashboard-Persistent.ps1"
@@ -61,9 +65,9 @@ if (
 }
 
 $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$powerShell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$installedLauncher`""
-$action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments -WorkingDirectory $WorkingDirectory
+$probe = Join-Path $RepoRoot "scripts\windows\mt5_autonomous_demo_supervisor.py"
+$arguments = "`"$probe`" --persistent-task"
+$action = New-ScheduledTaskAction -Execute $basePythonw -Argument $arguments -WorkingDirectory $WorkingDirectory
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet `
@@ -94,7 +98,7 @@ Write-Output "LOGON_TYPE=Interactive"
 Write-Output "MULTIPLE_INSTANCES=IgnoreNew"
 Write-Output "WORKING_DIRECTORY=$WorkingDirectory"
 Write-Output "PYTHON_RUNTIME=$basePython"
-Write-Output "TASK_LAUNCHER=$installedLauncher"
+Write-Output "TASK_RUNTIME=$basePythonw"
 Write-Output "INSTALLED_LAUNCHER=$installedLauncher"
 Write-Output "LAUNCHER_SHA256=$installedHash"
 Write-Output "DASHBOARD_LAUNCHER_SHA256=$dashboardInstalledHash"
