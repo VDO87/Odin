@@ -171,6 +171,7 @@ def test_dashboard_exposes_state_and_operator_controls_without_broker_capability
         autonomous_heartbeat_path=str(heartbeat_path),
         autonomous_control_path=str(control_path),
         autonomous_incidents_path=str(incidents_path),
+        autonomous_report_root=str(tmp_path / "reports"),
     )
 
     status, payload = routes.serve("/operations/autonomous-demo")

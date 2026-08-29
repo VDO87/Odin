@@ -144,6 +144,19 @@ def completed_reconciled_lifecycle(path: str | Path, decision_id: str) -> bool:
     )
 
 
+def closed_execution_records(path: str | Path) -> list[dict[str, object]]:
+    """Return verified CLOSED records for reporting without exposing reservations."""
+    target = Path(path)
+    if read_execution_ledger(target)["status"] != "OK":
+        return []
+    return [
+        dict(record)
+        for record in _read_records(target)
+        if record.get("execution_status") == "CLOSED"
+        and record.get("reconciliation_status") == "RECONCILED"
+    ]
+
+
 def analyze_execution_ledger(path: str | Path) -> dict[str, object]:
     """Return bounded anomalies for dashboards/supervision; never mutate ledger."""
     ledger_path = Path(path)

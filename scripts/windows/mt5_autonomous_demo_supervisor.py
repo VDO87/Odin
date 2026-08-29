@@ -48,6 +48,9 @@ from odin.trading.demo_decision_ledger import (  # noqa: E402
     demo_decision_already_recorded,
 )
 from odin.risk.demo_execution import evaluate_demo_risk  # noqa: E402
+from odin.reporting.autonomous_demo_reports import (  # noqa: E402
+    update_autonomous_demo_reports,
+)
 from odin.trading.demo_execution_service import run_autonomous_demo_order  # noqa: E402
 from odin.trading.demo_position_lifecycle import (  # noqa: E402
     reconcile_latest_broker_close,
@@ -122,6 +125,25 @@ def main() -> int:
                 checkpoint=os.environ.get("ODIN_RC2_CHECKPOINT", ""),
             )
             write_state(state_path, snapshot)
+            try:
+                update_autonomous_demo_reports(
+                    report_root=os.environ["ODIN_RC2_REPORT_ROOT"],
+                    supervisor_state=snapshot,
+                    ledger_path=os.environ["ODIN_RC2_LEDGER_PATH"],
+                    decision_ledger_path=os.environ["ODIN_RC2_DECISION_LEDGER_PATH"],
+                    incidents_path=incidents_path,
+                    hermes_claims_path=os.environ.get("ODIN_RC2_HERMES_CLAIMS_PATH"),
+                )
+            except Exception as error:  # reporting is non-authoritative and fail-visible
+                append_incident(
+                    incidents_path,
+                    incident_type="AUTONOMOUS_REPORTING_EXCEPTION",
+                    component="autonomous_demo_reports",
+                    error_code=type(error).__name__,
+                    root_cause="runtime_reporting_failed",
+                    evidence={"error_type": type(error).__name__},
+                    checkpoint=os.environ.get("ODIN_RC2_CHECKPOINT", ""),
+                )
             delay = min(300, interval * (2 ** min(failure_count, 3)))
             next_check = datetime.now(UTC) + timedelta(seconds=delay)
             write_heartbeat(

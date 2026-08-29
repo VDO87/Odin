@@ -230,12 +230,18 @@ def autonomous_demo_dashboard_state(
     state_path: str | Path,
     heartbeat_path: str | Path,
     incidents_path: str | Path,
+    report_root: str | Path | None = None,
     now_utc: datetime | None = None,
 ) -> dict[str, object]:
     """Read a bounded operational summary for the local dashboards."""
     current = read_state(state_path)
     heartbeat = _read_json(Path(heartbeat_path))
     incidents = _read_jsonl_tail(Path(incidents_path), limit=20)
+    reports = Path(report_root) if report_root is not None else None
+    metrics = _read_json(reports / "ODIN_AUTONOMOUS_DEMO_METRICS.json") if reports else {}
+    hermes_vs_reality = (
+        _read_jsonl_tail(reports / "ODIN_HERMES_VS_REALITY.jsonl", limit=20) if reports else []
+    )
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
     heartbeat_at = _parse_utc(heartbeat.get("heartbeat_at_utc"))
     heartbeat_age = int((now - heartbeat_at).total_seconds()) if heartbeat_at is not None else None
@@ -256,6 +262,8 @@ def autonomous_demo_dashboard_state(
         },
         "incidents": incidents,
         "incident_count_visible": len(incidents),
+        "metrics": metrics,
+        "hermes_vs_reality": hermes_vs_reality,
         "financial": {
             key: safe_observed.get(key)
             for key in (

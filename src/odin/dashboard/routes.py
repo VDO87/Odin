@@ -9,7 +9,10 @@ from uuid import uuid4
 
 from odin.adapters.brokers.isolated_observer import observer_status
 from odin.adapters.mt5.demo_session import reconcile_demo_session
-from odin.adapters.mt5.demo_readonly_state import read_demo_observation_audit, read_demo_readonly_state
+from odin.adapters.mt5.demo_readonly_state import (
+    read_demo_observation_audit,
+    read_demo_readonly_state,
+)
 from odin.adapters.mt5.feed_quality import mt5_feed_quality_status
 from odin.adapters.mt5.mock_bridge import mt5_bridge_status
 from odin.adapters.mt5.market_feed import mt5_market_feed_status
@@ -83,6 +86,7 @@ from odin.risk.gate import risk_gate
 from odin.storage.sqlite_store import SQLiteStore
 from odin.treasury.engine import treasury_status
 
+
 class DashboardRoutes:
     def __init__(
         self,
@@ -96,6 +100,7 @@ class DashboardRoutes:
         autonomous_heartbeat_path: str = "/mnt/d/ODIN_LOCAL/state/autonomous_demo_heartbeat.json",
         autonomous_control_path: str = "/mnt/d/ODIN_LOCAL/state/autonomous_demo_control.json",
         autonomous_incidents_path: str = "/mnt/d/ODIN_LOCAL/state/autonomous_demo_incidents.jsonl",
+        autonomous_report_root: str = "/mnt/d/ODIN_LOCAL/reports",
     ) -> None:
         self.log_path = log_path
         self.sqlite_path = sqlite_path
@@ -108,6 +113,7 @@ class DashboardRoutes:
         self.autonomous_heartbeat_path = autonomous_heartbeat_path
         self.autonomous_control_path = autonomous_control_path
         self.autonomous_incidents_path = autonomous_incidents_path
+        self.autonomous_report_root = autonomous_report_root
         self.run_id = str(uuid4())
         self.logger = JsonlLogger(log_path)
         self.store = SQLiteStore(sqlite_path)
@@ -144,6 +150,7 @@ class DashboardRoutes:
                 state_path=self.autonomous_state_path,
                 heartbeat_path=self.autonomous_heartbeat_path,
                 incidents_path=self.autonomous_incidents_path,
+                report_root=self.autonomous_report_root,
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
@@ -256,7 +263,9 @@ class DashboardRoutes:
 
         if path == "/observation/frame/quality":
             payload = observation_frame_quality_payload(
-                observation_frame_quality_status(log_path=self.log_path, sqlite_path=self.sqlite_path)
+                observation_frame_quality_status(
+                    log_path=self.log_path, sqlite_path=self.sqlite_path
+                )
             )
             self._audit(DASHBOARD_STATE_SERVED, {"path": path})
             return 200, payload
@@ -378,13 +387,22 @@ class DashboardRoutes:
     def configure_replay(self, value: object) -> tuple[int, dict[str, object]]:
         """Persist a constrained replay preference; it never enables execution."""
         result = save_replay_config(value)
-        event_name = "trading.replay_config.updated" if result["status"] == "OK" else "trading.replay_config.blocked"
-        self._audit(event_name, {"status": result["status"], "reason": result.get("reason", ""), "watchlist": result.get("watchlist", [])})
+        event_name = (
+            "trading.replay_config.updated"
+            if result["status"] == "OK"
+            else "trading.replay_config.blocked"
+        )
+        self._audit(
+            event_name,
+            {
+                "status": result["status"],
+                "reason": result.get("reason", ""),
+                "watchlist": result.get("watchlist", []),
+            },
+        )
         return (200 if result["status"] == "OK" else 400), result
 
-    def configure_autonomous_demo_control(
-        self, value: object
-    ) -> tuple[int, dict[str, object]]:
+    def configure_autonomous_demo_control(self, value: object) -> tuple[int, dict[str, object]]:
         """Persist PAUSE/SAFE_STOP/confirmed RESUME as a local operator request."""
         if not isinstance(value, dict):
             result = {
@@ -403,7 +421,10 @@ class DashboardRoutes:
             )
         self._audit(
             "operations.autonomous_demo_control",
-            {"status": result["status"], "action": value.get("action") if isinstance(value, dict) else ""},
+            {
+                "status": result["status"],
+                "action": value.get("action") if isinstance(value, dict) else "",
+            },
         )
         return (200 if result["status"] == "ACCEPTED" else 400), result
 
@@ -476,17 +497,41 @@ class DashboardRoutes:
     def _shadow_intelligence(self) -> dict[str, object]:
         """Expose P0 replay evidence only; this route cannot interact with a broker."""
         root = Path(os.environ.get("ODIN_LOCAL_ROOT", "/mnt/d/ODIN_LOCAL"))
-        manifests = sorted((root / "artifacts" / "market-data" / "EURUSD" / "M15").glob("*.manifest.json"))
+        manifests = sorted(
+            (root / "artifacts" / "market-data" / "EURUSD" / "M15").glob("*.manifest.json")
+        )
         if not manifests:
-            return {"status": "BLOCKED", "mode": "SHADOW", "reason": "validated_p0_dataset_unavailable", "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
+            return {
+                "status": "BLOCKED",
+                "mode": "SHADOW",
+                "reason": "validated_p0_dataset_unavailable",
+                "execution_allowed": False,
+                "safe_to_trade": False,
+                "real_trading": False,
+            }
         try:
             data = json.loads(manifests[-1].read_text(encoding="utf-8"))
             bars = load_validated_bars(artifact_root=root, dataset_hash=str(data["dataset_hash"]))
             replay = replay_shadow(bars)
             latest = replay["decisions"][-1] if replay["decisions"] else {}
-            return {"status": "OK", "mode": "SHADOW_REPLAY", "latest": latest, "decisions_hash": replay["decisions_hash"], "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
+            return {
+                "status": "OK",
+                "mode": "SHADOW_REPLAY",
+                "latest": latest,
+                "decisions_hash": replay["decisions_hash"],
+                "execution_allowed": False,
+                "safe_to_trade": False,
+                "real_trading": False,
+            }
         except (OSError, ValueError, KeyError, json.JSONDecodeError):
-            return {"status": "BLOCKED", "mode": "SHADOW", "reason": "validated_p0_dataset_invalid", "execution_allowed": False, "safe_to_trade": False, "real_trading": False}
+            return {
+                "status": "BLOCKED",
+                "mode": "SHADOW",
+                "reason": "validated_p0_dataset_invalid",
+                "execution_allowed": False,
+                "safe_to_trade": False,
+                "real_trading": False,
+            }
 
     def _audit(self, event_name: str, payload: dict[str, object]) -> None:
         event = OdinEvent.create(

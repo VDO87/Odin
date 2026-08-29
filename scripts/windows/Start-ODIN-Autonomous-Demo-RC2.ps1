@@ -75,6 +75,8 @@ $env:ODIN_RC2_STATE_PATH = Join-Path $StateRoot "autonomous_demo_state.json"
 $env:ODIN_RC2_HEARTBEAT_PATH = Join-Path $StateRoot "autonomous_demo_heartbeat.json"
 $env:ODIN_RC2_CONTROL_PATH = Join-Path $StateRoot "autonomous_demo_control.json"
 $env:ODIN_RC2_INCIDENTS_PATH = Join-Path $StateRoot "autonomous_demo_incidents.jsonl"
+$env:ODIN_RC2_REPORT_ROOT = $ReportRoot
+$env:ODIN_RC2_HERMES_CLAIMS_PATH = "D:\ODIN_LOCAL\runtime\hermes_claims.jsonl"
 $env:ODIN_RC2_DASHBOARD_LAUNCHER = $dashboardLauncher
 $env:ODIN_RC2_CYCLE_SECONDS = [string]$CycleSeconds
 $env:ODIN_RC2_BRANCH = "feature/autonomous-demo-operations-rc2"
@@ -105,6 +107,7 @@ finally {
         'ODIN_RC2_DECISION_LEDGER_PATH',
         'ODIN_RC2_MT5_STATE_PATH', 'ODIN_RC2_STATE_PATH', 'ODIN_RC2_HEARTBEAT_PATH',
         'ODIN_RC2_CONTROL_PATH', 'ODIN_RC2_INCIDENTS_PATH',
+        'ODIN_RC2_REPORT_ROOT', 'ODIN_RC2_HERMES_CLAIMS_PATH',
         'ODIN_RC2_DASHBOARD_LAUNCHER', 'ODIN_RC2_CYCLE_SECONDS',
         'ODIN_RC2_BRANCH', 'ODIN_RC2_CHECKPOINT'
     ) | ForEach-Object { Remove-Item "Env:$_" -ErrorAction SilentlyContinue }
