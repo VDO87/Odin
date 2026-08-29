@@ -139,6 +139,7 @@ def test_one_structured_analysis_per_trade_incident_and_daily_summary(
         "NO_PENDING_ANALYSIS",
     ]
     assert len(prompts) == 3
+    assert all("Produce exactly 1 concise factual claim" in prompt for prompt in prompts)
     events = [json.loads(line) for line in (tmp_path / "analysis.jsonl").read_text().splitlines()]
     assert [item["trigger_type"] for item in events] == [
         "TRADE_CLOSED",

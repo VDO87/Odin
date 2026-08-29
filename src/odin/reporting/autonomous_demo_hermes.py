@@ -219,7 +219,7 @@ def _prompt(candidate: dict[str, Any], context: object) -> str:
             "You are Hermes in ODIN read-only diagnostic mode.",
             "You have no financial authority. Never suggest or request an order, position, volume, SL, TP, or permission change.",
             "Return JSON only: {\"claims\":[{\"kind\":str,\"expected\":scalar_or_string_list,\"claim\":str,\"action\":str}]}",
-            "Use only the supplied facts. Produce 1 to 4 concise factual claims. Do not invent missing values.",
+            "Use only the supplied facts. Produce exactly 1 concise factual claim. Do not invent missing values.",
             "Expected must be a literal value from facts. Only decision_reason_codes may be a string list.",
             "Never use the schema words scalar or string_list as an expected value.",
             f"trigger_type={candidate['trigger_type']}",
@@ -249,7 +249,7 @@ def _parse_claims(
         return []
     allowed = _ALLOWED_KINDS[str(candidate["trigger_type"])]
     claims: list[dict[str, object]] = []
-    for raw in payload["claims"][:4]:
+    for raw in payload["claims"][:1]:
         if not isinstance(raw, dict) or raw.get("kind") not in allowed:
             continue
         expected = _expected_value(kind=str(raw["kind"]), value=raw.get("expected"))
@@ -291,7 +291,7 @@ def _default_runner(audit_log_path: str | Path) -> HermesRunner:
             max_task_seconds=50.0,
             max_attempts=1,
             context_size=2048,
-            max_output_tokens=256,
+            max_output_tokens=192,
             temperature=0.0,
             json_mode=True,
             audit_log_path=str(audit_log_path),
