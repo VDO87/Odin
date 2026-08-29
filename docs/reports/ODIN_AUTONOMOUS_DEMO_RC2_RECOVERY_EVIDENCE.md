@@ -474,6 +474,20 @@ Branch: `feature/autonomous-demo-operations-rc2`
   zero erros de consola. Validação: `20 passed`, Ruff, mypy isolado, sintaxe
   JavaScript, browser live e `git diff --check`: PASS. Repair registado como
   `OPERATOR_REPORTS_NAVIGATION`.
+- Os controlos do operador foram exercitados com mercado stale, zero
+  posições/ordens e reconciliação `RECONCILED`. `PAUSE DEMO EXECUTION` foi
+  acionado no browser e o ciclo seguinte entrou em `EXECUTION_PAUSED` com
+  `operator_pause`. O botão `RESUME` apresentou a confirmação visual obrigatória;
+  o pedido confirmado pelo endpoint local foi aceite e revalidou todos os gates,
+  regressando a `WAITING_MARKET` por `market_closed_or_stale`. O mesmo contrato
+  local recebeu `SAFE_STOP`, produziu `EXECUTION_PAUSED` com
+  `operator_safe_stop`, e um novo `RESUME` confirmado regressou a
+  `WAITING_MARKET`. A automação do browser não conseguiu concluir o click de
+  SAFE STOP devido a timeout do próprio browser; por isso a evidência desse
+  botão é a ligação estática ao mesmo endpoint mais o teste factual do endpoint,
+  não uma declaração de click end-to-end. Em todas as transições: submissão ao
+  broker `false`, zero exposição, `safe_to_trade=false`, `real_trading=false` e
+  `execution_allowed=false`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
