@@ -6,6 +6,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).parents[1]
 
@@ -183,6 +185,90 @@ def test_resource_probe_failure_diagnostic_is_bounded_and_never_stores_raw_outpu
     assert result["probe_output_bytes"] == 37
     assert len(result["probe_output_sha256"]) == 64
     assert "sensitive" not in json.dumps(result)
+
+
+def _load_snapshot_replace_helper() -> object:
+    supervisor = ROOT / "scripts/windows/mt5_autonomous_demo_supervisor.py"
+    tree = ast.parse(supervisor.read_text(encoding="utf-8"))
+    helper = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_replace_snapshot_with_bounded_retry"
+    )
+    namespace: dict[str, object] = {
+        "Path": Path,
+        "SNAPSHOT_REPLACE_ATTEMPTS": 4,
+        "SNAPSHOT_REPLACE_DELAY_SECONDS": 0.05,
+    }
+    exec(compile(ast.Module(body=[helper], type_ignores=[]), str(supervisor), "exec"), namespace)
+    return namespace["_replace_snapshot_with_bounded_retry"]
+
+
+def test_readonly_snapshot_replace_retries_transient_windows_contention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "mt5_state.tmp"
+    target = tmp_path / "mt5_state.json"
+    source.write_text("updated", encoding="utf-8")
+    target.write_text("initial", encoding="utf-8")
+    original_replace = Path.replace
+    attempts = 0
+    delays: list[float] = []
+
+    def replace_after_contention(path: Path, destination: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise PermissionError(5, "simulated Windows sharing contention")
+        return original_replace(path, destination)
+
+    class Clock:
+        @staticmethod
+        def sleep(seconds: float) -> None:
+            delays.append(seconds)
+
+    helper = _load_snapshot_replace_helper()
+    monkeypatch.setattr(Path, "replace", replace_after_contention)
+    helper.__globals__["time"] = Clock  # type: ignore[attr-defined]
+
+    helper(source, target)  # type: ignore[operator]
+
+    assert attempts == 2
+    assert delays == [0.05]
+    assert target.read_text(encoding="utf-8") == "updated"
+
+
+def test_readonly_snapshot_replace_fails_after_bounded_windows_contention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "mt5_state.tmp"
+    target = tmp_path / "mt5_state.json"
+    source.write_text("updated", encoding="utf-8")
+    target.write_text("initial", encoding="utf-8")
+    attempts = 0
+    delays: list[float] = []
+
+    def replace_blocked(_path: Path, _destination: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        raise PermissionError(5, "simulated persistent Windows sharing contention")
+
+    class Clock:
+        @staticmethod
+        def sleep(seconds: float) -> None:
+            delays.append(seconds)
+
+    helper = _load_snapshot_replace_helper()
+    monkeypatch.setattr(Path, "replace", replace_blocked)
+    helper.__globals__["time"] = Clock  # type: ignore[attr-defined]
+
+    with pytest.raises(PermissionError):
+        helper(source, target)  # type: ignore[operator]
+
+    assert attempts == 4
+    assert delays == pytest.approx([0.05, 0.1, 0.15])
+    assert target.read_text(encoding="utf-8") == "initial"
 
 
 def test_only_isolated_adapter_still_contains_one_order_send_call() -> None:

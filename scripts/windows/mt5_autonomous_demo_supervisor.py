@@ -91,6 +91,8 @@ MUTEX_NAME = "Local\\ODIN_AUTONOMOUS_DEMO_RC2_SUPERVISOR"
 ERROR_ALREADY_EXISTS = 183
 RESOURCE_PROBE_TIMEOUT_SECONDS = 45
 WSL_RESOURCE_PROBE_TIMEOUT_SECONDS = 10
+SNAPSHOT_REPLACE_ATTEMPTS = 4
+SNAPSHOT_REPLACE_DELAY_SECONDS = 0.05
 STOP_REQUESTED = False
 
 
@@ -1032,7 +1034,19 @@ def _persist_readonly_snapshot(
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(".tmp")
     temporary.write_text(json.dumps(unsigned, sort_keys=True), encoding="utf-8")
-    temporary.replace(target)
+    _replace_snapshot_with_bounded_retry(temporary, target)
+
+
+def _replace_snapshot_with_bounded_retry(temporary: Path, target: Path) -> None:
+    """Tolerate transient Windows reader contention without hiding persistent failure."""
+    for attempt in range(SNAPSHOT_REPLACE_ATTEMPTS):
+        try:
+            temporary.replace(target)
+            return
+        except PermissionError:
+            if attempt + 1 >= SNAPSHOT_REPLACE_ATTEMPTS:
+                raise
+            time.sleep(SNAPSHOT_REPLACE_DELAY_SECONDS * (attempt + 1))
 
 
 def _hard_block_observation(reason: str, terminal_path: str) -> dict[str, object]:
