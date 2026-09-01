@@ -556,6 +556,21 @@ Branch: `feature/autonomous-demo-operations-rc2`
   `RECONCILED`. A execução permaneceu corretamente em `EXECUTION_PAUSED` porque
   `terminal_trade_allowed=false`; o ODIN não alterou automaticamente Algo
   Trading. Submissão ao broker `false` e flags globais `false`.
+- A validação integral do checkpoint executou a suite sem exclusões e com
+  `ulimit -n 8192`: `885 passed`, `42 subtests`, zero falhas reportadas em
+  `602.64 s` (`605.14 s` de tempo externo). Ruff global passou; mypy isolado no
+  scope RC2 passou em 15 ficheiros; compilação dos entrypoints Windows e
+  `git diff --check` passaram. A expansão não isolada do mypy reproduziu 36
+  erros legados em 12 módulos importados fora do scope RC2, sem erro nos
+  ficheiros dirigidos e sem alteração de código para esconder dívida histórica.
+- Com zero posições e zero ordens, foi executado um único `wsl --shutdown` para
+  validar recovery real. O dashboard ficou transitoriamente indisponível e o
+  caminho persistente voltou a arrancar a distro sem comando manual de startup.
+  A prova pós-recovery observou novo kernel WSL com uptime de aproximadamente
+  113 segundos, Task Scheduler `Running`, heartbeat fresco no ciclo 23,
+  TradeDesk/Cockpit/health em HTTP 200, reconciliação `RECONCILED` e estado
+  `EXECUTION_PAUSED/terminal_trading_not_allowed`. Não houve posição, ordem,
+  submissão ao broker ou alteração dos guardrails.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
