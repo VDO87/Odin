@@ -10,6 +10,7 @@ from typing import Any
 
 from odin.trading.execution_ledger import (
     confirm_execution_close,
+    confirm_execution_reconciliation,
     read_execution_ledger,
 )
 from odin.trading.market_time import normalize_broker_timestamp
@@ -42,8 +43,13 @@ def reconcile_latest_broker_close(
     if ledger_state not in _ACTIVE_LEDGER_STATES:
         return _status("NO_CHANGE", "latest_lifecycle_not_open")
     position_id = _integer(latest.get("position_id"))
+    position_id_recovered = False
     if position_id <= 0:
-        return _blocked("active_lifecycle_position_id_missing")
+        recovered = _recover_position_id_from_submission_history(mt5, latest)
+        if recovered.get("status") != "RECOVERED":
+            return _blocked(str(recovered.get("reason", "active_lifecycle_position_id_missing")))
+        position_id = _integer(recovered.get("position_id"))
+        position_id_recovered = True
     if _contains_position(broker_positions, position_id):
         return _status("POSITION_OPEN", "broker_position_still_open")
     if _contains_order(broker_orders, position_id):
@@ -117,6 +123,22 @@ def reconcile_latest_broker_close(
     evidence_hash = hashlib.sha256(
         json.dumps(raw_evidence, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
+    if (
+        latest.get("execution_status") in {"SUBMITTED", "FILLED"}
+        and latest.get("reconciliation_status") == "PENDING"
+    ):
+        reconciled = confirm_execution_reconciliation(
+            path=ledger_path,
+            proposal_id=str(latest.get("proposal_id", "")),
+            reconciliation_result={
+                "status": "RECONCILED",
+                "broker_is_source_of_truth": True,
+                "reason": "broker_history_proved_submission_lifecycle",
+            },
+            position_id=position_id,
+        )
+        if reconciled.get("status") not in {"RECONCILED", "ALREADY_RECONCILED"}:
+            return _blocked("execution_ledger_reconciliation_blocked")
     result = confirm_execution_close(
         path=ledger_path,
         proposal_id=str(latest.get("proposal_id", "")),
@@ -151,6 +173,89 @@ def reconcile_latest_broker_close(
         "close_reason": close_reason,
         "realized_pnl": realized_pnl,
         "evidence_hash": evidence_hash,
+        "position_id_recovered": position_id_recovered,
+        "broker_submission_called": False,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
+
+
+def _recover_position_id_from_submission_history(
+    mt5: Any, latest: dict[str, object]
+) -> dict[str, object]:
+    """Recover one broker position id from exact persisted submission identifiers."""
+    submission = latest.get("order_send_result")
+    if not isinstance(submission, dict):
+        return _recovery_block("active_lifecycle_submission_evidence_missing")
+    deal_ticket = _integer(submission.get("deal"))
+    order_ticket = _integer(submission.get("order"))
+    ledger_ticket = _integer(latest.get("ticket"))
+    if deal_ticket <= 0 or order_ticket <= 0 or ledger_ticket != order_ticket:
+        return _recovery_block("active_lifecycle_submission_identifiers_invalid")
+
+    deals_value = mt5.history_deals_get(ticket=deal_ticket)
+    orders_value = mt5.history_orders_get(ticket=order_ticket)
+    if deals_value is None or orders_value is None:
+        return _recovery_block("broker_submission_history_unavailable")
+    deals = [_mapping(item) for item in deals_value]
+    orders = [_mapping(item) for item in orders_value]
+    if len(deals) != 1 or len(orders) != 1:
+        return _recovery_block("broker_submission_history_not_unique")
+    deal = deals[0]
+    order = orders[0]
+
+    proposal_id = latest.get("proposal_id")
+    expected_symbol = latest.get("broker_symbol")
+    expected_side = latest.get("side")
+    expected_volume = _number(latest.get("executed_volume"))
+    if not isinstance(proposal_id, str) or not proposal_id:
+        return _recovery_block("active_lifecycle_proposal_id_missing")
+    expected_magic = int(hashlib.sha256(proposal_id.encode()).hexdigest()[:8], 16)
+    expected_comment = f"ODIN_RC2_{proposal_id[:12]}"
+    expected_type = (
+        getattr(mt5, "DEAL_TYPE_BUY", 0)
+        if expected_side == "BUY"
+        else getattr(mt5, "DEAL_TYPE_SELL", 1)
+        if expected_side == "SELL"
+        else None
+    )
+    expected_order_type = (
+        getattr(mt5, "ORDER_TYPE_BUY", 0)
+        if expected_side == "BUY"
+        else getattr(mt5, "ORDER_TYPE_SELL", 1)
+        if expected_side == "SELL"
+        else None
+    )
+    position_ids = {
+        _integer(deal.get("position_id")),
+        _integer(order.get("position_id")),
+    }
+    position_ids.discard(0)
+    checks = (
+        _integer(deal.get("ticket")) == deal_ticket,
+        _integer(deal.get("order")) == order_ticket,
+        _integer(order.get("ticket")) == order_ticket,
+        len(position_ids) == 1,
+        deal.get("symbol") == expected_symbol,
+        order.get("symbol") == expected_symbol,
+        expected_type is not None and _integer(deal.get("type")) == expected_type,
+        expected_order_type is not None and _integer(order.get("type")) == expected_order_type,
+        _integer(deal.get("entry")) == getattr(mt5, "DEAL_ENTRY_IN", 0),
+        expected_volume > 0 and _number(deal.get("volume")) == expected_volume,
+        _number(order.get("volume_initial")) == expected_volume,
+        _integer(order.get("state")) == getattr(mt5, "ORDER_STATE_FILLED", 4),
+        _integer(deal.get("magic")) == expected_magic,
+        _integer(order.get("magic")) == expected_magic,
+        deal.get("comment") == expected_comment,
+        order.get("comment") == expected_comment,
+    )
+    if not all(checks):
+        return _recovery_block("broker_submission_history_mismatch")
+    return {
+        "status": "RECOVERED",
+        "reason": "position_id_recovered_from_exact_submission_history",
+        "position_id": next(iter(position_ids)),
         "broker_submission_called": False,
         "execution_allowed": False,
         "safe_to_trade": False,
@@ -222,3 +327,14 @@ def _status(status: str, reason: str) -> dict[str, object]:
 
 def _blocked(reason: str) -> dict[str, object]:
     return _status("RECONCILIATION_BLOCK", reason)
+
+
+def _recovery_block(reason: str) -> dict[str, object]:
+    return {
+        "status": "BLOCKED",
+        "reason": reason,
+        "broker_submission_called": False,
+        "execution_allowed": False,
+        "safe_to_trade": False,
+        "real_trading": False,
+    }
