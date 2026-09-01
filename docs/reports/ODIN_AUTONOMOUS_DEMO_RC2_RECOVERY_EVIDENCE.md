@@ -524,6 +524,13 @@ Branch: `feature/autonomous-demo-operations-rc2`
   e encontrou zero ocorrências de token/password OANDA, Bearer credential,
   segredo JSON ou login/account ID não mascarado. `.env`, fontes e bundles foram
   deliberadamente excluídos porque esta prova cobre saídas persistidas.
+- A atualização read-only de `2026-09-01` examinou 171 ficheiros textuais ativos
+  em `logs`, `reports`, `state` e `runtime` (6.273.547 bytes), além dos ficheiros
+  SQLite/DB através de pesquisa binária que devolveu apenas contagens. Não foi
+  lido o `.env` nem impresso qualquer valor. Foram encontrados zero ficheiros
+  com Bearer token, password JSON, atribuição de password/token OANDA ou
+  login/account ID persistido; os SQLite/DB também devolveram zero matches para
+  essas categorias.
 - Em `2026-09-01`, o terceiro lifecycle autónomo ficou persistido como
   `FILLED/PENDING` sem `position_id`, apesar de o broker já não apresentar
   posições ou ordens. Uma sonda MT5 estritamente read-only encontrou exatamente
