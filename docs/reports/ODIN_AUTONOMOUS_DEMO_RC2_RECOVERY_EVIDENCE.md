@@ -575,9 +575,17 @@ Branch: `feature/autonomous-demo-operations-rc2`
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
   reboot humano oportuno.
-- Restart com posição aberta: não executado porque não existe posição e é proibido
-  forçar um trade para criar evidência. O recovery path broker-first tem testes
-  offline e será observado quando surgir uma posição legítima.
+- Restart/recovery com posição aberta: observado factualmente em `2026-09-01`.
+  O processo persistente terminou inesperadamente com o resultado Task Scheduler
+  `0xC000013A` enquanto existia uma posição DEMO legítima; a origem concreta do
+  encerramento permanece `windows_process_control_exit_origin_unresolved`. A
+  posição permaneceu no broker com SL/TP e zero ordens pendentes. Uma única
+  retoma controlada da tarefa reconstruiu o estado a partir do MT5, iniciou uma
+  única instância bootstrap/supervisor e regressou a `POSITION_MONITOR` com uma
+  posição, zero ordens, reconciliação `RECONCILED`, heartbeat fresco e
+  TradeDesk/Cockpit/health HTTP 200. Não existiu reenvio, nova submissão ou
+  alteração dos guardrails. O incidente está registado como
+  `SUPERVISOR_UNEXPECTED_EXIT_DURING_POSITION`; não se inventou uma root cause.
 - Resposta perdida de broker: coberta por testes fake/offline; não provocar timeout
   real nem reenviar ordem.
 
