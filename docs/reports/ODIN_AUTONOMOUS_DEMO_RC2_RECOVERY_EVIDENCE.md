@@ -524,6 +524,38 @@ Branch: `feature/autonomous-demo-operations-rc2`
   e encontrou zero ocorrências de token/password OANDA, Bearer credential,
   segredo JSON ou login/account ID não mascarado. `.env`, fontes e bundles foram
   deliberadamente excluídos porque esta prova cobre saídas persistidas.
+- Em `2026-09-01`, o terceiro lifecycle autónomo ficou persistido como
+  `FILLED/PENDING` sem `position_id`, apesar de o broker já não apresentar
+  posições ou ordens. Uma sonda MT5 estritamente read-only encontrou exatamente
+  um deal e uma ordem pelos identificadores já guardados no Execution Ledger,
+  um único `position_id`, símbolo `EURUSD.pro`, lado BUY, volume de entrada e
+  saída `0.01`, `magic` e comentário ODIN coincidentes e histórico integralmente
+  fechado. O checkpoint `d492516` passou a recuperar o vínculo apenas quando
+  todas essas provas são únicas e coerentes; evidência ausente, ambígua ou
+  divergente continua a bloquear. A prova sobre uma cópia temporária passou e a
+  retoma em `PAUSE` acrescentou apenas `RECONCILED` e `CLOSED` ao ledger real:
+  23 registos, cadeia `OK`, quatro lifecycles DEMO fechados no total, três
+  autónomos, zero anomalias, zero duplicados e zero erros de reconciliação.
+  Validação: 6 testes de lifecycle, 94 testes adjacentes e sonda real sobre
+  ledger temporário; submissão ao broker `false` durante toda a recuperação.
+- A mesma retoma revelou um stall transitório depois de o supervisor escrever o
+  estado e antes de publicar heartbeat. Hermes sem transporte completou em
+  `0.032 s`, reporting completo em `0.046 s` e o transporte Ollama isolado em
+  `1.828 s`, provando que o risco estava na chamada opcional síncrona sem um
+  limite duro ao nível do processo. O checkpoint `cd3fdc6` isolou apenas o
+  transporte Ollama num worker stdlib, remove segredos ODIN do respetivo
+  ambiente e termina-o após 55 segundos; timeout passa a `MODEL_UNAVAILABLE` e
+  não bloqueia o supervisor. O bundle imutável `cd3fdc6812c6`, inventário
+  SHA-256 `78D7E7966605D9313D0DCCD509E71B6EDB5C88A1B4B97A894B679CB66FA42B67`,
+  publicou dois heartbeats consecutivos em `EXECUTION_PAUSED/operator_pause` e
+  manteve TradeDesk, Cockpit e health em HTTP 200. Validação: 25 testes focados,
+  105 testes RC2 adjacentes, Ruff, mypy dirigido, `git diff --check` e worker
+  Ollama real em `4.703 s`: PASS.
+- Após `RESUME` confirmado, o ciclo live revalidou broker/server DEMO, zero
+  posições, zero ordens, mercado aberto, dados `FRESH` e reconciliação
+  `RECONCILED`. A execução permaneceu corretamente em `EXECUTION_PAUSED` porque
+  `terminal_trade_allowed=false`; o ODIN não alterou automaticamente Algo
+  Trading. Submissão ao broker `false` e flags globais `false`.
 
 - Restart Windows: não executado nesta sessão para não interromper o operador;
   autoarranque está instalado no Task Scheduler e permanece por validar após um
