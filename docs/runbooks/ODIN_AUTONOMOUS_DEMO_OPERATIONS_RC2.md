@@ -28,7 +28,7 @@ Os botões TradeDesk são a interface preferida. Em PowerShell:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu-ODIN\home\odin\projects\odin\scripts\windows\Set-ODIN-Autonomous-Demo-Control.ps1" -Action PAUSE
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu-ODIN\home\odin\projects\odin\scripts\windows\Set-ODIN-Autonomous-Demo-Control.ps1" -Action SAFE_STOP
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu-ODIN\home\odin\projects\odin\scripts\windows\Set-ODIN-Autonomous-Demo-Control.ps1" -Action RESUME
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "\\wsl.localhost\Ubuntu-ODIN\home\odin\projects\odin\scripts\windows\Set-ODIN-Autonomous-Demo-Control.ps1" -Action RESUME -ConfirmResume
 ```
 
 RESUME é apenas um pedido de revalidação. Não transforma nenhuma flag global em
