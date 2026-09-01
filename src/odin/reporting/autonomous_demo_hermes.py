@@ -10,11 +10,14 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 import hashlib
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
+import time
 from typing import Any
 
 from odin.contracts.events import redact_for_audit
-from odin.hermes.ollama_adapter import OllamaAdapter, OllamaAdapterConfig
 from odin.trading.execution_ledger import closed_execution_records
 
 
@@ -46,6 +49,8 @@ _ALLOWED_KINDS = {
     },
 }
 _LIST_KINDS = {"decision_reason_codes"}
+_WORKER_TIMEOUT_SECONDS = 55.0
+_SECRET_ENV_MARKERS = ("TOKEN", "PASSWORD", "SECRET", "LOGIN", "ACCOUNT_ID", "ODIN_OANDA")
 
 
 def run_next_hermes_reality_analysis(
@@ -285,23 +290,62 @@ def _parse_claims(
 
 
 def _default_runner(audit_log_path: str | Path) -> HermesRunner:
-    adapter = OllamaAdapter(
-        OllamaAdapterConfig(
-            timeout_seconds=45.0,
-            max_task_seconds=50.0,
-            max_attempts=1,
-            context_size=2048,
-            max_output_tokens=192,
-            temperature=0.0,
-            json_mode=True,
-            audit_log_path=str(audit_log_path),
-        )
-    )
-
     def run(task_id: str, prompt: str) -> dict[str, object]:
-        return adapter.run(task_id=task_id, prompt=prompt)
+        started = time.monotonic()
+        worker = Path(__file__).with_name("autonomous_demo_hermes_worker.py")
+        payload = json.dumps({"task_id": task_id, "prompt": prompt})
+        try:
+            completed = subprocess.run(
+                [sys.executable, str(worker)],
+                input=payload,
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=_WORKER_TIMEOUT_SECONDS,
+                env=_worker_environment(audit_log_path),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except subprocess.TimeoutExpired:
+            return _worker_failure("timeout", "worker_timeout", started)
+        except OSError:
+            return _worker_failure("failed", "worker_launch_failed", started)
+        if completed.returncode != 0:
+            return _worker_failure("failed", "worker_exit_failed", started)
+        if len(completed.stdout.encode("utf-8", errors="replace")) > 65_536:
+            return _worker_failure("failed", "worker_output_too_large", started)
+        try:
+            result = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            return _worker_failure("failed", "worker_output_invalid", started)
+        if not isinstance(result, dict):
+            return _worker_failure("failed", "worker_output_invalid", started)
+        return result
 
     return run
+
+
+def _worker_environment(audit_log_path: str | Path) -> dict[str, str]:
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if not any(marker in key.upper() for marker in _SECRET_ENV_MARKERS)
+    }
+    source_root = str(Path(__file__).resolve().parents[2])
+    python_path = environment.get("PYTHONPATH", "")
+    environment["PYTHONPATH"] = (
+        source_root + os.pathsep + python_path if python_path else source_root
+    )
+    environment["ODIN_HERMES_WORKER_AUDIT_LOG_PATH"] = str(audit_log_path)
+    return environment
+
+
+def _worker_failure(status: str, error: str, started: float) -> dict[str, object]:
+    return {
+        "status": status,
+        "model": "UNAVAILABLE",
+        "duration_seconds": round(time.monotonic() - started, 3),
+        "error": error,
+    }
 
 
 def _latest_incidents(records: list[dict[str, object]]) -> list[dict[str, object]]:

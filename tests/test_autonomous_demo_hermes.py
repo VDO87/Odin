@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import subprocess
 
 import odin.reporting.autonomous_demo_hermes as hermes
 from odin.trading.autonomous_demo_state import build_supervisor_state
@@ -231,3 +232,62 @@ def test_no_trade_is_limited_to_one_relevant_analysis_per_utc_day(
     assert first["event"]["trigger_id"] == "no-trade:2026-08-29"
     assert second["event"]["trigger_id"] == "daily:2026-08-29"
     assert third["status"] == "NO_PENDING_ANALYSIS"
+
+
+def test_default_runner_isolates_transport_and_redacts_worker_environment(
+    tmp_path: Path, monkeypatch
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setenv("ODIN_OANDA_PRACTICE_TOKEN", "must-not-reach-worker")
+    monkeypatch.setenv("ODIN_RC2_EXPECTED_LOGIN", "must-not-reach-worker")
+
+    def completed(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        captured["command"] = command
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=json.dumps(
+                {
+                    "status": "success",
+                    "model": "local-test-model",
+                    "duration_seconds": 0.1,
+                    "response": '{"claims":[]}',
+                    "error": None,
+                }
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(hermes.subprocess, "run", completed)
+    result = hermes._default_runner(tmp_path / "audit.jsonl")("task-id", "prompt")
+
+    assert result["status"] == "success"
+    command = captured["command"]
+    assert isinstance(command, list)
+    assert "task-id" not in command
+    assert "prompt" not in command
+    assert captured["timeout"] == 55.0
+    assert json.loads(str(captured["input"])) == {
+        "task_id": "task-id",
+        "prompt": "prompt",
+    }
+    environment = captured["env"]
+    assert isinstance(environment, dict)
+    assert "ODIN_OANDA_PRACTICE_TOKEN" not in environment
+    assert "ODIN_RC2_EXPECTED_LOGIN" not in environment
+    assert environment["ODIN_HERMES_WORKER_AUDIT_LOG_PATH"] == str(
+        tmp_path / "audit.jsonl"
+    )
+
+
+def test_default_runner_enforces_hard_worker_timeout(tmp_path: Path, monkeypatch) -> None:
+    def timeout(*_args: object, **_kwargs: object) -> object:
+        raise subprocess.TimeoutExpired(cmd=["worker"], timeout=55.0)
+
+    monkeypatch.setattr(hermes.subprocess, "run", timeout)
+    result = hermes._default_runner(tmp_path / "audit.jsonl")("task-id", "prompt")
+
+    assert result["status"] == "timeout"
+    assert result["error"] == "worker_timeout"
+    assert result["model"] == "UNAVAILABLE"
